@@ -4,24 +4,30 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {DocumentaryTradeEscrow} from "../src/DocumentaryTradeEscrow.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
+import {MockGatewayWallet} from "./mocks/MockGatewayWallet.sol";
 
 contract DocumentaryTradeEscrowTest is Test {
     uint256 internal constant TOTAL = 1_000_001;
     address internal constant BUYER = address(0xB0B);
     address internal constant SELLER = address(0x5E11E7);
     address internal constant ARBITER = address(0xAAB1);
-    address internal constant GATEWAY = address(0x6A7E);
+    address internal constant OPERATOR = address(0x0A11CE);
+    address internal constant GATEWAY = 0x0077777d7EBA4688BDeF3E311b846F25870A19B9;
     address internal constant PUBLIC_CALLER = address(999);
     address internal constant USDC = 0x3600000000000000000000000000000000000000;
 
     DocumentaryTradeEscrow internal escrow;
     MockUSDC internal usdc;
+    MockGatewayWallet internal gateway;
 
     function setUp() public {
         MockUSDC implementation = new MockUSDC();
         vm.etch(USDC, address(implementation).code);
         usdc = MockUSDC(USDC);
         usdc.setTransferFromResult(true);
+        MockGatewayWallet gatewayImplementation = new MockGatewayWallet();
+        vm.etch(GATEWAY, address(gatewayImplementation).code);
+        gateway = MockGatewayWallet(GATEWAY);
         escrow = _newEscrow();
     }
 
@@ -107,7 +113,7 @@ contract DocumentaryTradeEscrowTest is Test {
         assertEq(escrow.getState(), uint8(DocumentaryTradeEscrow.State.FINALIZED));
     }
 
-    function testDepositRejectsWrongReceivedAmountAndApprovesGateway() public {
+    function testDepositRejectsWrongReceivedAmountAndDepositsIntoGateway() public {
         _commit(_twoMilestones());
         usdc.mint(BUYER, TOTAL);
         vm.prank(BUYER);
@@ -127,7 +133,9 @@ contract DocumentaryTradeEscrowTest is Test {
         vm.prank(BUYER);
         escrow.depositUSDS();
         assertEq(escrow.getState(), uint8(DocumentaryTradeEscrow.State.ACTIVE));
-        assertEq(usdc.allowance(address(escrow), GATEWAY), TOTAL);
+        assertEq(usdc.allowance(address(escrow), GATEWAY), 0);
+        assertEq(usdc.balanceOf(address(escrow)), 0);
+        assertEq(gateway.balanceOf(USDC, address(escrow)), TOTAL);
         assertEq(escrow.milestoneUsdcAmount(0), 500_000);
         assertEq(escrow.milestoneUsdcAmount(1), 500_001);
         _assertInvariant();
@@ -159,15 +167,55 @@ contract DocumentaryTradeEscrowTest is Test {
         vm.prank(BUYER);
         escrow.confirmMilestone(1);
         vm.warp(block.timestamp + 51);
-        bytes32 transferHash = keccak256(abi.encode(SELLER, uint256(500_001), uint256(1)));
         vm.expectEmit(true, true, true, true, address(escrow));
-        emit DocumentaryTradeEscrow.MilestoneReleased(1, SELLER, 500_001, transferHash);
+        emit DocumentaryTradeEscrow.MilestoneReleased(1, SELLER, 500_001);
         vm.prank(PUBLIC_CALLER);
         escrow.release(1);
         _assertBalances(TOTAL, 0, 0);
         assertEq(escrow.getState(), uint8(DocumentaryTradeEscrow.State.FINALIZED));
-        assertEq(escrow.isValidSignature(transferHash, hex""), escrow.ERC1271_MAGICVALUE());
+        bytes32 salt = keccak256("gateway-eip712-burn-intent");
+        bytes32 burnIntentHash = escrow.getBurnIntentHash(1, type(uint256).max, 2_010_000, salt);
+        vm.prank(OPERATOR);
+        escrow.authorizeBurnIntent(1, type(uint256).max, 2_010_000, salt);
+        assertEq(escrow.isValidSignature(burnIntentHash, hex""), escrow.ERC1271_MAGICVALUE());
         _assertInvariant();
+    }
+
+    function testAuthorizeBurnIntentRequiresOperatorAndRecordedSettlement() public {
+        _activate(_singleMilestone());
+        vm.prank(OPERATOR);
+        vm.expectRevert(DocumentaryTradeEscrow.InvalidMilestoneState.selector);
+        escrow.authorizeBurnIntent(0, type(uint256).max, 2_010_000, keccak256("unknown"));
+
+        _trigger(0);
+        vm.warp(block.timestamp + 101);
+        escrow.release(0);
+        assertEq(escrow.getState(), uint8(DocumentaryTradeEscrow.State.FINALIZED));
+
+        bytes32 salt = keccak256("typed-data-hash");
+        bytes32 burnIntentHash = escrow.getBurnIntentHash(0, type(uint256).max, 2_010_000, salt);
+        assertTrue(burnIntentHash != escrow.getBurnIntentHash(0, type(uint256).max, 2_010_001, salt));
+        assertTrue(burnIntentHash != escrow.getBurnIntentHash(0, type(uint256).max, 2_010_000, keccak256("other-salt")));
+        vm.prank(PUBLIC_CALLER);
+        vm.expectRevert(DocumentaryTradeEscrow.Unauthorized.selector);
+        escrow.authorizeBurnIntent(0, type(uint256).max, 2_010_000, salt);
+
+        vm.prank(OPERATOR);
+        escrow.authorizeBurnIntent(0, type(uint256).max, 2_010_000, salt);
+        assertTrue(escrow.authorizedTransfers(burnIntentHash));
+        assertEq(escrow.settlementRecipient(0), SELLER);
+        assertEq(escrow.settlementAmount(0), TOTAL);
+
+        vm.prank(OPERATOR);
+        escrow.authorizeBurnIntent(0, type(uint256).max - 1, 2_010_000, keccak256("replacement"));
+        bytes32 replacementHash =
+            escrow.getBurnIntentHash(0, type(uint256).max - 1, 2_010_000, keccak256("replacement"));
+        assertEq(escrow.isValidSignature(burnIntentHash, hex""), escrow.ERC1271_MAGICVALUE());
+        assertEq(escrow.isValidSignature(replacementHash, hex""), escrow.ERC1271_MAGICVALUE());
+
+        vm.prank(OPERATOR);
+        vm.expectRevert(DocumentaryTradeEscrow.DuplicateBurnIntentAuthorization.selector);
+        escrow.authorizeBurnIntent(0, type(uint256).max - 2, 2_010_000, keccak256("replacement"));
     }
 
     function testDisputeAdvancesAndNextDeadlineUsesConclusionTimestamp() public {
@@ -345,7 +393,7 @@ contract DocumentaryTradeEscrowTest is Test {
 
     function _newEscrow() internal returns (DocumentaryTradeEscrow) {
         return
-            new DocumentaryTradeEscrow(BUYER, SELLER, ARBITER, GATEWAY, TOTAL, block.timestamp + 7 days, 1 hours, 500);
+            new DocumentaryTradeEscrow(BUYER, SELLER, ARBITER, OPERATOR, TOTAL, block.timestamp + 7 days, 1 hours, 500);
     }
 
     function _commit(DocumentaryTradeEscrow.Milestone[] memory terms) internal {

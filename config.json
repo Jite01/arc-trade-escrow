@@ -1,5 +1,5 @@
 {
-  "CONTRACT_ADDRESS": "0xEf62ABB6B89EfCf19C93a648652Fe457b72F54ee",
+  "CONTRACT_ADDRESS": "0x45c492c68aaaf228c0a127c344c2997c6b93fe32",
   "CONTRACT_ABI": [
     {
       "type": "constructor",
@@ -20,7 +20,7 @@
           "internalType": "address"
         },
         {
-          "name": "gatewayWalletAddress_",
+          "name": "operatorAddress_",
           "type": "address",
           "internalType": "address"
         },
@@ -49,6 +49,19 @@
     },
     {
       "type": "function",
+      "name": "ARC_TESTNET_DOMAIN",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint32",
+          "internalType": "uint32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
       "name": "ERC1271_INVALID",
       "inputs": [],
       "outputs": [
@@ -69,6 +82,32 @@
           "name": "",
           "type": "bytes4",
           "internalType": "bytes4"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "GATEWAY_MINTER_ADDRESS",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "GATEWAY_WALLET_ADDRESS",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
         }
       ],
       "stateMutability": "view"
@@ -182,6 +221,40 @@
         }
       ],
       "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "authorizeBurnIntent",
+      "inputs": [
+        {
+          "name": "settlementIndex",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "maxBlockHeight",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "maxFee",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "salt",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "burnIntentHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable"
     },
     {
       "type": "function",
@@ -452,6 +525,40 @@
           "name": "totalDisputed_",
           "type": "uint256",
           "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getBurnIntentHash",
+      "inputs": [
+        {
+          "name": "settlementIndex",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "maxBlockHeight",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "maxFee",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "salt",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
         }
       ],
       "stateMutability": "view"
@@ -739,6 +846,19 @@
     },
     {
       "type": "function",
+      "name": "operatorAddress",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
       "name": "proposeMilestones",
       "inputs": [
         {
@@ -833,6 +953,63 @@
       "type": "function",
       "name": "sellerApproved",
       "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "settlementAmount",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "settlementRecipient",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "settlementRecorded",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
       "outputs": [
         {
           "name": "",
@@ -952,12 +1129,37 @@
           "type": "uint256",
           "indexed": false,
           "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "BurnIntentAuthorized",
+      "inputs": [
+        {
+          "name": "burnIntentHash",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
         },
         {
-          "name": "transferHash",
-          "type": "bytes32",
+          "name": "settlementIndex",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "recipient",
+          "type": "address",
           "indexed": false,
-          "internalType": "bytes32"
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
         }
       ],
       "anonymous": false
@@ -1057,12 +1259,6 @@
           "type": "uint256",
           "indexed": false,
           "internalType": "uint256"
-        },
-        {
-          "name": "transferHash",
-          "type": "bytes32",
-          "indexed": false,
-          "internalType": "bytes32"
         }
       ],
       "anonymous": false
@@ -1107,12 +1303,6 @@
           "type": "uint256",
           "indexed": false,
           "internalType": "uint256"
-        },
-        {
-          "name": "transferHash",
-          "type": "bytes32",
-          "indexed": false,
-          "internalType": "bytes32"
         }
       ],
       "anonymous": false
@@ -1183,12 +1373,6 @@
           "type": "uint256",
           "indexed": false,
           "internalType": "uint256"
-        },
-        {
-          "name": "transferHash",
-          "type": "bytes32",
-          "indexed": false,
-          "internalType": "bytes32"
         }
       ],
       "anonymous": false
@@ -1220,6 +1404,16 @@
     {
       "type": "error",
       "name": "DeadlineNotReached",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "DuplicateBurnIntentAuthorization",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "GatewayDepositFailed",
       "inputs": []
     },
     {
@@ -1293,5 +1487,6 @@
   "EVENT_TOPIC_FORCED": "0x3ea63eaf11115c96245e0e1842e47d845525526ee21ffecd29f161c8bec75e4b",
   "EVENT_TOPIC_RECLAIMED": "0xa1a853f26b4fee51f54ad60e0ebc3ccfbe6a00dd71b8b3636396ab3723b2532b",
   "GATEWAY_WALLET_ADDRESS": "0x0077777d7EBA4688BDeF3E311b846F25870A19B9",
-  "DEPLOYMENT_BLOCK": 55838430
+  "GATEWAY_MINTER_ADDRESS": "0x0022222ABE238Cc2C7Bb1f21003F0a260052475B",
+  "DEPLOYMENT_BLOCK": "0x35567c7"
 }

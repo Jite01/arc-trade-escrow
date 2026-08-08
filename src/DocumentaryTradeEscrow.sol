@@ -8,13 +8,30 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
 
-/// @notice Documentary trade escrow account for Arc-native USDC.
-/// @dev Outbound USDC movement is deliberately delegated to the Circle Gateway Wallet.
+interface IGatewayWallet {
+    function deposit(address token, uint256 value) external;
+}
+
+/// @notice Documentary trade escrow with Gateway-held USDC and ERC-1271 burn-intent authorization.
+/// @dev Funds are deposited into Circle Gateway under this contract's address. This contract never transfers USDC out.
 contract DocumentaryTradeEscrow {
     bytes4 public constant ERC1271_MAGICVALUE = 0x1626ba7e;
     bytes4 public constant ERC1271_INVALID = 0xffffffff;
     address public constant USDC = 0x3600000000000000000000000000000000000000;
+    address public constant GATEWAY_WALLET_ADDRESS = 0x0077777d7EBA4688BDeF3E311b846F25870A19B9;
+    address public constant GATEWAY_MINTER_ADDRESS = 0x0022222ABE238Cc2C7Bb1f21003F0a260052475B;
     uint256 public constant MAX_MILESTONES = 50;
+    uint32 public constant ARC_TESTNET_DOMAIN = 26;
+
+    bytes32 private constant EIP712_DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version)");
+    bytes32 private constant TRANSFER_SPEC_TYPEHASH = keccak256(
+        "TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes hookData)"
+    );
+    bytes32 private constant BURN_INTENT_TYPEHASH = keccak256(
+        "BurnIntent(uint256 maxBlockHeight,uint256 maxFee,TransferSpec spec)TransferSpec(uint32 version,uint32 sourceDomain,uint32 destinationDomain,bytes32 sourceContract,bytes32 destinationContract,bytes32 sourceToken,bytes32 destinationToken,bytes32 sourceDepositor,bytes32 destinationRecipient,bytes32 sourceSigner,bytes32 destinationCaller,uint256 value,bytes32 salt,bytes hookData)"
+    );
+    bytes32 private constant GATEWAY_DOMAIN_SEPARATOR =
+        keccak256(abi.encode(EIP712_DOMAIN_TYPEHASH, keccak256("GatewayWallet"), keccak256("1")));
 
     enum State {
         NEGOTIATION,
@@ -41,6 +58,23 @@ contract DocumentaryTradeEscrow {
         uint256 disputeWindow;
     }
 
+    struct TransferSpecForHash {
+        uint32 version;
+        uint32 sourceDomain;
+        uint32 destinationDomain;
+        bytes32 sourceContract;
+        bytes32 destinationContract;
+        bytes32 sourceToken;
+        bytes32 destinationToken;
+        bytes32 sourceDepositor;
+        bytes32 destinationRecipient;
+        bytes32 sourceSigner;
+        bytes32 destinationCaller;
+        uint256 value;
+        bytes32 salt;
+        bytes32 hookDataHash;
+    }
+
     error Unauthorized();
     error InvalidState();
     error InvalidAddress();
@@ -56,12 +90,15 @@ contract DocumentaryTradeEscrow {
     error InvalidRecipient();
     error TokenTransferFailed();
     error IncorrectDepositReceived();
+    error GatewayDepositFailed();
+    error DuplicateBurnIntentAuthorization();
 
     State public contractState;
 
     address public immutable buyerAddress;
     address public immutable sellerAddress;
     address public immutable arbitrationAddress;
+    address public immutable operatorAddress;
     address public immutable gatewayWalletAddress;
     uint256 public immutable totalUSDC;
     uint256 public immutable negotiationExpiry;
@@ -89,6 +126,10 @@ contract DocumentaryTradeEscrow {
     mapping(uint256 => uint256) public concludedTimestamp;
     mapping(uint256 => uint256) public milestoneUsdcAmount;
     mapping(bytes32 => bool) public authorizedTransfers;
+    mapping(uint256 => address) public settlementRecipient;
+    mapping(uint256 => uint256) public settlementAmount;
+    mapping(uint256 => bool) public settlementRecorded;
+    mapping(uint256 => mapping(bytes32 => bool)) private usedBurnIntentSalt;
 
     event ContractDeployed(address buyer, address seller, address arbitration, uint256 totalUSDC);
     event MilestoneProposed(address proposer, uint256 arrayVersion);
@@ -100,10 +141,13 @@ contract DocumentaryTradeEscrow {
     event MilestoneTriggered(uint256 index, bytes32 documentHash);
     event MilestoneConfirmed(uint256 index);
     event MilestoneDisputed(uint256 index);
-    event MilestoneReleased(uint256 index, address recipient, uint256 amount, bytes32 transferHash);
-    event MilestoneArbitrated(uint256 index, address recipient, uint256 amount, bytes32 transferHash);
-    event ArbitrationForced(uint256 index, address recipient, uint256 amount, bytes32 transferHash);
-    event FundsReclaimed(address recipient, uint256 amount, bytes32 transferHash);
+    event MilestoneReleased(uint256 index, address recipient, uint256 amount);
+    event MilestoneArbitrated(uint256 index, address recipient, uint256 amount);
+    event ArbitrationForced(uint256 index, address recipient, uint256 amount);
+    event FundsReclaimed(address recipient, uint256 amount);
+    event BurnIntentAuthorized(
+        bytes32 indexed burnIntentHash, uint256 indexed settlementIndex, address recipient, uint256 amount
+    );
     event ContractExpired();
     event ContractCancelled();
     event ContractFinalized();
@@ -112,13 +156,13 @@ contract DocumentaryTradeEscrow {
         address buyerAddress_,
         address sellerAddress_,
         address arbitrationAddress_,
-        address gatewayWalletAddress_,
+        address operatorAddress_,
         uint256 totalUSDC_,
         uint256 negotiationExpiry_,
         uint256 commitmentWindow_,
         uint256 arbitrationTimeout_
     ) {
-        if (sellerAddress_ == address(0) || arbitrationAddress_ == address(0) || gatewayWalletAddress_ == address(0)) {
+        if (sellerAddress_ == address(0) || arbitrationAddress_ == address(0) || operatorAddress_ == address(0)) {
             revert InvalidAddress();
         }
         if (totalUSDC_ == 0) revert InvalidAmount();
@@ -128,7 +172,8 @@ contract DocumentaryTradeEscrow {
         buyerAddress = buyerAddress_;
         sellerAddress = sellerAddress_;
         arbitrationAddress = arbitrationAddress_;
-        gatewayWalletAddress = gatewayWalletAddress_;
+        operatorAddress = operatorAddress_;
+        gatewayWalletAddress = GATEWAY_WALLET_ADDRESS;
         totalUSDC = totalUSDC_;
         negotiationExpiry = negotiationExpiry_;
         commitmentWindow = commitmentWindow_;
@@ -208,6 +253,8 @@ contract DocumentaryTradeEscrow {
         if (!usdc.transferFrom(buyerAddress, address(this), totalUSDC)) revert TokenTransferFailed();
         if (usdc.balanceOf(address(this)) - balanceBefore != totalUSDC) revert IncorrectDepositReceived();
         if (!usdc.approve(gatewayWalletAddress, totalUSDC)) revert TokenTransferFailed();
+        IGatewayWallet(gatewayWalletAddress).deposit(USDC, totalUSDC);
+        if (usdc.balanceOf(address(this)) != balanceBefore) revert GatewayDepositFailed();
 
         totalRemaining = totalUSDC;
         activationTimestamp = block.timestamp;
@@ -311,14 +358,14 @@ contract DocumentaryTradeEscrow {
         }
 
         uint256 amount = milestoneUsdcAmount[index];
-        bytes32 hash = _authorizeTransfer(sellerAddress, amount, index);
+        _recordSettlement(index, sellerAddress, amount);
         releaseTimestamp[index] = block.timestamp;
         concludedTimestamp[index] = block.timestamp;
         milestoneStates[index] = MilestoneState.RELEASED;
         totalReleased += amount;
         totalRemaining -= amount;
         _advanceMilestone();
-        emit MilestoneReleased(index, sellerAddress, amount, hash);
+        emit MilestoneReleased(index, sellerAddress, amount);
         _checkFinalization();
     }
 
@@ -332,11 +379,12 @@ contract DocumentaryTradeEscrow {
             revert InvalidMilestoneState();
         }
         if (block.timestamp <= _sellerDeadlineFor(currentMilestoneIndex)) revert DeadlineNotReached();
+        if (settlementRecorded[type(uint256).max]) revert InvalidMilestoneState();
 
         uint256 amount = totalRemaining;
-        bytes32 hash = _authorizeTransfer(buyerAddress, amount, type(uint256).max);
+        _recordSettlement(type(uint256).max, buyerAddress, amount);
         totalRemaining = 0;
-        emit FundsReclaimed(buyerAddress, amount, hash);
+        emit FundsReclaimed(buyerAddress, amount);
         _checkFinalization();
     }
 
@@ -347,12 +395,12 @@ contract DocumentaryTradeEscrow {
         if (recipient != buyerAddress && recipient != sellerAddress) revert InvalidRecipient();
 
         uint256 amount = milestoneUsdcAmount[index];
-        bytes32 hash = _authorizeTransfer(recipient, amount, index);
+        _recordSettlement(index, recipient, amount);
         releaseTimestamp[index] = block.timestamp;
         milestoneStates[index] = MilestoneState.ARBITRATED;
         totalDisputed -= amount;
         if (recipient == sellerAddress) totalReleased += amount;
-        emit MilestoneArbitrated(index, recipient, amount, hash);
+        emit MilestoneArbitrated(index, recipient, amount);
         _checkFinalization();
     }
 
@@ -363,11 +411,31 @@ contract DocumentaryTradeEscrow {
         if (block.timestamp <= disputeTimestamp[index] + arbitrationTimeout) revert DeadlineNotReached();
 
         uint256 amount = milestoneUsdcAmount[index];
-        bytes32 hash = _authorizeTransfer(buyerAddress, amount, index);
+        _recordSettlement(index, buyerAddress, amount);
         milestoneStates[index] = MilestoneState.ARBITRATED;
         totalDisputed -= amount;
-        emit ArbitrationForced(index, buyerAddress, amount, hash);
+        emit ArbitrationForced(index, buyerAddress, amount);
         _checkFinalization();
+    }
+
+    /// @notice Authorizes a Gateway EIP-712 BurnIntent derived from a recorded settlement.
+    /// @dev The operator can authorize replacement intents with new expiry parameters and salt; settlement terms stay fixed.
+    function authorizeBurnIntent(uint256 settlementIndex, uint256 maxBlockHeight, uint256 maxFee, bytes32 salt)
+        external
+        returns (bytes32 burnIntentHash)
+    {
+        if (msg.sender != operatorAddress) revert Unauthorized();
+        if (!settlementRecorded[settlementIndex]) revert InvalidMilestoneState();
+        burnIntentHash = _burnIntentHash(settlementIndex, maxBlockHeight, maxFee, salt);
+        if (usedBurnIntentSalt[settlementIndex][salt] || authorizedTransfers[burnIntentHash]) {
+            revert DuplicateBurnIntentAuthorization();
+        }
+
+        authorizedTransfers[burnIntentHash] = true;
+        usedBurnIntentSalt[settlementIndex][salt] = true;
+        emit BurnIntentAuthorized(
+            burnIntentHash, settlementIndex, settlementRecipient[settlementIndex], settlementAmount[settlementIndex]
+        );
     }
 
     /// @notice ERC-1271 validation used by Circle Gateway. Signature bytes are intentionally ignored.
@@ -463,14 +531,55 @@ contract DocumentaryTradeEscrow {
         return currentMilestoneIndex;
     }
 
+    /// @notice Returns the exact EIP-712 digest Gateway supplies to isValidSignature for a settlement.
+    function getBurnIntentHash(uint256 settlementIndex, uint256 maxBlockHeight, uint256 maxFee, bytes32 salt)
+        external
+        view
+        returns (bytes32)
+    {
+        if (!settlementRecorded[settlementIndex]) revert InvalidMilestoneState();
+        return _burnIntentHash(settlementIndex, maxBlockHeight, maxFee, salt);
+    }
+
     function _sellerDeadlineFor(uint256 index) internal view returns (uint256) {
         if (index == 0) return activationTimestamp + milestones[0].sellerDeadline;
         return concludedTimestamp[index - 1] + milestones[index].sellerDeadline;
     }
 
-    function _authorizeTransfer(address recipient, uint256 amount, uint256 index) internal returns (bytes32 hash) {
-        hash = keccak256(abi.encode(recipient, amount, index));
-        authorizedTransfers[hash] = true;
+    function _recordSettlement(uint256 index, address recipient, uint256 amount) internal {
+        settlementRecipient[index] = recipient;
+        settlementAmount[index] = amount;
+        settlementRecorded[index] = true;
+    }
+
+    function _burnIntentHash(uint256 settlementIndex, uint256 maxBlockHeight, uint256 maxFee, bytes32 salt)
+        internal
+        view
+        returns (bytes32)
+    {
+        bytes32 contractAddress = _addressToBytes32(address(this));
+        TransferSpecForHash memory spec;
+        spec.version = 1;
+        spec.sourceDomain = ARC_TESTNET_DOMAIN;
+        spec.destinationDomain = ARC_TESTNET_DOMAIN;
+        spec.sourceContract = _addressToBytes32(GATEWAY_WALLET_ADDRESS);
+        spec.destinationContract = _addressToBytes32(GATEWAY_MINTER_ADDRESS);
+        spec.sourceToken = _addressToBytes32(USDC);
+        spec.destinationToken = _addressToBytes32(USDC);
+        spec.sourceDepositor = contractAddress;
+        spec.destinationRecipient = _addressToBytes32(settlementRecipient[settlementIndex]);
+        spec.sourceSigner = contractAddress;
+        spec.destinationCaller = bytes32(0);
+        spec.value = settlementAmount[settlementIndex];
+        spec.salt = salt;
+        spec.hookDataHash = keccak256("");
+        bytes32 transferSpecHash = keccak256(abi.encode(TRANSFER_SPEC_TYPEHASH, spec));
+        bytes32 structHash = keccak256(abi.encode(BURN_INTENT_TYPEHASH, maxBlockHeight, maxFee, transferSpecHash));
+        return keccak256(abi.encodePacked("\x19\x01", GATEWAY_DOMAIN_SEPARATOR, structHash));
+    }
+
+    function _addressToBytes32(address account) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(account)));
     }
 
     function _checkFinalization() internal {

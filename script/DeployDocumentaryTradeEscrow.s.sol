@@ -10,7 +10,7 @@ contract DeployDocumentaryTradeEscrow is Script {
         address buyer = vm.envAddress("BUYER_ADDRESS");
         address seller = vm.envAddress("SELLER_ADDRESS");
         address arbitrator = vm.envAddress("ARBITRATION_ADDRESS");
-        address gatewayWallet = vm.envAddress("GATEWAY_WALLET_ADDRESS");
+        address operator = vm.envAddress("OPERATOR_ADDRESS");
         uint256 totalUSDC = vm.envUint("TOTAL_USDC");
         uint256 negotiationExpiry = vm.envUint("NEGOTIATION_EXPIRY");
         uint256 commitmentWindow = vm.envUint("COMMITMENT_WINDOW");
@@ -18,7 +18,7 @@ contract DeployDocumentaryTradeEscrow is Script {
 
         vm.startBroadcast();
         escrow = new DocumentaryTradeEscrow(
-            buyer, seller, arbitrator, gatewayWallet, totalUSDC, negotiationExpiry, commitmentWindow, arbitrationTimeout
+            buyer, seller, arbitrator, operator, totalUSDC, negotiationExpiry, commitmentWindow, arbitrationTimeout
         );
         vm.stopBroadcast();
     }
