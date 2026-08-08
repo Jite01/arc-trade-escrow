@@ -16,7 +16,7 @@ https://book.getfoundry.sh/
 ## Relayer
 
 The TypeScript relayer observes the four fund-authorization events from
-`DocumentaryTradeEscrow`, submits each unique `transferHash` to Circle Gateway,
+`DocumentaryTradeEscrow`, constructs and authorizes each settlement's Gateway burn intent,
 and stores its execution state in SQLite.
 
 Install dependencies, then build and test it with:
@@ -26,28 +26,27 @@ npm run build
 npm test
 ```
 
-Before starting the relayer, export all required values. The deployed contract
-address and ABI come from `config.json`; the ABI must be an inline JSON string.
+`config.json` is the generated deployment manifest. It contains the deployed
+contract address, deployment block, ABI, event topics, and Gateway contract
+addresses. Runtime secrets and environment-specific values remain in `.env`.
+After every deployment, regenerate the manifest before starting the relayer.
 
 ```shell
-export CONTRACT_ADDRESS="$(node -p 'require("./config.json").CONTRACT_ADDRESS')"
-export CONTRACT_ABI="$(node -p 'JSON.stringify(require("./config.json").CONTRACT_ABI)')"
-export EVENT_TOPIC_RELEASED=0x01e6246915d66de2caea3bbd13ffffc284df65ae1e23447038a5c10c8620ae02
-export EVENT_TOPIC_ARBITRATED=0x2cfb62f2ccf2662597e88ab94b3b449efaa015bcc4a56360bc6b491243cd609f
-export EVENT_TOPIC_FORCED=0x3ea63eaf11115c96245e0e1842e47d845525526ee21ffecd29f161c8bec75e4b
-export EVENT_TOPIC_RECLAIMED=0xa1a853f26b4fee51f54ad60e0ebc3ccfbe6a00dd71b8b3636396ab3723b2532b7f
-export GATEWAY_WALLET_ADDRESS=0x0077777d7EBA4688BDeF3E311b846F25870A19B9
-export DEPLOYMENT_BLOCK=55838430
-export ARC_RPC_URL="..."
-export GATEWAY_API_BASE_URL="..."
-export GATEWAY_API_KEY="..."
-export RELAYER_PORT=3001
-export SQLITE_PATH=./relayer.db
+set -a; source .env; set +a
+forge script script/DeployDocumentaryTradeEscrow.s.sol:DeployDocumentaryTradeEscrow \
+  --rpc-url "$ARC_RPC_URL" --private-key "$DEPLOYER_PRIVATE_KEY" --broadcast
+./regenerate-config.sh
 npm start
 ```
 
+The relayer reads `CONTRACT_ADDRESS` and `DEPLOYMENT_BLOCK` directly from the
+newly generated `config.json`; they must not be duplicated in `.env`.
+
+The testnet Gateway API URL is the default. `OPERATOR_PRIVATE_KEY` is used as
+the relayer signing key unless an explicit `RELAYER_PRIVATE_KEY` is provided.
+
 The relayer serves `GET /status`, `GET /transfers`, and
-`GET /transfers/:transferHash` on `RELAYER_PORT`.
+`GET /settlements/:settlementKey` on `RELAYER_PORT`.
 
 ## Usage
 

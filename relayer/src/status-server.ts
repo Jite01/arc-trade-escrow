@@ -21,10 +21,10 @@ export class StatusServer {
         });
       }
       if (url.pathname === "/transfers") return this.respond(response, 200, this.relayer.database.all());
-      if (url.pathname.startsWith("/transfers/")) {
-        const transferHash = decodeURIComponent(url.pathname.slice("/transfers/".length));
-        const row = this.relayer.database.get(transferHash);
-        return this.respond(response, row ? 200 : 404, row || { error: "Transfer not found" });
+      if (url.pathname.startsWith("/settlements/") || url.pathname.startsWith("/transfers/")) {
+        const key = decodeURIComponent(url.pathname.slice(url.pathname.startsWith("/settlements/") ? "/settlements/".length : "/transfers/".length));
+        const row = this.relayer.database.get(key);
+        return this.respond(response, row ? 200 : 404, row || { error: "Settlement not found" });
       }
       return this.respond(response, 404, { error: "Not found" });
     });

@@ -1,195 +1,32 @@
+import { randomBytes } from "node:crypto";
 import type { RelayerConfig } from "./config.js";
 import { TransferDatabase } from "./database.js";
-import type { ChainLog, EventSource, EventType, GatewayClient, Logger, LogProvider, TransferInput, TransferRow } from "./types.js";
-
-const retryDelaySeconds = [30, 120, 600, 1800] as const;
-
+import { buildBurnIntent, burnIntentHash } from "./onchain.js";
+import type { BurnIntentAuthorization, ChainLog, EventSource, EventType, GatewayClient, Logger, LogProvider, SettlementExecutor, SettlementInput, SettlementRow } from "./types.js";
+const retryDelaySeconds=[30,120,600,1800] as const;
 export class Relayer {
-  private readonly inFlight = new Set<string>();
-  private retryTimer: NodeJS.Timeout | undefined;
-  private active = false;
-
-  public constructor(
-    public readonly config: RelayerConfig,
-    public readonly database: TransferDatabase,
-    private readonly provider: LogProvider,
-    private readonly eventSource: EventSource,
-    private readonly gateway: GatewayClient,
-    private readonly logger: Logger,
-    private readonly now: () => number = () => Math.floor(Date.now() / 1000)
-  ) {}
-
-  public get listening(): boolean {
-    return this.active;
-  }
-
-  public async initialize(): Promise<void> {
-    const code = await this.provider.getCode(this.config.contractAddress);
-    if (code === "0x") throw new Error(`No deployed contract code at ${this.config.contractAddress}`);
-    this.database.migrate();
-
-    await this.resumeNonTerminal();
-    await this.historicalSweep();
-    for (const topic of Object.values(this.config.eventTopics)) {
-      this.eventSource.subscribe(topic, (log) => {
-        void this.handleLog(log);
-      });
-    }
-    this.active = true;
-    this.retryTimer = setInterval(() => {
-      void this.processDueRetries();
-    }, 10_000);
-    this.retryTimer.unref();
-    this.logger.info("Relayer initialized", { contractAddress: this.config.contractAddress });
-  }
-
-  public stop(): void {
-    this.active = false;
-    this.eventSource.unsubscribe();
-    if (this.retryTimer) clearInterval(this.retryTimer);
-    this.retryTimer = undefined;
-  }
-
-  public async historicalSweep(): Promise<void> {
-    const toBlock = await this.provider.getBlockNumber();
-    const topics = Object.values(this.config.eventTopics);
-    const logs = await this.provider.getLogs({
-      address: this.config.contractAddress,
-      fromBlock: this.config.deploymentBlock,
-      toBlock,
-      topics: [topics]
-    });
-    this.logger.info("Historical sweep completed", { fromBlock: this.config.deploymentBlock, toBlock, logCount: logs.length });
-    for (const log of logs) await this.handleLog(log);
-  }
-
-  public async handleLog(log: ChainLog): Promise<void> {
-    const input = this.decodeTransfer(log);
-    if (!input) return;
-    if (log.removed) {
-      const row = this.database.get(input.transferHash);
-      if (row) this.logger.warn(`reorg detected for transferHash: ${input.transferHash}`, { status: row.status });
-      return;
-    }
-
-    const inserted = this.database.insert(input, this.now());
-    if (!inserted) {
-      this.logger.debug("Duplicate transferHash skipped by SQLite UNIQUE constraint", { transferHash: input.transferHash });
-      return;
-    }
-    await this.initiateGatewayTransfer(input.transferHash);
-  }
-
-  public async resumeNonTerminal(): Promise<void> {
-    const now = this.now();
-    for (const row of this.database.nonTerminal()) {
-      if (row.nextRetryAt === null || row.nextRetryAt <= now) await this.initiateGatewayTransfer(row.transferHash);
-      else this.logger.info("Scheduled persisted retry", { transferHash: row.transferHash, nextRetryAt: row.nextRetryAt });
-    }
-  }
-
-  public async processDueRetries(): Promise<void> {
-    for (const row of this.database.due(this.now())) await this.initiateGatewayTransfer(row.transferHash);
-  }
-
-  /** The only code path that submits a pre-authorized transfer to Circle Gateway. */
-  public async initiateGatewayTransfer(transferHash: string): Promise<void> {
-    if (this.inFlight.has(transferHash)) return;
-    const row = this.database.get(transferHash);
-    if (!row || this.database.isTerminal(row.status)) return;
-
-    this.inFlight.add(transferHash);
-    try {
-      await this.submit(row);
-    } finally {
-      this.inFlight.delete(transferHash);
-    }
-  }
-
-  private async submit(row: TransferRow): Promise<void> {
-    const now = this.now();
-    const attempt = row.attemptCount + 1;
-    this.database.markAttempt(row.transferHash, attempt, now);
-    try {
-      const result = await this.gateway.submit({
-        contractAddress: this.config.contractAddress,
-        transferHash: row.transferHash,
-        recipient: row.recipient,
-        amount: row.amount
-      });
-      const response = stringify(result.body);
-      if (result.status === 200 || (isAlreadyProcessed(result.status, result.body) && result.status >= 400 && result.status < 500)) {
-        this.database.markSubmitted(row.transferHash, response, now);
-        if (attempt > 1) this.logger.info("Resubmission confirmed — Gateway idempotent.", { transferHash: row.transferHash });
-        else this.logger.info("Gateway transfer submitted", { transferHash: row.transferHash });
-        return;
-      }
-      if (result.status === 400 || result.status === 401 || result.status === 403) {
-        this.database.markPermanentFailure(row.transferHash, response, now);
-        this.logger.error("Gateway rejected transfer permanently", { transferHash: row.transferHash, status: result.status });
-        return;
-      }
-      await this.retryOrFail(row.transferHash, attempt, response, `Gateway returned HTTP ${result.status}`, now);
-    } catch (error) {
-      const response = stringifyError(error);
-      await this.retryOrFail(row.transferHash, attempt, response, "Gateway request failed or timed out", now);
-    }
-  }
-
-  private async retryOrFail(transferHash: string, attempt: number, response: string, reason: string, now: number): Promise<void> {
-    if (attempt >= 5) {
-      this.database.markFailed(transferHash, response, now);
-      this.logger.error("Gateway transfer exhausted retry budget", { transferHash, attempt, reason });
-      return;
-    }
-    const delay = retryDelaySeconds[attempt - 1];
-    this.database.markRetrying(transferHash, now + delay, response, now);
-    this.logger.warn("Gateway transfer scheduled for retry", { transferHash, attempt, reason, nextRetryAt: now + delay });
-  }
-
-  private decodeTransfer(log: ChainLog): TransferInput | undefined {
-    const topic = log.topics[0]?.toLowerCase();
-    const matched = (Object.entries(this.config.eventTopics) as Array<[EventType, string]>).find(([, configuredTopic]) => configuredTopic.toLowerCase() === topic);
-    if (!matched) return undefined;
-    const [eventType] = matched;
-    try {
-      const decoded = this.config.contractAbi.decodeEventLog(eventType, log.data, log.topics);
-      const milestoneIndex = eventType === "FundsReclaimed" ? null : Number(decoded[0]);
-      const offset = eventType === "FundsReclaimed" ? 0 : 1;
-      const recipient = String(decoded[offset]);
-      const amount = formatUsdc(BigInt(decoded[offset + 1]));
-      const transferHash = String(decoded[offset + 2]);
-      return { transferHash, eventType, milestoneIndex, recipient, amount, txHash: log.transactionHash, blockNumber: log.blockNumber };
-    } catch (error) {
-      this.logger.error("Unable to decode fund-movement event", { topic, error: error instanceof Error ? error.message : String(error) });
-      return undefined;
-    }
-  }
+  private readonly inFlight=new Set<string>(); private retryTimer:NodeJS.Timeout|undefined; private active=false;
+  public constructor(public readonly config:RelayerConfig,public readonly database:TransferDatabase,private readonly provider:LogProvider,private readonly eventSource:EventSource,private readonly gateway:GatewayClient,private readonly executor:SettlementExecutor,private readonly logger:Logger,private readonly now=()=>Math.floor(Date.now()/1000)){}
+  public get listening(){return this.active;}
+  public async initialize(){if(await this.provider.getCode(this.config.contractAddress)==="0x")throw new Error(`No deployed contract code at ${this.config.contractAddress}`);this.database.migrate();await this.resumeNonTerminal();await this.historicalSweep();for(const topic of Object.values(this.config.eventTopics))this.eventSource.subscribe(topic,l=>void this.handleLog(l));this.active=true;this.retryTimer=setInterval(()=>void this.processDueRetries(),10000);this.retryTimer.unref();this.logger.info("Relayer initialized",{contractAddress:this.config.contractAddress});}
+  public stop(){this.active=false;this.eventSource.unsubscribe();if(this.retryTimer)clearInterval(this.retryTimer);this.retryTimer=undefined;}
+  public async historicalSweep(){const to=await this.provider.getBlockNumber();const topics=[Object.values(this.config.eventTopics)];const chunkSize=500;for(let from=this.config.deploymentBlock;from<=to;from+=chunkSize){const end=Math.min(from+chunkSize-1,to);const logs=await this.provider.getLogs({address:this.config.contractAddress,fromBlock:from,toBlock:end,topics});for(const l of logs)await this.handleLog(l);}}
+  public async handleLog(log:ChainLog){const input=this.decodeSettlement(log);if(!input)return;if(log.removed){this.logger.warn("reorg detected",{settlementKey:input.settlementKey});return;}if(!this.database.insert(input,this.now()))return;await this.initiateSettlement(input.settlementKey);}
+  public async resumeNonTerminal(){for(const row of this.database.nonTerminal()){if(row.status==="AUTHORIZED"||row.status==="MINTING"||row.nextRetryAt===null||row.nextRetryAt<=this.now())await this.initiateSettlement(row.settlementKey);}}
+  public async processDueRetries(){for(const row of this.database.due(this.now()))await this.initiateSettlement(row.settlementKey);}
+  public async initiateSettlement(key:string){if(this.inFlight.has(key))return;const row=this.database.get(key);if(!row||this.database.isTerminal(row.status))return;this.inFlight.add(key);try{await this.submit(row);}finally{this.inFlight.delete(key);}}
+  private async submit(row:SettlementRow){const now=this.now();const attempt=row.attemptCount+1;this.database.markAttempt(row.settlementKey,attempt,now);try{
+    if(row.status==="MINTING" && row.attestation && row.operatorSignature){const minted=await this.executor.mint({attestation:row.attestation,signature:row.operatorSignature});this.database.update(row.settlementKey,{status:"MINTED",mintTxHash:minted.mintTxHash},this.now());return;}
+    let request=row.burnIntentJson?JSON.parse(row.burnIntentJson):undefined;
+    if(!request){const auth:BurnIntentAuthorization={settlementIndex:row.milestoneIndex===null?2n**256n-1n:BigInt(row.milestoneIndex),maxBlockHeight:2n**256n-1n,maxFee:3500n,salt:"0x"+randomBytes(32).toString("hex"),recipient:row.recipient,amount:parseUsdc(row.amount),burnIntentRequest:undefined as never};request=buildBurnIntent(auth,{contractAddress:this.config.contractAddress,gatewayWalletAddress:this.config.gatewayWalletAddress,gatewayMinterAddress:this.config.gatewayMinterAddress});auth.burnIntentRequest=request;const authorized=await this.executor.authorize(auth);this.database.update(row.settlementKey,{status:"AUTHORIZED",authorizationTxHash:authorized.authorizationTxHash,burnIntentHash:authorized.burnIntentHash,burnIntentJson:JSON.stringify(request)},now);row={...row,status:"AUTHORIZED",authorizationTxHash:authorized.authorizationTxHash,burnIntentHash:authorized.burnIntentHash,burnIntentJson:JSON.stringify(request)};}
+    const result=await this.gateway.submit({burnIntent:request,signature:"0x00",contractSigner:true});const body=stringify(result.body);if(result.status<200||result.status>=300){if(result.status>=400&&result.status<500)this.database.update(row.settlementKey,{status:"PERMANENT_FAILURE",gatewayResponse:body},now);else this.retry(row,attempt,body,`Gateway returned HTTP ${result.status}`,now);return;}
+    const att=extractAttestation(result.body);if(!att){this.retry(row,attempt,body,"Gateway response has no attestation",now);return;}this.database.update(row.settlementKey,{status:"MINTING",gatewayResponse:body,gatewayTransferId:att.id,attestation:att.payload,operatorSignature:att.signature},now);const minted=await this.executor.mint({attestation:att.payload,signature:att.signature});this.database.update(row.settlementKey,{status:"MINTED",mintTxHash:minted.mintTxHash},this.now());this.logger.info("Gateway settlement minted",{settlementKey:row.settlementKey,mintTxHash:minted.mintTxHash});
+  }catch(e){this.retry(row,attempt,stringifyError(e),"Settlement attempt failed",now);}}
+  private retry(row:SettlementRow,attempt:number,response:string,reason:string,now:number){if(attempt>=5){this.database.update(row.settlementKey,{status:"FAILED",gatewayResponse:response,nextRetryAt:null},now);this.logger.error("Settlement exhausted retry budget",{settlementKey:row.settlementKey,reason});return;}const delay=retryDelaySeconds[attempt-1];this.database.update(row.settlementKey,{status:"RETRYING",gatewayResponse:response,nextRetryAt:now+delay},now);this.logger.warn("Settlement scheduled for retry",{settlementKey:row.settlementKey,nextRetryAt:now+delay,reason});}
+  private decodeSettlement(log:ChainLog):SettlementInput|undefined{const topic=log.topics[0]?.toLowerCase();const pair=(Object.entries(this.config.eventTopics) as Array<[EventType,string]>).find(([,v])=>v.toLowerCase()===topic);if(!pair)return;try{const [eventType]=pair;const d=this.config.contractAbi.decodeEventLog(eventType,log.data,log.topics);const reclaimed=eventType==="FundsReclaimed";const index=reclaimed?null:Number(d[0]);const off=reclaimed?0:1;const recipient=String(d[off]);const amount=formatUsdc(BigInt(d[off+1]));const settlementKey=`${log.transactionHash}:${log.logIndex??0}:${eventType}:${index??"reclaim"}`;return{settlementKey,eventType,milestoneIndex:index,recipient,amount,txHash:log.transactionHash,blockNumber:log.blockNumber,logIndex:log.logIndex??null};}catch(e){this.logger.error("Unable to decode fund-movement event",{error:String(e)});return;}}
 }
-
-function isAlreadyProcessed(status: number, body: unknown): boolean {
-  if (status < 400 || status >= 500) return false;
-  const text = stringify(body).toLowerCase();
-  return /already\s+(processed|submitted|executed|used|exists)|duplicate|idempotent/.test(text);
-}
-
-/** Formats the contract's six-decimal USDC integer amount exactly as Gateway requires. */
-function formatUsdc(amount: bigint): string {
-  const integer = amount / 1_000_000n;
-  const fraction = (amount % 1_000_000n).toString().padStart(6, "0");
-  return `${integer}.${fraction}`;
-}
-
-function stringify(value: unknown): string {
-  if (value === undefined) return "null";
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return JSON.stringify({ unstringifiable: String(value) });
-  }
-}
-
-function stringifyError(error: unknown): string {
-  if (error instanceof Error) return stringify({ name: error.name, message: error.message });
-  return stringify(error);
-}
+function parseUsdc(s:string){const [a,b=""] = s.split(".");return BigInt(a)*1000000n+BigInt((b+"000000").slice(0,6));}
+function formatUsdc(a:bigint){return `${a/1000000n}.${(a%1000000n).toString().padStart(6,"0")}`;}
+function stringify(v:unknown){try{return JSON.stringify(v)??"null";}catch{return String(v);}}
+function stringifyError(e:unknown){return stringify(e instanceof Error?{name:e.name,message:e.message}:e);}
+function extractAttestation(body:unknown):{id:string|null;payload:string;signature:string}|undefined{const b=body as any;const a=b?.attestation??b?.data?.attestation??b?.transfer?.attestation;if(!a)return;const payload=a.payload??a.attestationPayload??a.encoded;if(typeof payload!=="string"||typeof a.signature!=="string")return;return{id:(b?.id??b?.transferId??null),payload,signature:a.signature};}

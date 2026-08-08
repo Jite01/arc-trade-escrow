@@ -8,6 +8,7 @@ import {MockGatewayWallet} from "./mocks/MockGatewayWallet.sol";
 
 contract DocumentaryTradeEscrowTest is Test {
     uint256 internal constant TOTAL = 1_000_001;
+    uint256 internal constant GATEWAY_TEST_TOTAL = 20_010_006;
     address internal constant BUYER = address(0xB0B);
     address internal constant SELLER = address(0x5E11E7);
     address internal constant ARBITER = address(0xAAB1);
@@ -139,6 +140,40 @@ contract DocumentaryTradeEscrowTest is Test {
         assertEq(escrow.milestoneUsdcAmount(0), 500_000);
         assertEq(escrow.milestoneUsdcAmount(1), 500_001);
         _assertInvariant();
+    }
+
+    function testGatewayFeeReserveConfigurationAllocatesExactPrimarySettlement() public {
+        escrow = new DocumentaryTradeEscrow(
+            BUYER, SELLER, ARBITER, OPERATOR, GATEWAY_TEST_TOTAL, block.timestamp + 7 days, 1 hours, 500
+        );
+
+        DocumentaryTradeEscrow.Milestone[] memory terms = new DocumentaryTradeEscrow.Milestone[](2);
+        terms[0] = _milestone("primary settlement", 9_995, 100, 1, 1);
+        terms[1] = _milestone("gateway fee reserve", 5, 100, 1, 1);
+        vm.prank(BUYER);
+        escrow.proposeMilestones(terms);
+        vm.prank(SELLER);
+        escrow.approve();
+
+        usdc.mint(BUYER, GATEWAY_TEST_TOTAL);
+        vm.prank(BUYER);
+        usdc.approve(address(escrow), GATEWAY_TEST_TOTAL);
+        vm.prank(BUYER);
+        escrow.depositUSDS();
+
+        assertEq(escrow.milestoneUsdcAmount(0), 20_000_000);
+        assertEq(escrow.milestoneUsdcAmount(1), 10_006);
+        assertEq(gateway.balanceOf(USDC, address(escrow)), GATEWAY_TEST_TOTAL);
+
+        vm.prank(SELLER);
+        escrow.triggerMilestone(0, keccak256("primary-settlement"));
+        vm.warp(block.timestamp + 2);
+        escrow.release(0);
+
+        (, uint256 remaining,) = escrow.getBalances();
+        assertEq(remaining, 10_006);
+        assertGe(gateway.balanceOf(USDC, address(escrow)) - 20_000_000, 3_500);
+        assertEq(escrow.getState(), uint8(DocumentaryTradeEscrow.State.ACTIVE));
     }
 
     function testAbandonCommitmentResetsNegotiation() public {

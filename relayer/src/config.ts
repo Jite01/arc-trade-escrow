@@ -1,46 +1,53 @@
-import { Interface, isAddress } from "ethers";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { Interface, isAddress, type InterfaceAbi } from "ethers";
 
 export interface RelayerConfig {
   contractAddress: string;
   contractAbi: Interface;
   eventTopics: Record<"MilestoneReleased" | "MilestoneArbitrated" | "ArbitrationForced" | "FundsReclaimed", string>;
   gatewayWalletAddress: string;
+  gatewayMinterAddress: string;
   deploymentBlock: number;
   arcRpcUrl: string;
   gatewayApiBaseUrl: string;
-  gatewayApiKey: string;
+  relayerPrivateKey: string;
   relayerPort: number;
   sqlitePath: string;
 }
 
-const required = [
-  "CONTRACT_ADDRESS",
-  "CONTRACT_ABI",
-  "EVENT_TOPIC_RELEASED",
-  "EVENT_TOPIC_ARBITRATED",
-  "EVENT_TOPIC_FORCED",
-  "EVENT_TOPIC_RECLAIMED",
-  "GATEWAY_WALLET_ADDRESS",
-  "DEPLOYMENT_BLOCK",
-  "ARC_RPC_URL",
-  "GATEWAY_API_BASE_URL",
-  "GATEWAY_API_KEY"
-] as const;
+const required = ["ARC_RPC_URL"] as const;
+
+interface DeploymentConfig {
+  CONTRACT_ADDRESS: string;
+  CONTRACT_ABI: InterfaceAbi;
+  EVENT_TOPIC_RELEASED: string;
+  EVENT_TOPIC_ARBITRATED: string;
+  EVENT_TOPIC_FORCED: string;
+  EVENT_TOPIC_RECLAIMED: string;
+  GATEWAY_WALLET_ADDRESS: string;
+  GATEWAY_MINTER_ADDRESS: string;
+  DEPLOYMENT_BLOCK: number;
+}
 
 function value(env: NodeJS.ProcessEnv, key: string): string {
-  const candidate = env[key]?.trim();
-  if (!candidate) throw new Error(`Missing required environment variable: ${key}`);
+  return requiredString(env[key], key);
+}
+
+function requiredString(raw: unknown, key: string): string {
+  const candidate = typeof raw === "string" ? raw.trim() : "";
+  if (!candidate) throw new Error(`Missing required configuration value: ${key}`);
   return candidate;
 }
 
-function address(env: NodeJS.ProcessEnv, key: string): string {
-  const candidate = value(env, key);
+function addressValue(raw: unknown, key: string): string {
+  const candidate = requiredString(raw, key);
   if (!isAddress(candidate)) throw new Error(`Invalid address in ${key}`);
   return candidate;
 }
 
-function topic(env: NodeJS.ProcessEnv, key: string): string {
-  const candidate = value(env, key);
+function topicValue(raw: unknown, key: string): string {
+  const candidate = requiredString(raw, key);
   if (!/^0x[0-9a-fA-F]{64}$/.test(candidate)) throw new Error(`Invalid event topic in ${key}`);
   return candidate;
 }
@@ -52,20 +59,49 @@ function positiveInteger(raw: string, name: string): number {
   return parsed;
 }
 
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig {
-  for (const key of required) value(env, key);
-  let parsedAbi: unknown;
+function deploymentBlockValue(raw: unknown): number {
+  const candidate = typeof raw === "number" ? String(raw) : requiredString(raw, "DEPLOYMENT_BLOCK");
+  return positiveInteger(candidate, "DEPLOYMENT_BLOCK");
+}
+
+function readDeploymentConfig(): DeploymentConfig {
+  const configPath = resolve(process.cwd(), "config.json");
+  let parsed: unknown;
   try {
-    parsedAbi = JSON.parse(value(env, "CONTRACT_ABI"));
-  } catch {
-    throw new Error("CONTRACT_ABI must be valid inline JSON");
+    parsed = JSON.parse(readFileSync(configPath, "utf8"));
+  } catch (error) {
+    const detail = error instanceof Error ? `: ${error.message}` : "";
+    throw new Error(`Unable to read generated deployment config at ${configPath}${detail}`);
   }
-  if (!Array.isArray(parsedAbi)) throw new Error("CONTRACT_ABI must be a JSON array");
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`Generated deployment config at ${configPath} must be a JSON object`);
+  }
+  const raw = parsed as Record<string, unknown>;
+  const abi = raw.CONTRACT_ABI;
+  if (!Array.isArray(abi)) throw new Error("Generated deployment config CONTRACT_ABI must be a JSON array");
+  return {
+    CONTRACT_ADDRESS: addressValue(raw.CONTRACT_ADDRESS, "CONTRACT_ADDRESS"),
+    CONTRACT_ABI: abi as InterfaceAbi,
+    EVENT_TOPIC_RELEASED: topicValue(raw.EVENT_TOPIC_RELEASED, "EVENT_TOPIC_RELEASED"),
+    EVENT_TOPIC_ARBITRATED: topicValue(raw.EVENT_TOPIC_ARBITRATED, "EVENT_TOPIC_ARBITRATED"),
+    EVENT_TOPIC_FORCED: topicValue(raw.EVENT_TOPIC_FORCED, "EVENT_TOPIC_FORCED"),
+    EVENT_TOPIC_RECLAIMED: topicValue(raw.EVENT_TOPIC_RECLAIMED, "EVENT_TOPIC_RECLAIMED"),
+    GATEWAY_WALLET_ADDRESS: addressValue(raw.GATEWAY_WALLET_ADDRESS, "GATEWAY_WALLET_ADDRESS"),
+    GATEWAY_MINTER_ADDRESS: addressValue(raw.GATEWAY_MINTER_ADDRESS, "GATEWAY_MINTER_ADDRESS"),
+    DEPLOYMENT_BLOCK: deploymentBlockValue(raw.DEPLOYMENT_BLOCK)
+  };
+}
+
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig {
+  const deployment = readDeploymentConfig();
+  for (const key of required) value(env, key);
+  const parsedAbi = deployment.CONTRACT_ABI;
 
   const port = positiveInteger(env.RELAYER_PORT?.trim() || "3001", "RELAYER_PORT");
   if (port === 0 || port > 65_535) throw new Error("RELAYER_PORT must be between 1 and 65535");
-  const deploymentBlock = positiveInteger(value(env, "DEPLOYMENT_BLOCK"), "DEPLOYMENT_BLOCK");
-  const gatewayApiBaseUrl = value(env, "GATEWAY_API_BASE_URL").replace(/\/+$/, "");
+  const gatewayApiBaseUrl = (env.GATEWAY_API_BASE_URL?.trim() || "https://gateway-api-testnet.circle.com").replace(/\/+$/, "");
+  const relayerPrivateKey = env.RELAYER_PRIVATE_KEY?.trim() || env.OPERATOR_PRIVATE_KEY?.trim();
+  if (!relayerPrivateKey) throw new Error("Missing required configuration value: RELAYER_PRIVATE_KEY or OPERATOR_PRIVATE_KEY");
   try {
     new URL(gatewayApiBaseUrl);
     new URL(value(env, "ARC_RPC_URL"));
@@ -74,19 +110,20 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
   }
 
   return {
-    contractAddress: address(env, "CONTRACT_ADDRESS"),
+    contractAddress: deployment.CONTRACT_ADDRESS,
     contractAbi: new Interface(parsedAbi),
     eventTopics: {
-      MilestoneReleased: topic(env, "EVENT_TOPIC_RELEASED"),
-      MilestoneArbitrated: topic(env, "EVENT_TOPIC_ARBITRATED"),
-      ArbitrationForced: topic(env, "EVENT_TOPIC_FORCED"),
-      FundsReclaimed: topic(env, "EVENT_TOPIC_RECLAIMED")
+      MilestoneReleased: deployment.EVENT_TOPIC_RELEASED,
+      MilestoneArbitrated: deployment.EVENT_TOPIC_ARBITRATED,
+      ArbitrationForced: deployment.EVENT_TOPIC_FORCED,
+      FundsReclaimed: deployment.EVENT_TOPIC_RECLAIMED
     },
-    gatewayWalletAddress: address(env, "GATEWAY_WALLET_ADDRESS"),
-    deploymentBlock,
+    gatewayWalletAddress: deployment.GATEWAY_WALLET_ADDRESS,
+    gatewayMinterAddress: deployment.GATEWAY_MINTER_ADDRESS,
+    deploymentBlock: deployment.DEPLOYMENT_BLOCK,
     arcRpcUrl: value(env, "ARC_RPC_URL"),
     gatewayApiBaseUrl,
-    gatewayApiKey: value(env, "GATEWAY_API_KEY"),
+    relayerPrivateKey,
     relayerPort: port,
     sqlitePath: env.SQLITE_PATH?.trim() || "./relayer.db"
   };
