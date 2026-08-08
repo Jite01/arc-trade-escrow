@@ -20,6 +20,10 @@ broadcast/
 
 # Node
 node_modules/
+dist/
+relayer.db
+relayer.db-shm
+relayer.db-wal
 
 # macOS
 .DS_Store
