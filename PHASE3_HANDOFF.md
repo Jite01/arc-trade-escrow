@@ -58,37 +58,20 @@ The frontend integration is in `78703c6`; the relayer polling fallback and regre
 The Circle-compatible demo deployment and active configuration are committed in
 `4e51897`.
 
-## Documentation handoff
+## Documentation checkpoint
 
-The repository root `README.md` is currently still the default Foundry scaffold
-and is not suitable for the hackathon submission. The canonical project README
-must live at the repository root because the submission covers the React
-frontend, Circle Modular Wallet authentication, DocumentaryTradeEscrow,
-relayer, Gateway-owned settlement execution, local setup, Vercel deployment,
-demo steps, and Circle Product Feedback.
+Completed. The root `README.md` is now the canonical project and deployment
+README. It covers the active demo, Circle products, local setup, Vercel
+variables, verification commands, settlement behavior, and product feedback.
+The canonical architecture diagram is `docs/architecture.md`; the frontend
+README is limited to local development notes and contains no judge walkthrough.
+No Client Keys or private keys were added to documentation. `frontend/vercel.json`
+now declares the Vite build and `dist` output explicitly.
 
-The next documentation owner must:
-
-1. Replace the root `README.md` with the project README. It must include the
-   project title/short description, Circle products used, active demo contract
-   and relayer relationship, local setup, required environment variables,
-   frontend and relayer run commands, Vercel deployment variables, judge demo
-   path, test/build commands, settlement-status behavior, and Circle Product
-   Feedback.
-2. Create the canonical project diagram at `docs/architecture.md` and ensure
-   it clearly shows that the frontend never calls Gateway and never constructs
-   BurnIntents or salts; the relayer owns authorization, Gateway submission,
-   recovery, and minting; Gateway performs custody movement; the contract is
-   the authorization source of truth; and SQLite records relayer execution
-   state.
-3. Replace `frontend/docs/architecture.md` with either a short pointer to
-   `../docs/architecture.md` or remove it after updating all links. The current
-   frontend README link is package-relative and should not be the submission’s
-   primary architecture reference.
-4. Reduce `frontend/README.md` to frontend-specific development notes and link
-   to the root README and `../docs/architecture.md`.
-
-Do not put Client Keys, private keys, or other secrets in either README.
+Vercel deployment is not yet executed: no Vercel MCP/CLI authentication or
+project token is available in this workspace, and the relayer currently has no
+public HTTPS URL. The frontend can be deployed once a Vercel token/project is
+provided and `VITE_RELAYER_BASE_URL` points to a public relayer deployment.
 
 ## Local setup
 
@@ -237,7 +220,7 @@ the owner must complete these final gates:
 4. Capture the final screen showing relayer settlement status `MINTED`.
 5. Run `npm run build` and `npm run audit` in `frontend/` and `npm run build` and
    `npm test` from the repository root.
-6. Review [frontend/docs/architecture.md](frontend/docs/architecture.md), record
+6. Review [docs/architecture.md](docs/architecture.md), record
    the demo URL, repository URL, and Circle account email for the submission.
 7. Add the prepared Circle Product Feedback section from the frontend README to
    the submission materials.

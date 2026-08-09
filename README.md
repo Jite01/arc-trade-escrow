@@ -1,101 +1,123 @@
-## Foundry
+# Arc Trade Escrow
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Arc Trade Escrow is a documentary trade agreement on Arc Testnet. Buyer and
+seller actions are authorized by `DocumentaryTradeEscrow`; Circle Modular
+Wallet passkeys provide user-controlled smart accounts; and a TypeScript
+relayer executes contract-authorized Circle Gateway settlements.
 
-Foundry consists of:
+The frontend never calls Gateway and never handles private settlement data.
+The contract is the source of truth for agreement state and authorization.
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Active demo
 
-## Documentation
+- Network: Arc Testnet (`5042002`)
+- Contract: `0xdfe3495a871e17317b50c5b1b688554ee7194037`
+- Deployment block: `56139585`
+- Local frontend: `http://localhost:5173`
+- Local relayer API: `http://localhost:3001`
 
-https://book.getfoundry.sh/
+The deployed agreement is configured for three Circle Modular Wallet accounts.
+Sign in with the buyer, seller, or arbitrator passkey to see role-specific
+controls. The complete flow covers proposal and approval, securing funds,
+milestone progression, release or arbitration, and relayer settlement status.
 
-## Relayer
+See [docs/architecture.md](docs/architecture.md) for responsibility boundaries.
 
-The TypeScript relayer observes the four fund-authorization events from
-`DocumentaryTradeEscrow`, constructs and authorizes each settlement's Gateway burn intent,
-and stores its execution state in SQLite.
+## Products and components
 
-Install dependencies, then build and test it with:
+- Circle Modular Wallets: passkey authentication, smart accounts, bundler transport, and gas sponsorship.
+- Circle Gateway: custody movement and settlement attestation.
+- Arc Testnet: agreement and settlement contracts.
+- React/Vite/TypeScript frontend: agreement UI and permitted user actions.
+- TypeScript relayer: event polling, BurnIntent authorization, Gateway submission/recovery, and SQLite lifecycle state.
 
-```shell
-npm run build
-npm test
-```
+## Local development
 
-`config.json` is the generated deployment manifest. It contains the deployed
-contract address, deployment block, ABI, event topics, and Gateway contract
-addresses. Runtime secrets and environment-specific values remain in `.env`.
-After every deployment, regenerate the manifest before starting the relayer.
+Install root dependencies and configure the root `.env` with the required RPC,
+relayer, Gateway, and signing values. Never commit `.env` or private keys.
 
-```shell
-set -a; source .env; set +a
-forge script script/DeployDocumentaryTradeEscrow.s.sol:DeployDocumentaryTradeEscrow \
-  --rpc-url "$ARC_RPC_URL" --private-key "$DEPLOYER_PRIVATE_KEY" --broadcast
+Start the relayer from the repository root:
+
+```sh
 ./regenerate-config.sh
+npm install
+npm run build
 npm start
 ```
 
-The relayer reads `CONTRACT_ADDRESS` and `DEPLOYMENT_BLOCK` directly from the
-newly generated `config.json`; they must not be duplicated in `.env`.
+Configure `frontend/.env.local`:
 
-The testnet Gateway API URL is the default. `OPERATOR_PRIVATE_KEY` is used as
-the relayer signing key unless an explicit `RELAYER_PRIVATE_KEY` is provided.
-
-The relayer serves `GET /status`, `GET /transfers`, and
-`GET /settlements/:settlementKey` on `RELAYER_PORT`.
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+```dotenv
+VITE_CONTRACT_ADDRESS=0xdfe3495a871e17317b50c5b1b688554EE7194037
+VITE_CONTRACT_ABI=
+VITE_DEPLOYMENT_BLOCK=56139585
+VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
+VITE_RELAYER_BASE_URL=http://localhost:3001
+VITE_CLIENT_KEY=<Circle Modular Wallet Web Client Key>
+VITE_CLIENT_URL=https://modular-sdk.circle.com/v1/rpc/w3s/buidl
 ```
 
-### Test
+The Client Key must be created under Circle Modular Wallets. Configure the
+entity, `localhost` as the web Allowed Domain, and `localhost` as the Passkey
+Domain. Keep the key only in `frontend/.env.local`.
 
-```shell
-$ forge test
+Start the frontend in a second terminal:
+
+```sh
+cd frontend
+npm install
+npm run dev
 ```
 
-### Format
+For a production build and rendered-language check:
 
-```shell
-$ forge fmt
+```sh
+cd frontend
+npm run build
+npm run audit
 ```
 
-### Gas Snapshots
+## Vercel deployment
 
-```shell
-$ forge snapshot
+Deploy the `frontend/` directory as the Vercel project root. Set these Vercel
+environment variables for Preview and Production:
+
+```dotenv
+VITE_CONTRACT_ADDRESS=0xdfe3495a871e17317b50c5b1b688554EE7194037
+VITE_CONTRACT_ABI=
+VITE_DEPLOYMENT_BLOCK=56139585
+VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
+VITE_RELAYER_BASE_URL=<public relayer HTTPS URL>
+VITE_CLIENT_KEY=<Circle Modular Wallet Web Client Key>
+VITE_CLIENT_URL=https://modular-sdk.circle.com/v1/rpc/w3s/buidl
 ```
 
-### Anvil
+Add the Vercel hostname to the Circle Client Key Allowed Domain and configure
+the same hostname as the Passkey Domain. The relayer must be publicly reachable
+over HTTPS; `http://localhost:3001` is only for local development.
 
-```shell
-$ anvil
+## Verification
+
+```sh
+# From the repository root
+npm run build
+npm test
+
+# From frontend/
+npm run build
+npm run audit
 ```
 
-### Deploy
+The relayer exposes `GET /status`, `GET /transfers`, and
+`GET /settlements/:settlementKey`. Settlement labels are derived from relayer
+state: payment processing, payment confirmed, or payment failed — contact
+support.
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+## Circle product feedback
 
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Modular Wallet passkeys and gas-sponsored smart-account operations make the
+participant experience appropriate for trade workflows where users should not
+manage private keys or native gas. The main integration improvement would be
+clearer first-run diagnostics for Client Key type, entity provisioning, allowed
+domains, Passkey Domains, and the selected chain; the raw SDK error for a
+missing entity configuration is otherwise difficult to act on.

@@ -14,6 +14,7 @@
     "test:watch": "node --import tsx --test --watch relayer/test/*.test.ts"
   },
   "dependencies": {
+    "@circle-fin/user-controlled-wallets": "^10.8.0",
     "axios": "^1.8.4",
     "better-sqlite3": "^11.9.1",
     "ethers": "^6.14.4"
