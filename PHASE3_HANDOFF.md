@@ -211,6 +211,31 @@ committed, but the latest execution environment could not resolve
 `rpc.testnet.arc.network` (`getaddrinfo EAI_AGAIN`), so the relayer exited before
 opening port 3001 and live `/status` was not confirmed here.
 
+### Latest laptop result
+
+The demo laptop now resolves the official hostname and reaches the RPC: startup
+validation succeeded on attempt 1. However, the relayer still exited before
+opening port 3001:
+
+```text
+getent hosts rpc.testnet.arc.network
+2606:4700::6812:1e3d rpc.testnet.arc.network
+2606:4700::6812:1f3d rpc.testnet.arc.network
+
+Startup validation succeeded
+Relayer startup failed {"error":"AggregateError","code":"ETIMEDOUT"}
+```
+
+`curl http://localhost:3001/status` consequently returned connection refused.
+This failure occurs after contract validation, during the post-validation
+initialization path—most likely the historical `eth_getLogs` sweep or its
+provider connection—not during the removed WebSocket subscription path.
+
+The Phase 1/2 owner should instrument or retry the historical sweep with the
+block range in its error log, verify a valid `eth_getLogs` request against the
+selected Arc HTTP endpoint, and then rerun the status check. Do not mark the
+relayer live until `/status` remains available.
+
 ## Relayer HTTP fallback
 
 The relayer now uses explicit HTTP `eth_getLogs` polling through the existing
