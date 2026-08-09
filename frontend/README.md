@@ -21,7 +21,7 @@ VITE_ARC_RPC_URL=https://your-arc-rpc.example
 VITE_DEPLOYMENT_BLOCK=55972787      # optional; config.json is used by default
 ```
 
-The host application must configure the Circle Embedded Wallet bridge exposed as `window.circleEmbeddedWallet`. It supplies an authenticated account, an EIP-1193 provider, sign-in/sign-out, and account-change notifications. The frontend uses that provider to create the ethers-compatible signer; it does not assume a browser extension.
+Before opening the page, the host application must initialize the Circle Embedded Wallet SDK and expose this adapter bridge as `window.circleEmbeddedWallet`. It must supply an authenticated account, an EIP-1193 provider, sign-in/sign-out, and account-change notifications. The frontend uses that provider to create the ethers-compatible signer; it does not assume a browser extension. If the bridge is absent, the page now reports that sign-in is not configured rather than showing a generic action failure.
 
 ## How it works
 
