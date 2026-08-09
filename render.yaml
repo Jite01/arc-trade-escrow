@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: arc-trade-escrow-relayer
+    runtime: docker
+    dockerfilePath: ./relayer/Dockerfile
+    plan: starter
+    healthCheckPath: /status
+    envVars:
+      - key: ARC_RPC_URL
+        value: https://rpc.testnet.arc.network
+      - key: GATEWAY_API_BASE_URL
+        value: https://gateway-api-testnet.circle.com
+      - key: RELAYER_PORT
+        value: "10000"
+      - key: SQLITE_PATH
+        value: /data/relayer.db
+      - key: RELAYER_PRIVATE_KEY
+        sync: false
+    disk:
+      name: relayer-data
+      mountPath: /data
+      sizeGB: 1
