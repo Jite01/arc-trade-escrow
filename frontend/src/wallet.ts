@@ -12,11 +12,40 @@ import { AbstractSigner, type Provider, type TransactionRequest, type Transactio
 
 export interface EmbeddedWalletSession { address: string; signer: CircleSigner; }
 export interface EmbeddedWalletAdapter { getSession(): Promise<EmbeddedWalletSession | null>; login(): Promise<EmbeddedWalletSession>; logout(): Promise<void>; onAccountChange(listener: (address?: string) => void): () => void; }
+export type CircleSignInErrorCode = "CONFIGURATION" | "UNSUPPORTED" | "CANCELLED" | "FAILED";
+
+export class CircleSignInError extends Error {
+  public constructor(public readonly code: CircleSignInErrorCode, cause?: unknown) {
+    super(code);
+    this.name = "CircleSignInError";
+    if (cause !== undefined) this.cause = cause;
+  }
+}
 
 const clientKey = import.meta.env.VITE_CLIENT_KEY;
 const clientUrl = import.meta.env.VITE_CLIENT_URL;
 const usernameKey = "arc-trade-passkey-username";
 type Bundler = any;
+
+function signInError(error: unknown): CircleSignInError {
+  if (error instanceof CircleSignInError) return error;
+  const text = String(error).toLowerCase();
+  if (text.includes("notallowederror") || text.includes("aborterror") || text.includes("cancelled") || text.includes("canceled")) return new CircleSignInError("CANCELLED", error);
+  if (text.includes("credential management api not supported") || text.includes("publickeycredential") || text.includes("not supported")) return new CircleSignInError("UNSUPPORTED", error);
+  if (text.includes("client key") || text.includes("client configuration") || text.includes("entity") || text.includes("domain") || text.includes("origin") || text.includes("rp id") || text.includes("registration options") || text.includes("login options")) return new CircleSignInError("CONFIGURATION", error);
+  return new CircleSignInError("FAILED", error);
+}
+
+function validateConfiguration(): void {
+  if (!clientKey || !clientUrl) throw new CircleSignInError("CONFIGURATION");
+  try {
+    const url = new URL(clientUrl);
+    if (url.protocol !== "https:") throw new Error("Unsupported protocol");
+  } catch (error) {
+    throw new CircleSignInError("CONFIGURATION", error);
+  }
+  if (!window.isSecureContext || !window.PublicKeyCredential || !navigator.credentials) throw new CircleSignInError("UNSUPPORTED");
+}
 
 export class CircleSigner extends AbstractSigner {
   public constructor(private readonly address: string, private readonly bundler: Bundler, provider?: Provider) { super(provider); }
@@ -41,20 +70,25 @@ export function createCircleEmbeddedWalletAdapter(): EmbeddedWalletAdapter {
   return {
     async getSession() { return active; },
     async login() {
-      if (!clientKey || !clientUrl) throw new Error("Circle client configuration is missing");
+      validateConfiguration();
       const username = window.prompt("Enter your sign-in name")?.trim();
-      if (!username) throw new Error("Sign-in was cancelled");
+      if (!username) throw new CircleSignInError("CANCELLED");
       const mode = localStorage.getItem(usernameKey) === username ? WebAuthnMode.Login : WebAuthnMode.Register;
       const passkeyTransport = toPasskeyTransport(clientUrl, clientKey);
-      const credential = await toWebAuthnCredential({ transport: passkeyTransport, mode, username });
-      const modularTransport = toModularTransport(`${clientUrl}/arcTestnet`, clientKey);
-      const client = createPublicClient({ chain: arcTestnet, transport: modularTransport });
-      const smartAccount = await toCircleSmartAccount({ client, owner: toWebAuthnAccount({ credential }) });
-      const bundler = createBundlerClient({ account: smartAccount, chain: arcTestnet, transport: modularTransport });
-      active = { address: smartAccount.address, signer: new CircleSigner(smartAccount.address, bundler) };
-      localStorage.setItem(usernameKey, username);
-      listeners.forEach(listener => listener(active?.address));
-      return active;
+      try {
+        const credential = await toWebAuthnCredential({ transport: passkeyTransport, mode, username });
+        const modularTransport = toModularTransport(`${clientUrl.replace(/\/$/, "")}/arcTestnet`, clientKey);
+        const client = createPublicClient({ chain: arcTestnet, transport: modularTransport });
+        const smartAccount = await toCircleSmartAccount({ client, owner: toWebAuthnAccount({ credential }) });
+        const bundler = createBundlerClient({ account: smartAccount, chain: arcTestnet, transport: modularTransport });
+        active = { address: smartAccount.address, signer: new CircleSigner(smartAccount.address, bundler) };
+        localStorage.setItem(usernameKey, username);
+        listeners.forEach(listener => listener(active?.address));
+        return active;
+      } catch (error) {
+        console.error("Circle passkey sign-in failed", error);
+        throw signInError(error);
+      }
     },
     async logout() { active = null; listeners.forEach(listener => listener(undefined)); },
     onAccountChange(listener) { listeners.add(listener); return () => listeners.delete(listener); },
