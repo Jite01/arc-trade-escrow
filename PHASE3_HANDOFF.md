@@ -44,7 +44,7 @@ The frontend includes:
 5cac112 Integrate Circle modular wallet sign-in
 ```
 
-The frontend integration is in `78703c6`; the relayer polling fallback and regression test are the current working-tree checkpoint pending commit.
+The frontend integration is in `78703c6`; the relayer polling fallback and regression test are committed in `0dfd544`.
 
 ## Local setup
 
@@ -205,9 +205,11 @@ Observed sequence on the demo laptop:
 
 The D-RPC filter limitation and official Arc WSS timeout are no longer startup
 requirements because the relayer uses HTTP polling. The remaining live gate is
-to commit the fallback, start the relayer against an Arc HTTP endpoint that
-permits `eth_getLogs`, confirm `/status` responds on port 3001, and then resume
-the frontend test sequence.
+to start the relayer against an Arc HTTP endpoint that permits `eth_getLogs`
+and confirm `/status` responds on port 3001. The fallback and tests are
+committed, but the latest execution environment could not resolve
+`rpc.testnet.arc.network` (`getaddrinfo EAI_AGAIN`), so the relayer exited before
+opening port 3001 and live `/status` was not confirmed here.
 
 ## Relayer HTTP fallback
 
