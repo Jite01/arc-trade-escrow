@@ -19,9 +19,11 @@ VITE_CONTRACT_ABI=                 # optional JSON override; config.json is used
 VITE_RELAYER_BASE_URL=http://localhost:3001
 VITE_ARC_RPC_URL=https://your-arc-rpc.example
 VITE_DEPLOYMENT_BLOCK=55972787      # optional; config.json is used by default
+VITE_CLIENT_KEY=                    # Circle test client key; keep in .env.local
+VITE_CLIENT_URL=https://modular-sdk.circle.com/v1/rpc/w3s/buidl
 ```
 
-Before opening the page, the host application must initialize the Circle Embedded Wallet SDK and expose this adapter bridge as `window.circleEmbeddedWallet`. It must supply an authenticated account, an EIP-1193 provider, sign-in/sign-out, and account-change notifications. The frontend uses that provider to create the ethers-compatible signer; it does not assume a browser extension. If the bridge is absent, the page now reports that sign-in is not configured rather than showing a generic action failure.
+The frontend now initializes Circle Modular Wallets directly. On first sign-in it registers a passkey; returning users use the same sign-in name to authenticate with that passkey. Circle creates the Arc Testnet smart account and submits contract calls through its bundler with testnet fee sponsorship. Keep `VITE_CLIENT_KEY` in `.env.local`; do not commit it. The client key's web domain must include `localhost` for local development.
 
 ## How it works
 
