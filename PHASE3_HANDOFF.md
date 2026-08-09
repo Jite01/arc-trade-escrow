@@ -176,3 +176,41 @@ Before the demo, authenticate each intended participant and confirm the displaye
 - No BurnIntent, salt, attestation, operator-signature, or private settlement data handling.
 - No transfer-hash invention; settlement rows come from relayer event metadata.
 - Existing unrelated modifications in `package.json`, `package-lock.json`, and the deployment broadcast file were not included in the frontend commits and should be reviewed by the Phase 1/2 owner separately.
+
+## Live demo incident — relayer RPC subscriptions
+
+The frontend checkpoint has been built and audited successfully. The current
+blocker is the relayer's event subscription transport, which should be handled
+by the Phase 1/2 relayer owner.
+
+Observed sequence on the demo laptop:
+
+1. With `ARC_RPC_URL=https://rpc.drpc.testnet.arc.io` and no WSS, HTTP contract
+   validation and relayer initialization succeeded, but the free D-RPC plan
+   repeatedly returned `method is not available on free plan` for the filter
+   polling requests. Live settlement event subscriptions are therefore not
+   reliable on that endpoint.
+2. The local `.env` was then changed to the official Arc endpoints:
+
+   ```dotenv
+   ARC_RPC_URL=https://rpc.testnet.arc.network
+   ARC_WSS_URL=wss://rpc.testnet.arc.network
+   ```
+
+   HTTP validation succeeded intermittently, but the WebSocket connection
+   returned `AggregateError [ETIMEDOUT]`; the relayer then exited during event
+   source startup and logged `WebSocket disconnected — reconnecting...`.
+
+Current result: the frontend is not the failing component. The relayer needs
+one of these Phase 1/2 fixes before live E2E testing can continue:
+
+- provide a reachable Arc WebSocket endpoint from a provider/API key that
+  supports the relayer's event subscriptions; or
+- make the existing relayer event source robustly poll `eth_getLogs` over HTTP
+  when WebSocket subscriptions are unavailable, while preserving the current
+  settlement/event architecture.
+
+Do not redeploy the contract or change Gateway settlement behavior to address
+this incident. Once the relayer remains running and `/status` responds on port
+3001, resume the frontend test sequence and verify Circle account roles against
+the immutable agreement addresses.
