@@ -1,0 +1,5 @@
+export type EventType = "MilestoneReleased" | "MilestoneArbitrated" | "ArbitrationForced" | "FundsReclaimed";
+export type SettlementStatus = "PENDING" | "RETRYING" | "AUTHORIZED" | "MINTING" | "MINTED" | "FAILED" | "PERMANENT_FAILURE";
+export interface Settlement { settlementKey: string; eventType: EventType; milestoneIndex: number | null; recipient: string; amount: string; txHash: string; blockNumber: number; logIndex: number | null; status: SettlementStatus; attemptCount: number; gatewayTransferId?: string | null; mintTxHash?: string | null; }
+export async function getSettlements(base: string): Promise<Settlement[]> { const response = await fetch(`${base}/transfers`); if (!response.ok) throw new Error("Settlement service unavailable"); return response.json() as Promise<Settlement[]>; }
+export async function getSettlement(base: string, key: string): Promise<Settlement> { const response = await fetch(`${base}/transfers/${encodeURIComponent(key)}`); if (!response.ok) throw new Error("Settlement not found"); return response.json() as Promise<Settlement>; }
