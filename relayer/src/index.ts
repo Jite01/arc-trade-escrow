@@ -1,4 +1,4 @@
-import { FetchRequest, JsonRpcProvider } from "ethers";
+import { FetchRequest, JsonRpcProvider, WebSocketProvider } from "ethers";
 import { loadConfig } from "./config.js";
 import { TransferDatabase } from "./database.js";
 import { EthersContractEventSource, EthersLogProvider } from "./event-source.js";
@@ -12,13 +12,14 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const rpcRequest = new FetchRequest(config.arcRpcUrl);
   rpcRequest.timeout = 30_000;
-  const provider = new JsonRpcProvider(rpcRequest, { name: "arc-testnet", chainId: 5_042_002 }, { staticNetwork: true });
+  const httpProvider = new JsonRpcProvider(rpcRequest, { name: "arc-testnet", chainId: 5_042_002 }, { staticNetwork: true });
+  const wsProvider = config.arcWssUrl ? new WebSocketProvider(config.arcWssUrl) : httpProvider;
   const database = new TransferDatabase(config.sqlitePath);
   const relayer = new Relayer(
     config,
     database,
-    new EthersLogProvider(provider),
-    new EthersContractEventSource(provider, config),
+    new EthersLogProvider(httpProvider),
+    new EthersContractEventSource(wsProvider, config),
     new CircleGatewayClient(config.gatewayApiBaseUrl),
     new EthersSettlementExecutor(config.arcRpcUrl, config.relayerPrivateKey, config),
     consoleLogger

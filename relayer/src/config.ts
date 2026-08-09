@@ -10,6 +10,7 @@ export interface RelayerConfig {
   gatewayMinterAddress: string;
   deploymentBlock: number;
   arcRpcUrl: string;
+  arcWssUrl?: string;
   gatewayApiBaseUrl: string;
   relayerPrivateKey: string;
   relayerPort: number;
@@ -102,12 +103,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
   const gatewayApiBaseUrl = (env.GATEWAY_API_BASE_URL?.trim() || "https://gateway-api-testnet.circle.com").replace(/\/+$/, "");
   const relayerPrivateKey = env.RELAYER_PRIVATE_KEY?.trim() || env.OPERATOR_PRIVATE_KEY?.trim();
   if (!relayerPrivateKey) throw new Error("Missing required configuration value: RELAYER_PRIVATE_KEY or OPERATOR_PRIVATE_KEY");
+  const arcRpcUrl = value(env, "ARC_RPC_URL");
+  const arcWssUrl = env.ARC_WSS_URL?.trim() || undefined;
   try {
     new URL(gatewayApiBaseUrl);
-    new URL(value(env, "ARC_RPC_URL"));
+    new URL(arcRpcUrl);
+    if (arcWssUrl) new URL(arcWssUrl);
   } catch {
-    throw new Error("ARC_RPC_URL and GATEWAY_API_BASE_URL must be valid URLs");
+    throw new Error("ARC_RPC_URL, ARC_WSS_URL, and GATEWAY_API_BASE_URL must be valid URLs");
   }
+  if (!arcWssUrl) console.warn("ARC_WSS_URL is not configured; falling back to HTTP for live subscriptions");
 
   return {
     contractAddress: deployment.CONTRACT_ADDRESS,
@@ -121,7 +126,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
     gatewayWalletAddress: deployment.GATEWAY_WALLET_ADDRESS,
     gatewayMinterAddress: deployment.GATEWAY_MINTER_ADDRESS,
     deploymentBlock: deployment.DEPLOYMENT_BLOCK,
-    arcRpcUrl: value(env, "ARC_RPC_URL"),
+    arcRpcUrl,
+    arcWssUrl,
     gatewayApiBaseUrl,
     relayerPrivateKey,
     relayerPort: port,

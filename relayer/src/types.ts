@@ -50,6 +50,7 @@ export interface ChainLog {
 export interface LogProvider {
   getBlockNumber(): Promise<number>;
   getCode(address: string): Promise<string>;
+  getAvailableBalance?(token: string, depositor: string): Promise<bigint>;
   getLogs(filter: { address: string; fromBlock: number; toBlock: number; topics: readonly (readonly string[])[] }): Promise<ChainLog[]>;
 }
 
@@ -94,6 +95,7 @@ export interface GatewayResult {
 
 export interface GatewayClient {
   submit(request: GatewayTransferRequest): Promise<GatewayResult>;
+  getTransfer?(transferId: string): Promise<GatewayResult>;
 }
 
 export interface BurnIntentAuthorization {

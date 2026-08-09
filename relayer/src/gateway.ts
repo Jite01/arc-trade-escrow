@@ -19,4 +19,9 @@ export class CircleGatewayClient implements GatewayClient {
     const response = await this.http.post("/v1/transfer", [input]);
     return { status: response.status, body: response.data };
   }
+
+  public async getTransfer(transferId: string): Promise<GatewayResult> {
+    const response = await this.http.get(`/v1/transfer/${encodeURIComponent(transferId)}`);
+    return { status: response.status, body: response.data };
+  }
 }
