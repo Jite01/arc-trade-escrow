@@ -1,3 +1,5 @@
+import { setDefaultResultOrder } from "node:dns";
+import { Agent } from "node:https";
 import { FetchRequest, JsonRpcProvider } from "ethers";
 import { loadConfig } from "./config.js";
 import { TransferDatabase } from "./database.js";
@@ -7,6 +9,13 @@ import { consoleLogger } from "./logger.js";
 import { Relayer } from "./relayer.js";
 import { EthersSettlementExecutor } from "./onchain.js";
 import { StatusServer } from "./status-server.js";
+
+// Arc's hostname can publish unreachable IPv6 routes in some environments.
+// Prefer IPv4 before ethers opens its HTTP connection so startup does not fail
+// with an opaque AggregateError while curl -4 succeeds.
+setDefaultResultOrder("ipv4first");
+const ipv4Agent = new Agent({ family: 4 });
+FetchRequest.registerGetUrl(FetchRequest.createGetUrlFunc({ agent: ipv4Agent }));
 
 async function main(): Promise<void> {
   const config = loadConfig();

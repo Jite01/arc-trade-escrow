@@ -26,11 +26,11 @@ npm run dev
 Required variables:
 
 ```dotenv
-VITE_CONTRACT_ADDRESS=0xfE842F9418A1e917DB11625B5120726C4A1c4E54
+VITE_CONTRACT_ADDRESS=0xdfe3495a871e17317b50c5b1b688554ee7194037
 VITE_CONTRACT_ABI=                 # optional; generated config.json is used when empty
 VITE_RELAYER_BASE_URL=http://localhost:3001
-VITE_ARC_RPC_URL=https://rpc.drpc.testnet.arc.io
-VITE_DEPLOYMENT_BLOCK=56099880
+VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
+VITE_DEPLOYMENT_BLOCK=56139585
 VITE_CLIENT_KEY=                    # Modular Wallet Web Client Key; keep local
 VITE_CLIENT_URL=https://modular-sdk.circle.com/v1/rpc/w3s/buidl
 ```

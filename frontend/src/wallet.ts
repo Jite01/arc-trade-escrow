@@ -24,7 +24,7 @@ export class CircleSignInError extends Error {
 
 const clientKey = import.meta.env.VITE_CLIENT_KEY;
 const clientUrl = import.meta.env.VITE_CLIENT_URL;
-const usernameKey = "arc-trade-passkey-username";
+const usernameKey = "arc-trade-passkey-usernames";
 type Bundler = any;
 
 function signInError(error: unknown): CircleSignInError {
@@ -73,7 +73,8 @@ export function createCircleEmbeddedWalletAdapter(): EmbeddedWalletAdapter {
       validateConfiguration();
       const username = window.prompt("Enter your sign-in name")?.trim();
       if (!username) throw new CircleSignInError("CANCELLED");
-      const mode = localStorage.getItem(usernameKey) === username ? WebAuthnMode.Login : WebAuthnMode.Register;
+      const registered = JSON.parse(localStorage.getItem(usernameKey) || "[]") as string[];
+      const mode = registered.includes(username) ? WebAuthnMode.Login : WebAuthnMode.Register;
       const passkeyTransport = toPasskeyTransport(clientUrl, clientKey);
       try {
         const credential = await toWebAuthnCredential({ transport: passkeyTransport, mode, username });
@@ -82,7 +83,8 @@ export function createCircleEmbeddedWalletAdapter(): EmbeddedWalletAdapter {
         const smartAccount = await toCircleSmartAccount({ client, owner: toWebAuthnAccount({ credential }) });
         const bundler = createBundlerClient({ account: smartAccount, chain: arcTestnet, transport: modularTransport });
         active = { address: smartAccount.address, signer: new CircleSigner(smartAccount.address, bundler) };
-        localStorage.setItem(usernameKey, username);
+        if (!registered.includes(username)) localStorage.setItem(usernameKey, JSON.stringify([...registered, username]));
+        console.info("Circle participant account:", smartAccount.address, "sign-in name:", username);
         listeners.forEach(listener => listener(active?.address));
         return active;
       } catch (error) {
