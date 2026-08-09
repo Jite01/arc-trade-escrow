@@ -11,6 +11,10 @@ export class StatusServer {
     if (this.server) return;
     this.server = createServer((request, response) => {
       const url = new URL(request.url || "/", "http://localhost");
+      response.setHeader("Access-Control-Allow-Origin", "*");
+      response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      if (request.method === "OPTIONS") return this.respond(response, 204, null);
       if (request.method !== "GET") return this.respond(response, 405, { error: "Method not allowed" });
       if (url.pathname === "/status") {
         return this.respond(response, 200, {
