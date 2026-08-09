@@ -1,4 +1,4 @@
-import generated from "../../config.json";
+import generated from "../config.json";
 const rpcUrl = (import.meta.env.VITE_ARC_RPC_URL || "").trim();
 if (!rpcUrl) throw new Error("VITE_ARC_RPC_URL is required for contract reads");
 

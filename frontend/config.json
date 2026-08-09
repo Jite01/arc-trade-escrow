@@ -1,0 +1,30 @@
+{
+  "CONTRACT_ADDRESS": "0xdfe3495a871e17317b50c5b1b688554ee7194037",
+  "DEPLOYMENT_BLOCK": 56139585,
+  "CONTRACT_ABI": [
+    {"inputs": [], "name": "getState", "outputs": [{"type": "uint8"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "getTerms", "outputs": [{"type": "address"},{"type": "address"},{"type": "address"},{"type": "address"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "getMilestones", "outputs": [{"components": [{"type": "string"},{"type": "uint16"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"}], "type": "tuple[]"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [{"type": "uint256"}], "name": "getMilestoneStatus", "outputs": [{"type": "uint8"},{"type": "bytes32"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "getApprovals", "outputs": [{"type": "bool"},{"type": "bool"},{"type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "getBalances", "outputs": [{"type": "uint256"},{"type": "uint256"},{"type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [], "name": "getCurrentMilestoneIndex", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"},
+    {"inputs": [{"components": [{"type": "string","name": "description"},{"type": "uint16","name": "basisPoints"},{"type": "uint256","name": "sellerDeadline"},{"type": "uint256","name": "buyerResponseWindow"},{"type": "uint256","name": "disputeWindow"}], "type": "tuple[]","name": "array"}], "name": "proposeMilestones", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [], "name": "approve", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [], "name": "cancel", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [], "name": "expire", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [], "name": "depositUSDS", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [], "name": "abandonCommitment", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"type": "uint256"},{"type": "bytes32"}], "name": "triggerMilestone", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"type": "uint256"}], "name": "confirmMilestone", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"type": "uint256"}], "name": "dispute", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"type": "uint256"}], "name": "release", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [], "name": "reclaimExpiry", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"type": "uint256"},{"type": "address"}], "name": "arbitrate", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"inputs": [{"type": "uint256"}], "name": "forceRelease", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+    {"anonymous": false, "inputs": [{"indexed": false,"type": "uint256"},{"indexed": false,"type": "address"},{"indexed": false,"type": "uint256"}], "name": "MilestoneReleased", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": false,"type": "uint256"},{"indexed": false,"type": "address"},{"indexed": false,"type": "uint256"}], "name": "MilestoneArbitrated", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": false,"type": "uint256"},{"indexed": false,"type": "address"},{"indexed": false,"type": "uint256"}], "name": "ArbitrationForced", "type": "event"},
+    {"anonymous": false, "inputs": [{"indexed": false,"type": "address"},{"indexed": false,"type": "uint256"}], "name": "FundsReclaimed", "type": "event"}
+  ]
+}
