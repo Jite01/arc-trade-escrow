@@ -24,7 +24,7 @@ export class CircleSignInError extends Error {
 
 const clientKey = import.meta.env.VITE_CLIENT_KEY;
 const clientUrl = import.meta.env.VITE_CLIENT_URL;
-const usernameKey = "arc-trade-passkey-usernames";
+const usernameKey = `arc-trade-passkey-usernames:${window.location.hostname}:${clientKey || "unconfigured"}`;
 type Bundler = any;
 
 function signInError(error: unknown): CircleSignInError {
