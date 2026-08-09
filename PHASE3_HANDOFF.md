@@ -17,6 +17,15 @@ reintroduce the old deployment flow or old wallet architecture.
 The root `config.json` has been regenerated from the latest deployment. The
 relayer must be built and started from the repository root before using the UI.
 
+The active demo relayer has been verified with:
+
+```json
+{"contractAddress":"0xdfe3495a871e17317b50c5b1b688554ee7194037","listening":true}
+```
+
+The frontend and relayer build/test gates pass. Full participant action E2E and
+Vercel deployment remain the next live-demo tasks.
+
 ## What was added
 
 The isolated React/Vite/TypeScript app is in `frontend/`. It consumes the existing generated `config.json`, deployed agreement, and relayer API. It does not modify the Solidity contract, deployed contract, SQLite data, or Gateway integration. The relayer now includes an explicit HTTP `eth_getLogs` event-polling fallback so live event delivery does not depend on an available WebSocket subscription.
@@ -46,6 +55,40 @@ The frontend includes:
 ```
 
 The frontend integration is in `78703c6`; the relayer polling fallback and regression test are committed in `0dfd544`.
+The Circle-compatible demo deployment and active configuration are committed in
+`4e51897`.
+
+## Documentation handoff
+
+The repository root `README.md` is currently still the default Foundry scaffold
+and is not suitable for the hackathon submission. The canonical project README
+must live at the repository root because the submission covers the React
+frontend, Circle Modular Wallet authentication, DocumentaryTradeEscrow,
+relayer, Gateway-owned settlement execution, local setup, Vercel deployment,
+demo steps, and Circle Product Feedback.
+
+The next documentation owner must:
+
+1. Replace the root `README.md` with the project README. It must include the
+   project title/short description, Circle products used, active demo contract
+   and relayer relationship, local setup, required environment variables,
+   frontend and relayer run commands, Vercel deployment variables, judge demo
+   path, test/build commands, settlement-status behavior, and Circle Product
+   Feedback.
+2. Create the canonical project diagram at `docs/architecture.md` and ensure
+   it clearly shows that the frontend never calls Gateway and never constructs
+   BurnIntents or salts; the relayer owns authorization, Gateway submission,
+   recovery, and minting; Gateway performs custody movement; the contract is
+   the authorization source of truth; and SQLite records relayer execution
+   state.
+3. Replace `frontend/docs/architecture.md` with either a short pointer to
+   `../docs/architecture.md` or remove it after updating all links. The current
+   frontend README link is package-relative and should not be the submission’s
+   primary architecture reference.
+4. Reduce `frontend/README.md` to frontend-specific development notes and link
+   to the root README and `../docs/architecture.md`.
+
+Do not put Client Keys, private keys, or other secrets in either README.
 
 ## Local setup
 
