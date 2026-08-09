@@ -1,9 +1,9 @@
 # Frontend development notes
 
 The frontend is a React/Vite/TypeScript app for the deployed Arc Trade Escrow
-agreement. Project overview, deployment configuration, architecture, and
-submission information live in the [root README](../README.md) and
-[canonical architecture document](../docs/architecture.md).
+agreement. Project overview, deployment configuration, and submission
+information live in the [root README](../README.md) and the root `submission/`
+package.
 
 ## Local setup
 

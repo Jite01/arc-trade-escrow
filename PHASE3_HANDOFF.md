@@ -63,8 +63,9 @@ The Circle-compatible demo deployment and active configuration are committed in
 Completed. The root `README.md` is now the canonical project and deployment
 README. It covers the active demo, Circle products, local setup, Vercel
 variables, verification commands, settlement behavior, and product feedback.
-The canonical architecture diagram is `docs/architecture.md`; the frontend
-README is limited to local development notes and contains no judge walkthrough.
+The submission PDF is the canonical judge-facing architecture and project
+summary; the frontend README is limited to local development notes and
+contains no judge walkthrough.
 No Client Keys or private keys were added to documentation. `frontend/vercel.json`
 now declares the Vite build and `dist` output explicitly.
 
@@ -220,8 +221,8 @@ the owner must complete these final gates:
 4. Capture the final screen showing relayer settlement status `MINTED`.
 5. Run `npm run build` and `npm run audit` in `frontend/` and `npm run build` and
    `npm test` from the repository root.
-6. Review [docs/architecture.md](docs/architecture.md), record
-   the demo URL, repository URL, and Circle account email for the submission.
+6. Review the submission PDF in `submission/`, record the demo URL, repository
+   URL, and Circle account email for the submission.
 7. Add the prepared Circle Product Feedback section from the frontend README to
    the submission materials.
 

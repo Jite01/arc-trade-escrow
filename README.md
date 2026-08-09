@@ -21,7 +21,8 @@ Sign in with the buyer, seller, or arbitrator passkey to see role-specific
 controls. The complete flow covers proposal and approval, securing funds,
 milestone progression, release or arbitration, and relayer settlement status.
 
-See [docs/architecture.md](docs/architecture.md) for responsibility boundaries.
+The submission package contains the architecture diagram and judge-facing
+project summary in `submission/`.
 
 ## Products and components
 
