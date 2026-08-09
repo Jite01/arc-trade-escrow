@@ -1,6 +1,6 @@
 # Phase 3 frontend handoff — current checkpoint
 
-This handoff is the current checkpoint for the Phase 3/frontend owner. The genesis
+This handoff is the current checkpoint for the Phase 3/frontend and relayer owner. The genesis
 prompt is historical reference only. Continue from this document and do not
 reintroduce the old deployment flow or old wallet architecture.
 
@@ -9,7 +9,7 @@ reintroduce the old deployment flow or old wallet architecture.
 - Chain: Arc Testnet, chain ID `5042002`
 - Contract: `0xfE842F9418A1e917DB11625B5120726C4A1c4E54`
 - Deployment block: `56099880`
-- Relayer RPC: `https://rpc.drpc.testnet.arc.io`
+- Relayer RPC: configured by `ARC_RPC_URL`; the current local `.env` uses `https://rpc.testnet.arc.network`
 - Relayer API: `http://localhost:3001`
 - Frontend dev server: `http://localhost:5173`
 
@@ -18,7 +18,7 @@ relayer must be built and started from the repository root before using the UI.
 
 ## What was added
 
-The isolated React/Vite/TypeScript app is in `frontend/`. It consumes the existing generated `config.json`, deployed agreement, and relayer API. It does not modify the Solidity contract, deployed contract, relayer source, SQLite data, Gateway integration, or RPC/WSS configuration.
+The isolated React/Vite/TypeScript app is in `frontend/`. It consumes the existing generated `config.json`, deployed agreement, and relayer API. It does not modify the Solidity contract, deployed contract, SQLite data, or Gateway integration. The relayer now includes an explicit HTTP `eth_getLogs` event-polling fallback so live event delivery does not depend on an available WebSocket subscription.
 
 The frontend includes:
 
@@ -38,12 +38,13 @@ The frontend includes:
 ## Commits
 
 ```text
-87ca06d Add React escrow frontend
-ae96fcc Clarify embedded sign-in configuration error
+9a83e32 Document relayer RPC subscription incident
+78703c6 Refresh frontend checkpoint and Circle sign-in diagnostics
+802a858 Add Phase 3 frontend handoff
 5cac112 Integrate Circle modular wallet sign-in
 ```
 
-The latest frontend integration is in `5cac112`.
+The frontend integration is in `78703c6`; the relayer polling fallback and regression test are the current working-tree checkpoint pending commit.
 
 ## Local setup
 
@@ -67,7 +68,7 @@ In a second terminal, configure `frontend/.env.local`:
 VITE_CONTRACT_ADDRESS=0xfE842F9418A1e917DB11625B5120726C4A1c4E54
 VITE_CONTRACT_ABI=
 VITE_DEPLOYMENT_BLOCK=56099880
-VITE_ARC_RPC_URL=https://rpc.drpc.testnet.arc.io
+VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
 VITE_RELAYER_BASE_URL=http://localhost:3001
 VITE_CLIENT_KEY=<Circle Modular Wallet Web Client Key>
 VITE_CLIENT_URL=https://modular-sdk.circle.com/v1/rpc/w3s/buidl
@@ -160,8 +161,9 @@ the owner must complete these final gates:
 7. Add the prepared Circle Product Feedback section from the frontend README to
    the submission materials.
 
-Do not redeploy, modify the contract, alter Gateway custody, or change the
-relayer settlement architecture as part of Phase 3 completion.
+Do not redeploy, modify the contract, or alter Gateway custody as part of Phase
+3 completion. The HTTP polling fallback is an operational reliability change;
+the relayer's settlement architecture and database lifecycle remain unchanged.
 
 ## Critical compatibility check
 
@@ -177,11 +179,11 @@ Before the demo, authenticate each intended participant and confirm the displaye
 - No transfer-hash invention; settlement rows come from relayer event metadata.
 - Existing unrelated modifications in `package.json`, `package-lock.json`, and the deployment broadcast file were not included in the frontend commits and should be reviewed by the Phase 1/2 owner separately.
 
-## Live demo incident — relayer RPC subscriptions
+## Resolved live demo incident — relayer RPC subscriptions
 
-The frontend checkpoint has been built and audited successfully. The current
-blocker is the relayer's event subscription transport, which should be handled
-by the Phase 1/2 relayer owner.
+The frontend checkpoint has been built and audited successfully. The original
+relayer event-subscription blocker has been addressed in the working tree by the
+Phase 1/2 relayer owner using explicit HTTP log polling.
 
 Observed sequence on the demo laptop:
 
@@ -201,16 +203,32 @@ Observed sequence on the demo laptop:
    returned `AggregateError [ETIMEDOUT]`; the relayer then exited during event
    source startup and logged `WebSocket disconnected — reconnecting...`.
 
-Current result: the frontend is not the failing component. The relayer needs
-one of these Phase 1/2 fixes before live E2E testing can continue:
+The D-RPC filter limitation and official Arc WSS timeout are no longer startup
+requirements because the relayer uses HTTP polling. The remaining live gate is
+to commit the fallback, start the relayer against an Arc HTTP endpoint that
+permits `eth_getLogs`, confirm `/status` responds on port 3001, and then resume
+the frontend test sequence.
 
-- provide a reachable Arc WebSocket endpoint from a provider/API key that
-  supports the relayer's event subscriptions; or
-- make the existing relayer event source robustly poll `eth_getLogs` over HTTP
-  when WebSocket subscriptions are unavailable, while preserving the current
-  settlement/event architecture.
+## Relayer HTTP fallback
 
-Do not redeploy the contract or change Gateway settlement behavior to address
-this incident. Once the relayer remains running and `/status` responds on port
-3001, resume the frontend test sequence and verify Circle account roles against
-the immutable agreement addresses.
+The relayer now uses explicit HTTP `eth_getLogs` polling through the existing
+`LogProvider` instead of depending on WebSocket subscriptions at process
+startup. Polling begins after the historical sweep cursor, uses bounded 500
+block windows, retries provider errors without exiting, and stops cleanly with
+the relayer. The existing database settlement deduplication and Gateway
+settlement flow are unchanged. `ARC_WSS_URL` is retained as compatible
+configuration but is no longer required for event delivery.
+
+Verification completed after the change:
+
+```sh
+npm run build
+npm test
+```
+
+Both pass, including a regression test for block-cursor polling and topic
+dispatch. The remaining live gate is to run the relayer against an Arc HTTP
+endpoint that permits `eth_getLogs`, confirm `/status` stays available on port
+3001, and then repeat the Circle/frontend demo. If the selected provider
+rejects `eth_getLogs` entirely, a provider/API plan that permits log queries is
+still required; the fallback cannot compensate for an endpoint-level denial.

@@ -19,6 +19,59 @@ export class EthersLogProvider implements LogProvider {
 
 type SubscriptionProvider = JsonRpcProvider | WebSocketProvider;
 
+/**
+ * HTTP-compatible event source. Some Arc RPC plans do not support ethers'
+ * filter polling, so this uses explicit bounded eth_getLogs requests and
+ * keeps the relayer alive when a provider temporarily rejects one.
+ */
+export class EthersPollingEventSource implements EventSource {
+  private readonly listeners = new Map<string, (log: ChainLog) => void>();
+  private cursor = 0;
+  private timer: NodeJS.Timeout | undefined;
+  private polling = false;
+  private stopped = false;
+
+  public constructor(private readonly provider: LogProvider, private readonly config: RelayerConfig, private readonly intervalMs = 5_000, private readonly chunkSize = 500) {}
+
+  public subscribe(topic: string, listener: (log: ChainLog) => void): void {
+    this.listeners.set(topic.toLowerCase(), listener);
+  }
+
+  public async start(fromBlock: number): Promise<void> {
+    this.cursor = fromBlock;
+    this.stopped = false;
+    await this.poll();
+    this.timer = setInterval(() => void this.poll(), this.intervalMs);
+    this.timer.unref();
+  }
+
+  public unsubscribe(): void {
+    this.stopped = true;
+    if (this.timer) clearInterval(this.timer);
+    this.timer = undefined;
+    this.listeners.clear();
+  }
+
+  public async poll(): Promise<void> {
+    if (this.stopped || this.polling || this.listeners.size === 0) return;
+    this.polling = true;
+    try {
+      const latest = await this.provider.getBlockNumber();
+      const topics = [Object.values(this.config.eventTopics)];
+      for (let from = this.cursor + 1; from <= latest; from += this.chunkSize) {
+        const to = Math.min(from + this.chunkSize - 1, latest);
+        const logs = await this.provider.getLogs({ address: this.config.contractAddress, fromBlock: from, toBlock: to, topics });
+        for (const log of logs) this.listeners.get(log.topics[0]?.toLowerCase())?.(log);
+        this.cursor = to;
+      }
+    } catch (error) {
+      console.error("HTTP event polling failed; will retry", error instanceof Error ? error.message : String(error));
+    } finally {
+      this.polling = false;
+    }
+  }
+}
+
 export class EthersContractEventSource implements EventSource {
   private contract: Contract;
   private readonly listeners = new Map<string, { eventName: string; listener: (log: ChainLog) => void }>();

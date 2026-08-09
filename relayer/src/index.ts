@@ -1,7 +1,7 @@
-import { FetchRequest, JsonRpcProvider, WebSocketProvider } from "ethers";
+import { FetchRequest, JsonRpcProvider } from "ethers";
 import { loadConfig } from "./config.js";
 import { TransferDatabase } from "./database.js";
-import { EthersContractEventSource, EthersLogProvider } from "./event-source.js";
+import { EthersLogProvider, EthersPollingEventSource } from "./event-source.js";
 import { CircleGatewayClient } from "./gateway.js";
 import { consoleLogger } from "./logger.js";
 import { Relayer } from "./relayer.js";
@@ -13,13 +13,12 @@ async function main(): Promise<void> {
   const rpcRequest = new FetchRequest(config.arcRpcUrl);
   rpcRequest.timeout = 30_000;
   const httpProvider = new JsonRpcProvider(rpcRequest, { name: "arc-testnet", chainId: 5_042_002 }, { staticNetwork: true });
-  const wsProvider = config.arcWssUrl ? new WebSocketProvider(config.arcWssUrl) : httpProvider;
   const database = new TransferDatabase(config.sqlitePath);
   const relayer = new Relayer(
     config,
     database,
     new EthersLogProvider(httpProvider),
-    new EthersContractEventSource(wsProvider, config),
+    new EthersPollingEventSource(new EthersLogProvider(httpProvider), config),
     new CircleGatewayClient(config.gatewayApiBaseUrl),
     new EthersSettlementExecutor(config.arcRpcUrl, config.relayerPrivateKey, config),
     consoleLogger

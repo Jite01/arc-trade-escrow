@@ -112,7 +112,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
   } catch {
     throw new Error("ARC_RPC_URL, ARC_WSS_URL, and GATEWAY_API_BASE_URL must be valid URLs");
   }
-  if (!arcWssUrl) console.warn("ARC_WSS_URL is not configured; falling back to HTTP for live subscriptions");
+  if (arcWssUrl) console.warn("ARC_WSS_URL is configured but the relayer uses HTTP eth_getLogs polling for resilient event delivery");
+  else console.warn("ARC_WSS_URL is not configured; using HTTP eth_getLogs polling for live events");
 
   return {
     contractAddress: deployment.CONTRACT_ADDRESS,

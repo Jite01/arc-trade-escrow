@@ -56,6 +56,7 @@ export interface LogProvider {
 
 export interface EventSource {
   subscribe(topic: string, listener: (log: ChainLog) => void): void;
+  start?(fromBlock: number): void | Promise<void>;
   unsubscribe(): void;
 }
 
