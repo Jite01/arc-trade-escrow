@@ -5,13 +5,11 @@ import { buildBurnIntent, burnIntentHash } from "./onchain.js";
 import type { BurnIntentAuthorization, ChainLog, EventSource, EventType, GatewayClient, Logger, LogProvider, SettlementExecutor, SettlementInput, SettlementRow } from "./types.js";
 const retryDelaySeconds=[30,120,600,1800] as const;
 export class Relayer {
-  private readonly inFlight=new Set<string>(); private readonly escrows=new Map<string,number>(); private retryTimer:NodeJS.Timeout|undefined; private active=false;
+  private readonly inFlight=new Set<string>(); private readonly escrows=new Map<string,number>(); private retryTimer:NodeJS.Timeout|undefined; private active=false; private prepared=false;
   public constructor(public readonly config:RelayerConfig,public readonly database:TransferDatabase,private readonly provider:LogProvider,private readonly eventSource:EventSource,private readonly gateway:GatewayClient,private readonly executor:SettlementExecutor,private readonly logger:Logger,private readonly now=()=>Math.floor(Date.now()/1000)){}
   public get listening(){return this.active;}
   public async initialize(){
-    await this.validateContractWithRetry();
-    this.database.migrate();
-    await this.resumeNonTerminal();
+    await this.prepare();
     const historicalTo=process.env.SKIP_HISTORICAL_SWEEP==="true"?await this.provider.getBlockNumber():await this.historicalSweep();
     this.eventSource.subscribe(this.config.factoryEventTopic,l=>this.handleFactoryLog(l));
     for(const topic of Object.values(this.config.eventTopics))this.eventSource.subscribe(topic,l=>void this.handleLog(l));
@@ -19,6 +17,13 @@ export class Relayer {
     this.active=true;
     this.retryTimer=setInterval(()=>void this.processDueRetries(),10000);this.retryTimer.unref();
     this.logger.info("Relayer initialized",{factoryAddress:this.config.factoryAddress,escrowCount:this.escrows.size,historicalSweep:process.env.SKIP_HISTORICAL_SWEEP==="true"?"skipped":"completed"});
+  }
+  public async prepare(){
+    if(this.prepared)return;
+    await this.validateContractWithRetry();
+    this.database.migrate();
+    await this.resumeNonTerminal();
+    this.prepared=true;
   }
   private async validateContractWithRetry(){const backoffMs=[0,2000,5000,15000,30000];let lastError:unknown;for(let i=0;i<backoffMs.length;i++){if(backoffMs[i]>0)await new Promise<void>(resolve=>setTimeout(resolve,backoffMs[i]));const attempt=i+1;this.logger.info("Startup validation attempt",{attempt,maxAttempts:backoffMs.length});try{const code=await this.provider.getCode(this.config.factoryAddress);if(code==="0x")throw new Error(`No deployed factory code at ${this.config.factoryAddress}`);this.logger.info("Startup validation succeeded",{attempt});return;}catch(error){lastError=error;if(attempt<backoffMs.length)this.logger.warn("Startup validation failed; retrying",{attempt,nextAttempt:attempt+1,error:String(error)});}}throw lastError;}
   public stop(){this.active=false;this.eventSource.unsubscribe();if(this.retryTimer)clearInterval(this.retryTimer);this.retryTimer=undefined;}

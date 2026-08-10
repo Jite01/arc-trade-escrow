@@ -33,8 +33,9 @@ async function main(): Promise<void> {
     consoleLogger
   );
   const server = new StatusServer(relayer, config.relayerPort);
-  await relayer.initialize();
+  await relayer.prepare();
   await server.start();
+  await relayer.initialize();
   consoleLogger.info("Relayer status server started", { port: config.relayerPort });
 
   const shutdown = async (): Promise<void> => {
