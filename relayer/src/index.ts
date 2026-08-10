@@ -20,7 +20,11 @@ FetchRequest.registerGetUrl(FetchRequest.createGetUrlFunc({ agent: ipv4Agent }))
 
 async function main(): Promise<void> {
   const bootstrapPort = Number(process.env.PORT || process.env.RELAYER_PORT || 3001);
-  const bootstrap = await startBootstrapServer(Number.isInteger(bootstrapPort) && bootstrapPort > 0 ? bootstrapPort : 3001);
+  let bootstrapError = "Relayer is starting";
+  const bootstrap = await startBootstrapServer(
+    Number.isInteger(bootstrapPort) && bootstrapPort > 0 ? bootstrapPort : 3001,
+    () => bootstrapError
+  );
   let database: TransferDatabase | undefined;
   let relayer: Relayer | undefined;
   let server: StatusServer | undefined;
@@ -69,15 +73,16 @@ async function main(): Promise<void> {
     process.once("SIGINT", () => void shutdown().finally(() => process.exit(0)));
     process.once("SIGTERM", () => void shutdown().finally(() => process.exit(0)));
   } catch (error) {
+    bootstrapError = error instanceof Error ? error.message : String(error);
     consoleLogger.error("Relayer configuration failed; health endpoint remains available", {
-      error: error instanceof Error ? error.message : String(error)
+      error: bootstrapError
     });
     process.once("SIGINT", () => void closeServer(bootstrap).finally(() => process.exit(0)));
     process.once("SIGTERM", () => void closeServer(bootstrap).finally(() => process.exit(0)));
   }
 }
 
-async function startBootstrapServer(port: number): Promise<Server> {
+async function startBootstrapServer(port: number, getError: () => string): Promise<Server> {
   const server = createServer((request, response) => {
     response.setHeader("Content-Type", "application/json");
     response.setHeader("Access-Control-Allow-Origin", "*");
@@ -87,7 +92,7 @@ async function startBootstrapServer(port: number): Promise<Server> {
       return;
     }
     response.writeHead(request.url === "/status" ? 200 : 503);
-    response.end(JSON.stringify({ ready: false, listening: false }));
+    response.end(JSON.stringify({ ready: false, listening: false, error: getError() }));
   });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
