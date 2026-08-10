@@ -1,7 +1,9 @@
 # Frontend development notes
 
-The frontend is a React/Vite/TypeScript app for the deployed Arc Trade Escrow
-agreement. Project overview, deployment configuration, and submission
+The frontend is a React/Vite/TypeScript app for the Arc Trade Escrow
+agreement factory and registry. A buyer creates an agreement for a seller;
+the factory deploys one escrow per agreement and indexes it for both parties.
+Project overview, deployment configuration, and submission
 information live in the [root README](../README.md) and the root `submission/`
 package.
 
@@ -27,5 +29,5 @@ npm run dev
 ```
 
 The Vite app runs on `http://localhost:5173` and expects the relayer at
-`http://localhost:3001`. Vite reads environment variables at startup, so
+`http://localhost:3001` locally. Vite reads environment variables at startup, so
 restart the dev server after changing `.env.local`.

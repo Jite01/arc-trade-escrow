@@ -1,5 +1,5 @@
 {
-  "CONTRACT_ADDRESS": "0xdfe3495a871e17317b50c5b1b688554ee7194037",
+  "CONTRACT_ADDRESS": "0xc36a8ca590405fa7c9df44c46ff784a33530a4b0",
   "CONTRACT_ABI": [
     {
       "type": "constructor",
@@ -752,6 +752,54 @@
     },
     {
       "type": "function",
+      "name": "initialize",
+      "inputs": [
+        {
+          "name": "buyerAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "sellerAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "arbitrationAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "operatorAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "totalUSDC_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "negotiationExpiry_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "commitmentWindow_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "arbitrationTimeout_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
       "name": "isValidSignature",
       "inputs": [
         {
@@ -1398,6 +1446,11 @@
     },
     {
       "type": "error",
+      "name": "AlreadyInitialized",
+      "inputs": []
+    },
+    {
+      "type": "error",
       "name": "DeadlineElapsed",
       "inputs": []
     },
@@ -1488,5 +1541,237 @@
   "EVENT_TOPIC_RECLAIMED": "0xe1d330cdf912f9bcea0435a02c5d6c13c3ecd9d326f056df92854de5cefefdc8",
   "GATEWAY_WALLET_ADDRESS": "0x0077777d7EBA4688BDeF3E311b846F25870A19B9",
   "GATEWAY_MINTER_ADDRESS": "0x0022222ABE238Cc2C7Bb1f21003F0a260052475B",
-  "DEPLOYMENT_BLOCK": 56139585
+  "DEPLOYMENT_BLOCK": 56256269,
+  "FACTORY_ADDRESS": "0x83720927588845e7e5c6d12d73eccb39ace7c9bb",
+  "FACTORY_ABI": [
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "arbitrator_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "operator_",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "agreementsOf",
+      "inputs": [
+        {
+          "name": "participant",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32[]",
+          "internalType": "bytes32[]"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "arbitrator",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "createAgreement",
+      "inputs": [
+        {
+          "name": "agreementId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "seller",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "totalUSDC",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "negotiationExpiry",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "commitmentWindow",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "arbitrationTimeout",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "escrow",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "getAgreement",
+      "inputs": [
+        {
+          "name": "agreementId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct DocumentaryTradeEscrowFactory.Agreement",
+          "components": [
+            {
+              "name": "escrow",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "buyer",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "seller",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "arbitrator",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "createdAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "implementation",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "operator",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "AgreementCreated",
+      "inputs": [
+        {
+          "name": "agreementId",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "escrow",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "seller",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "arbitrator",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "totalUSDC",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "AgreementExists",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidAddress",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidAgreementId",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidTerms",
+      "inputs": []
+    }
+  ],
+  "FACTORY_DEPLOYMENT_BLOCK": 56261623,
+  "FACTORY_EVENT_TOPIC_CREATED": "0x93fcc1aeda5c60e5ef54ee2d91bf76a6d2abfb7a111d0a2d4b52771b48d9fb07"
 }

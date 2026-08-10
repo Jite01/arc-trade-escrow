@@ -9,7 +9,6 @@ COPY relayer ./relayer
 RUN npm run build
 
 ENV NODE_ENV=production
-ENV RELAYER_PORT=10000
 ENV SQLITE_PATH=/data/relayer.db
 EXPOSE 10000
 

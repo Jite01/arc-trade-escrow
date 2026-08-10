@@ -11,6 +11,7 @@ export type EventType = "MilestoneReleased" | "MilestoneArbitrated" | "Arbitrati
 
 export interface SettlementInput {
   settlementKey: string;
+  escrowAddress: string;
   eventType: EventType;
   milestoneIndex: number | null;
   recipient: string;
@@ -39,6 +40,7 @@ export interface SettlementRow extends SettlementInput {
 }
 
 export interface ChainLog {
+  address: string;
   topics: readonly string[];
   data: string;
   transactionHash: string;
@@ -56,6 +58,7 @@ export interface LogProvider {
 
 export interface EventSource {
   subscribe(topic: string, listener: (log: ChainLog) => void): void;
+  addAddress(address: string): void;
   start?(fromBlock: number): void | Promise<void>;
   unsubscribe(): void;
 }
@@ -123,7 +126,7 @@ export interface GatewayMinter {
 }
 
 export interface SettlementExecutor {
-  authorize(input: BurnIntentAuthorization): Promise<BurnIntentAuthorizationResult>;
+  authorize(input: BurnIntentAuthorization, escrowAddress: string): Promise<BurnIntentAuthorizationResult>;
   mint(input: { attestation: string; signature: string }): Promise<{ mintTxHash: string }>;
 }
 

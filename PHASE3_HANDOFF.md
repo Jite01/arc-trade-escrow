@@ -1,15 +1,75 @@
 # Phase 3 frontend handoff — current checkpoint
 
+## Deterministic checkpoint — 2026-08-10
+
+This section is authoritative; the older sections below are historical.
+
+### Architecture and deployed addresses
+
+- Arc Testnet chain ID: `5042002`.
+- `DocumentaryTradeEscrowFactory`: `0x83720927588845e7e5c6d12d73eccb39ace7c9bb`.
+- Factory deployment block: `56261623`.
+- Each agreement creates a fresh clone of `DocumentaryTradeEscrow`; the
+  escrow remains the source of truth for lifecycle and settlement state.
+- The older single/open-demo escrow in `CONTRACT_ADDRESS` is retained only in
+  generated compatibility config; the dynamic frontend does not use it.
+
+### Hosted state
+
+- Production site: `https://arc-trade-escrow.vercel.app`.
+- Latest production deployment: `dpl_FCeJqFR22R8jwgqCBAuJaZBmfg5P`.
+- The live bundle contains the factory address, explicit company onboarding,
+  refresh-safe registry hydration, public/private proposal discovery, expiring
+  invitation links, configurable test-friendly time windows, and buyer funding
+  guidance.
+- The relayer is multi-agreement and its local `/status` reports the factory
+  address. The Vercel environment still points at an ephemeral localtunnel
+  endpoint; a durable hosted relayer remains a release blocker, not a
+  production-ready configuration.
+
+Circle Console still must have `arc-trade-escrow.vercel.app` configured as
+both the Allowed Domain and Passkey Domain. This cannot be verified or changed
+from the repository/Vercel deployment API.
+
+### Implemented E2E flow
+
+1. A visitor chooses `Send an Agreement` or `Login`, enters a company name,
+   and completes the Circle passkey flow in-page.
+2. The registry creates or restores the company profile. A buyer proposes a
+   private invitation or public proposal with a one-hour default seller window,
+   short test-friendly response/dispute windows, and milestones.
+3. The app produces a copyable invitation URL. A recipient without a profile
+   can create one from the invitation flow, then accept the proposal.
+4. After acceptance, the buyer deploys one fresh factory escrow for that
+   proposal. The registry records the agreement ID and escrow address.
+5. The buyer funds the agreement, the seller performs the documentary
+   milestones, and the existing Gateway authorization and settlement flow
+   continues against that per-agreement escrow.
+
+### Verification completed
+
+```text
+forge test                         21 passed
+npm run build                      passed
+npm test                           4 passed
+cd frontend && npm run build      passed
+cd frontend && npm run audit      passed
+git diff --check                  passed
+```
+
+The PDF at `submission/arc-trade-escrow-submission.pdf` remains intentionally
+untracked. Do not add secrets, the PDF, or runtime SQLite files to git.
+
 This handoff is the current checkpoint for the Phase 3/frontend and relayer owner. The genesis
 prompt is historical reference only. Continue from this document and do not
 reintroduce the old deployment flow or old wallet architecture.
 
-## Current deployed checkpoint
+## Historical checkpoint (superseded)
 
 - Chain: Arc Testnet, chain ID `5042002`
 - Reference contract: `0xfE842F9418A1e917DB11625B5120726C4A1c4E54` (preserved)
-- Active demo contract: `0xdfe3495a871e17317b50c5b1b688554ee7194037`
-- Active demo deployment block: `56139585`
+- The former single-agreement demo contract was
+  `0xdfe3495a871e17317b50c5b1b688554ee7194037` at block `56139585`.
 - Relayer RPC: configured by `ARC_RPC_URL`; the current local `.env` uses `https://rpc.testnet.arc.network`
 - Relayer API: `http://localhost:3001`
 - Frontend dev server: `http://localhost:5173`
@@ -17,14 +77,13 @@ reintroduce the old deployment flow or old wallet architecture.
 The root `config.json` has been regenerated from the latest deployment. The
 relayer must be built and started from the repository root before using the UI.
 
-The active demo relayer has been verified with:
+That former single-agreement relayer was verified with:
 
 ```json
 {"contractAddress":"0xdfe3495a871e17317b50c5b1b688554ee7194037","listening":true}
 ```
 
-The frontend and relayer build/test gates pass. Full participant action E2E and
-Vercel deployment remain the next live-demo tasks.
+The factory-aware frontend and relayer now supersede this checkpoint.
 
 ## What was added
 
@@ -54,9 +113,10 @@ The frontend includes:
 5cac112 Integrate Circle modular wallet sign-in
 ```
 
-The frontend integration is in `78703c6`; the relayer polling fallback and regression test are committed in `0dfd544`.
-The Circle-compatible demo deployment and active configuration are committed in
-`4e51897`.
+The frontend integration, factory deployment, proposal registry, and relayer
+polling fallback are currently in the working tree and intentionally not
+committed by the agent. Preserve the untracked submission PDF and do not add
+runtime databases or secrets.
 
 ## Documentation checkpoint
 
@@ -69,10 +129,11 @@ contains no judge walkthrough.
 No Client Keys or private keys were added to documentation. `frontend/vercel.json`
 now declares the Vite build and `dist` output explicitly.
 
-Vercel deployment is not yet executed: no Vercel MCP/CLI authentication or
-project token is available in this workspace, and the relayer currently has no
-public HTTPS URL. The frontend can be deployed once a Vercel token/project is
-provided and `VITE_RELAYER_BASE_URL` points to a public relayer deployment.
+The frontend is deployed to the existing Vercel project. The relayer currently
+has no durable public HTTPS deployment. `render.yaml` remains available, and
+`railway.json` provides a no-card deployment path using the existing
+`relayer/Dockerfile`; after Railway issues a public URL, change
+`VITE_RELAYER_BASE_URL` in Vercel away from the temporary tunnel.
 
 ## Local setup
 

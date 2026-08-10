@@ -12,6 +12,7 @@ fi
 
 python3 - <<'PY'
 import json
+import os
 import subprocess
 import sys
 
@@ -77,6 +78,31 @@ config = {
     "DEPLOYMENT_BLOCK":
         deployment_block
 }
+
+factory_json_path = "broadcast/DeployDocumentaryTradeEscrowFactory.s.sol/5042002/run-latest.json"
+if os.path.isfile(factory_json_path):
+    with open(factory_json_path) as f:
+        factory_data = json.load(f)
+    factory_tx = next(
+        tx for tx in factory_data["transactions"]
+        if tx.get("contractName") == "DocumentaryTradeEscrowFactory"
+    )
+    factory_receipt = next(
+        r for r in factory_data["receipts"]
+        if r.get("transactionHash") == factory_tx["hash"]
+    )
+    factory_block_raw = factory_receipt["blockNumber"]
+    factory_block = int(factory_block_raw, 16) if isinstance(factory_block_raw, str) and factory_block_raw.startswith("0x") else int(factory_block_raw)
+    factory_abi_raw = subprocess.check_output(
+        ["forge", "inspect", "DocumentaryTradeEscrowFactory", "abi", "--json"],
+        text=True
+    ).strip()
+    config.update({
+        "FACTORY_ADDRESS": factory_tx["contractAddress"],
+        "FACTORY_ABI": json.loads(factory_abi_raw),
+        "FACTORY_DEPLOYMENT_BLOCK": factory_block,
+        "FACTORY_EVENT_TOPIC_CREATED": topic("AgreementCreated(bytes32,address,address,address,address,uint256)")
+    })
 
 with open("config.json", "w") as f:
     json.dump(config, f, indent=2)

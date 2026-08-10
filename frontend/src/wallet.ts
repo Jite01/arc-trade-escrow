@@ -11,7 +11,8 @@ import { createBundlerClient, toWebAuthnAccount } from "viem/account-abstraction
 import { AbstractSigner, type Provider, type TransactionRequest, type TransactionResponse, type TypedDataDomain, type TypedDataField } from "ethers";
 
 export interface EmbeddedWalletSession { address: string; signer: CircleSigner; }
-export interface EmbeddedWalletAdapter { getSession(): Promise<EmbeddedWalletSession | null>; login(): Promise<EmbeddedWalletSession>; logout(): Promise<void>; onAccountChange(listener: (address?: string) => void): () => void; }
+export type CircleLoginMode = "register" | "login";
+export interface EmbeddedWalletAdapter { getSession(): Promise<EmbeddedWalletSession | null>; login(companyName: string, mode: CircleLoginMode): Promise<EmbeddedWalletSession>; logout(): Promise<void>; onAccountChange(listener: (address?: string) => void): () => void; }
 export type CircleSignInErrorCode = "CONFIGURATION" | "UNSUPPORTED" | "CANCELLED" | "FAILED";
 
 export class CircleSignInError extends Error {
@@ -24,7 +25,6 @@ export class CircleSignInError extends Error {
 
 const clientKey = import.meta.env.VITE_CLIENT_KEY;
 const clientUrl = import.meta.env.VITE_CLIENT_URL;
-const usernameKey = `arc-trade-passkey-usernames:${window.location.hostname}:${clientKey || "unconfigured"}`;
 type Bundler = any;
 
 function signInError(error: unknown): CircleSignInError {
@@ -32,7 +32,7 @@ function signInError(error: unknown): CircleSignInError {
   const text = String(error).toLowerCase();
   if (text.includes("notallowederror") || text.includes("aborterror") || text.includes("cancelled") || text.includes("canceled")) return new CircleSignInError("CANCELLED", error);
   if (text.includes("credential management api not supported") || text.includes("publickeycredential") || text.includes("not supported")) return new CircleSignInError("UNSUPPORTED", error);
-  if (text.includes("client key") || text.includes("client configuration") || text.includes("entity") || text.includes("domain") || text.includes("origin") || text.includes("rp id") || text.includes("registration options") || text.includes("login options")) return new CircleSignInError("CONFIGURATION", error);
+  if (text.includes("invalid credentials") || text.includes("client key") || text.includes("client configuration") || text.includes("entity") || text.includes("domain") || text.includes("origin") || text.includes("rp id") || text.includes("registration options") || text.includes("login options")) return new CircleSignInError("CONFIGURATION", error);
   return new CircleSignInError("FAILED", error);
 }
 
@@ -69,21 +69,18 @@ const listeners = new Set<(address?: string) => void>();
 export function createCircleEmbeddedWalletAdapter(): EmbeddedWalletAdapter {
   return {
     async getSession() { return active; },
-    async login() {
+    async login(companyName, mode) {
       validateConfiguration();
-      const username = window.prompt("Enter your sign-in name")?.trim();
-      if (!username) throw new CircleSignInError("CANCELLED");
-      const registered = JSON.parse(localStorage.getItem(usernameKey) || "[]") as string[];
-      const mode = registered.includes(username) ? WebAuthnMode.Login : WebAuthnMode.Register;
+      const username = companyName.trim();
+      if (!username) throw new CircleSignInError("CONFIGURATION");
       const passkeyTransport = toPasskeyTransport(clientUrl, clientKey);
       try {
-        const credential = await toWebAuthnCredential({ transport: passkeyTransport, mode, username });
+        const credential = await toWebAuthnCredential({ transport: passkeyTransport, mode: mode === "register" ? WebAuthnMode.Register : WebAuthnMode.Login, username });
         const modularTransport = toModularTransport(`${clientUrl.replace(/\/$/, "")}/arcTestnet`, clientKey);
         const client = createPublicClient({ chain: arcTestnet, transport: modularTransport });
         const smartAccount = await toCircleSmartAccount({ client, owner: toWebAuthnAccount({ credential }) });
         const bundler = createBundlerClient({ account: smartAccount, chain: arcTestnet, transport: modularTransport });
         active = { address: smartAccount.address, signer: new CircleSigner(smartAccount.address, bundler) };
-        if (!registered.includes(username)) localStorage.setItem(usernameKey, JSON.stringify([...registered, username]));
         console.info("Circle participant account:", smartAccount.address, "sign-in name:", username);
         listeners.forEach(listener => listener(active?.address));
         return active;

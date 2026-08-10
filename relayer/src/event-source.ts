@@ -13,7 +13,7 @@ export class EthersLogProvider implements LogProvider {
   }
   public async getLogs(filter: { address: string; fromBlock: number; toBlock: number; topics: readonly (readonly string[])[] }): Promise<ChainLog[]> {
     const logs = await this.provider.getLogs({ address: filter.address, fromBlock: filter.fromBlock, toBlock: filter.toBlock, topics: filter.topics as string[][] });
-    return logs.map((log) => ({ topics: log.topics, data: log.data, transactionHash: log.transactionHash, blockNumber: log.blockNumber, logIndex: log.index, removed: log.removed }));
+    return logs.map((log) => ({ address: log.address, topics: log.topics, data: log.data, transactionHash: log.transactionHash, blockNumber: log.blockNumber, logIndex: log.index, removed: log.removed }));
   }
 }
 
@@ -30,12 +30,17 @@ export class EthersPollingEventSource implements EventSource {
   private timer: NodeJS.Timeout | undefined;
   private polling = false;
   private stopped = false;
+  private readonly addresses = new Set<string>();
 
-  public constructor(private readonly provider: LogProvider, private readonly config: RelayerConfig, private readonly intervalMs = 5_000, private readonly chunkSize = 500) {}
+  public constructor(private readonly provider: LogProvider, private readonly config: RelayerConfig, private readonly intervalMs = 5_000, private readonly chunkSize = 500) {
+    this.addresses.add(config.factoryAddress.toLowerCase());
+  }
 
   public subscribe(topic: string, listener: (log: ChainLog) => void): void {
     this.listeners.set(topic.toLowerCase(), listener);
   }
+
+  public addAddress(address: string): void { this.addresses.add(address.toLowerCase()); }
 
   public async start(fromBlock: number): Promise<void> {
     this.cursor = fromBlock;
@@ -57,10 +62,17 @@ export class EthersPollingEventSource implements EventSource {
     this.polling = true;
     try {
       const latest = await this.provider.getBlockNumber();
-      const topics = [Object.values(this.config.eventTopics)];
+      const factoryTopics = [[this.config.factoryEventTopic]];
+      const escrowTopics = [Object.values(this.config.eventTopics)];
       for (let from = this.cursor + 1; from <= latest; from += this.chunkSize) {
         const to = Math.min(from + this.chunkSize - 1, latest);
-        const logs = await this.provider.getLogs({ address: this.config.contractAddress, fromBlock: from, toBlock: to, topics });
+        const factoryLogs = await this.provider.getLogs({ address: this.config.factoryAddress, fromBlock: from, toBlock: to, topics: factoryTopics });
+        for (const log of factoryLogs) this.listeners.get(log.topics[0]?.toLowerCase())?.(log);
+        const logs: ChainLog[] = [];
+        for (const address of this.addresses) {
+          if (address === this.config.factoryAddress.toLowerCase()) continue;
+          logs.push(...await this.provider.getLogs({ address, fromBlock: from, toBlock: to, topics: escrowTopics }));
+        }
         for (const log of logs) this.listeners.get(log.topics[0]?.toLowerCase())?.(log);
         this.cursor = to;
       }
@@ -93,6 +105,10 @@ export class EthersContractEventSource implements EventSource {
     this.contract.on(event.name, this.makeContractListener(key));
   }
 
+  public addAddress(_address: string): void {
+    throw new Error("WebSocket event source does not support dynamic escrow addresses");
+  }
+
   public unsubscribe(): void {
     this.stopped = true;
     this.listeners.clear();
@@ -108,7 +124,7 @@ export class EthersContractEventSource implements EventSource {
     return (...args: unknown[]) => {
       const log = args.at(-1) as (Log & { removed?: boolean }) | undefined;
       if (!log?.topics || !log.data || !log.transactionHash) return;
-      this.listeners.get(topic)?.listener({ topics: log.topics, data: log.data, transactionHash: log.transactionHash, blockNumber: log.blockNumber, logIndex: log.index, removed: log.removed });
+      this.listeners.get(topic)?.listener({ address: log.address, topics: log.topics, data: log.data, transactionHash: log.transactionHash, blockNumber: log.blockNumber, logIndex: log.index, removed: log.removed });
     };
   }
 

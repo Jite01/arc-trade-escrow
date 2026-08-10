@@ -1,30 +1,1777 @@
 {
-  "CONTRACT_ADDRESS": "0xdfe3495a871e17317b50c5b1b688554ee7194037",
-  "DEPLOYMENT_BLOCK": 56139585,
+  "CONTRACT_ADDRESS": "0xc36a8ca590405fa7c9df44c46ff784a33530a4b0",
   "CONTRACT_ABI": [
-    {"inputs": [], "name": "getState", "outputs": [{"type": "uint8"}], "stateMutability": "view", "type": "function"},
-    {"inputs": [], "name": "getTerms", "outputs": [{"type": "address"},{"type": "address"},{"type": "address"},{"type": "address"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"}], "stateMutability": "view", "type": "function"},
-    {"inputs": [], "name": "getMilestones", "outputs": [{"components": [{"type": "string"},{"type": "uint16"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"}], "type": "tuple[]"}], "stateMutability": "view", "type": "function"},
-    {"inputs": [{"type": "uint256"}], "name": "getMilestoneStatus", "outputs": [{"type": "uint8"},{"type": "bytes32"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"},{"type": "uint256"}], "stateMutability": "view", "type": "function"},
-    {"inputs": [], "name": "getApprovals", "outputs": [{"type": "bool"},{"type": "bool"},{"type": "uint256"}], "stateMutability": "view", "type": "function"},
-    {"inputs": [], "name": "getBalances", "outputs": [{"type": "uint256"},{"type": "uint256"},{"type": "uint256"}], "stateMutability": "view", "type": "function"},
-    {"inputs": [], "name": "getCurrentMilestoneIndex", "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"},
-    {"inputs": [{"components": [{"type": "string","name": "description"},{"type": "uint16","name": "basisPoints"},{"type": "uint256","name": "sellerDeadline"},{"type": "uint256","name": "buyerResponseWindow"},{"type": "uint256","name": "disputeWindow"}], "type": "tuple[]","name": "array"}], "name": "proposeMilestones", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [], "name": "approve", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [], "name": "cancel", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [], "name": "expire", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [], "name": "depositUSDS", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [], "name": "abandonCommitment", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [{"type": "uint256"},{"type": "bytes32"}], "name": "triggerMilestone", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [{"type": "uint256"}], "name": "confirmMilestone", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [{"type": "uint256"}], "name": "dispute", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [{"type": "uint256"}], "name": "release", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [], "name": "reclaimExpiry", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [{"type": "uint256"},{"type": "address"}], "name": "arbitrate", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"inputs": [{"type": "uint256"}], "name": "forceRelease", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
-    {"anonymous": false, "inputs": [{"indexed": false,"type": "uint256"},{"indexed": false,"type": "address"},{"indexed": false,"type": "uint256"}], "name": "MilestoneReleased", "type": "event"},
-    {"anonymous": false, "inputs": [{"indexed": false,"type": "uint256"},{"indexed": false,"type": "address"},{"indexed": false,"type": "uint256"}], "name": "MilestoneArbitrated", "type": "event"},
-    {"anonymous": false, "inputs": [{"indexed": false,"type": "uint256"},{"indexed": false,"type": "address"},{"indexed": false,"type": "uint256"}], "name": "ArbitrationForced", "type": "event"},
-    {"anonymous": false, "inputs": [{"indexed": false,"type": "address"},{"indexed": false,"type": "uint256"}], "name": "FundsReclaimed", "type": "event"}
-  ]
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "buyerAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "sellerAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "arbitrationAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "operatorAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "totalUSDC_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "negotiationExpiry_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "commitmentWindow_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "arbitrationTimeout_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "ARC_TESTNET_DOMAIN",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint32",
+          "internalType": "uint32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "ERC1271_INVALID",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes4",
+          "internalType": "bytes4"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "ERC1271_MAGICVALUE",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes4",
+          "internalType": "bytes4"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "GATEWAY_MINTER_ADDRESS",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "GATEWAY_WALLET_ADDRESS",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "MAX_MILESTONES",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "USDC",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "abandonCommitment",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "activationTimestamp",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "approve",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "arbitrate",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "recipient",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "arbitrationAddress",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "arbitrationTimeout",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "arrayVersion",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "authorizeBurnIntent",
+      "inputs": [
+        {
+          "name": "settlementIndex",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "maxBlockHeight",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "maxFee",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "salt",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "burnIntentHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "authorizedTransfers",
+      "inputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "buyerAddress",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "buyerApproved",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "cancel",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "commitmentWindow",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "committedAt",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "concludedTimestamp",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "confirmMilestone",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "confirmTimestamp",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "contractState",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8",
+          "internalType": "enum DocumentaryTradeEscrow.State"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "currentMilestoneIndex",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "depositUSDS",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "dispute",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "disputeTimestamp",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "expire",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "forceRelease",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "gatewayWalletAddress",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getApprovals",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "buyerApproved_",
+          "type": "bool",
+          "internalType": "bool"
+        },
+        {
+          "name": "sellerApproved_",
+          "type": "bool",
+          "internalType": "bool"
+        },
+        {
+          "name": "arrayVersion_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getBalances",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "totalReleased_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "totalRemaining_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "totalDisputed_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getBurnIntentHash",
+      "inputs": [
+        {
+          "name": "settlementIndex",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "maxBlockHeight",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "maxFee",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "salt",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getCurrentMilestoneIndex",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getDocumentHash",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getMilestoneStatus",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "milestoneState_",
+          "type": "uint8",
+          "internalType": "uint8"
+        },
+        {
+          "name": "documentHash_",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "triggerTimestamp__",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "confirmTimestamp__",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "disputeTimestamp__",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "releaseTimestamp__",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "windowDeadline_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "usdcAmount_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getMilestones",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple[]",
+          "internalType": "struct DocumentaryTradeEscrow.Milestone[]",
+          "components": [
+            {
+              "name": "description",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "basisPoints",
+              "type": "uint16",
+              "internalType": "uint16"
+            },
+            {
+              "name": "sellerDeadline",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "buyerResponseWindow",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "disputeWindow",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getState",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8",
+          "internalType": "uint8"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getTerms",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "buyerAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "sellerAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "arbitrationAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "gatewayWalletAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "totalUSDC_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "negotiationExpiry_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "commitmentWindow_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "arbitrationTimeout_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "initialize",
+      "inputs": [
+        {
+          "name": "buyerAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "sellerAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "arbitrationAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "operatorAddress_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "totalUSDC_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "negotiationExpiry_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "commitmentWindow_",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "arbitrationTimeout_",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "isValidSignature",
+      "inputs": [
+        {
+          "name": "hash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "",
+          "type": "bytes",
+          "internalType": "bytes"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes4",
+          "internalType": "bytes4"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "milestoneDocumentHash",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "milestoneStates",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint8",
+          "internalType": "enum DocumentaryTradeEscrow.MilestoneState"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "milestoneUsdcAmount",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "negotiationExpiry",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "operatorAddress",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "proposeMilestones",
+      "inputs": [
+        {
+          "name": "array",
+          "type": "tuple[]",
+          "internalType": "struct DocumentaryTradeEscrow.Milestone[]",
+          "components": [
+            {
+              "name": "description",
+              "type": "string",
+              "internalType": "string"
+            },
+            {
+              "name": "basisPoints",
+              "type": "uint16",
+              "internalType": "uint16"
+            },
+            {
+              "name": "sellerDeadline",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "buyerResponseWindow",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "disputeWindow",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "reclaimExpiry",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "release",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "releaseTimestamp",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "sellerAddress",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "sellerApproved",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "settlementAmount",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "settlementRecipient",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "settlementRecorded",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bool",
+          "internalType": "bool"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "totalDisputed",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "totalReleased",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "totalRemaining",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "totalUSDC",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "triggerMilestone",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "documentHash",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "triggerTimestamp",
+      "inputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "ArbitrationForced",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "recipient",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "BurnIntentAuthorized",
+      "inputs": [
+        {
+          "name": "burnIntentHash",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "settlementIndex",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "recipient",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "CommitmentAbandoned",
+      "inputs": [],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ContractActivated",
+      "inputs": [],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ContractCancelled",
+      "inputs": [],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ContractCommitted",
+      "inputs": [],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ContractDeployed",
+      "inputs": [
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "seller",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "arbitration",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "totalUSDC",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ContractExpired",
+      "inputs": [],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "ContractFinalized",
+      "inputs": [],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "FundsDeposited",
+      "inputs": [
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "FundsReclaimed",
+      "inputs": [
+        {
+          "name": "recipient",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneApproved",
+      "inputs": [
+        {
+          "name": "approver",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "arrayVersion",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneArbitrated",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "recipient",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneConfirmed",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneDisputed",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneProposed",
+      "inputs": [
+        {
+          "name": "proposer",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "arrayVersion",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneReleased",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "recipient",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "amount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "MilestoneTriggered",
+      "inputs": [
+        {
+          "name": "index",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "documentHash",
+          "type": "bytes32",
+          "indexed": false,
+          "internalType": "bytes32"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "AlreadyInitialized",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "DeadlineElapsed",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "DeadlineNotReached",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "DuplicateBurnIntentAuthorization",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "GatewayDepositFailed",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "IncorrectDepositReceived",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidAddress",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidAmount",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidBasisPointTotal",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidIndex",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidMilestone",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidMilestoneArray",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidMilestoneState",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidRecipient",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidState",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidTimestamp",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "TokenTransferFailed",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "Unauthorized",
+      "inputs": []
+    }
+  ],
+  "EVENT_TOPIC_RELEASED": "0xc566b56f9fa851c8c74d53c6fae23cd074cf2e73d4ce69107c722ef3c408408d",
+  "EVENT_TOPIC_ARBITRATED": "0x4c21920fd008071837f50a536206893a25e67078c3b6d5f60551a02693f15323",
+  "EVENT_TOPIC_FORCED": "0x01703606db83ed4f50a68519b74260e205e85e93c13ef249085c8f3babffd46c",
+  "EVENT_TOPIC_RECLAIMED": "0xe1d330cdf912f9bcea0435a02c5d6c13c3ecd9d326f056df92854de5cefefdc8",
+  "GATEWAY_WALLET_ADDRESS": "0x0077777d7EBA4688BDeF3E311b846F25870A19B9",
+  "GATEWAY_MINTER_ADDRESS": "0x0022222ABE238Cc2C7Bb1f21003F0a260052475B",
+  "DEPLOYMENT_BLOCK": 56256269,
+  "FACTORY_ADDRESS": "0x83720927588845e7e5c6d12d73eccb39ace7c9bb",
+  "FACTORY_ABI": [
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "arbitrator_",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "operator_",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "agreementsOf",
+      "inputs": [
+        {
+          "name": "participant",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32[]",
+          "internalType": "bytes32[]"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "arbitrator",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "createAgreement",
+      "inputs": [
+        {
+          "name": "agreementId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        },
+        {
+          "name": "seller",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "totalUSDC",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "negotiationExpiry",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "commitmentWindow",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "arbitrationTimeout",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "escrow",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "getAgreement",
+      "inputs": [
+        {
+          "name": "agreementId",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "tuple",
+          "internalType": "struct DocumentaryTradeEscrowFactory.Agreement",
+          "components": [
+            {
+              "name": "escrow",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "buyer",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "seller",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "arbitrator",
+              "type": "address",
+              "internalType": "address"
+            },
+            {
+              "name": "createdAt",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "implementation",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "operator",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "event",
+      "name": "AgreementCreated",
+      "inputs": [
+        {
+          "name": "agreementId",
+          "type": "bytes32",
+          "indexed": true,
+          "internalType": "bytes32"
+        },
+        {
+          "name": "escrow",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "buyer",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "seller",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "arbitrator",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        },
+        {
+          "name": "totalUSDC",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "error",
+      "name": "AgreementExists",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidAddress",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidAgreementId",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "InvalidTerms",
+      "inputs": []
+    }
+  ],
+  "FACTORY_DEPLOYMENT_BLOCK": 56261623,
+  "FACTORY_EVENT_TOPIC_CREATED": "0x93fcc1aeda5c60e5ef54ee2d91bf76a6d2abfb7a111d0a2d4b52771b48d9fb07"
 }

@@ -92,18 +92,20 @@ contract DocumentaryTradeEscrow {
     error IncorrectDepositReceived();
     error GatewayDepositFailed();
     error DuplicateBurnIntentAuthorization();
+    error AlreadyInitialized();
 
     State public contractState;
 
-    address public immutable buyerAddress;
-    address public immutable sellerAddress;
-    address public immutable arbitrationAddress;
-    address public immutable operatorAddress;
-    address public immutable gatewayWalletAddress;
-    uint256 public immutable totalUSDC;
-    uint256 public immutable negotiationExpiry;
-    uint256 public immutable commitmentWindow;
-    uint256 public immutable arbitrationTimeout;
+    address public buyerAddress;
+    address public sellerAddress;
+    address public arbitrationAddress;
+    address public operatorAddress;
+    address public gatewayWalletAddress;
+    uint256 public totalUSDC;
+    uint256 public negotiationExpiry;
+    uint256 public commitmentWindow;
+    uint256 public arbitrationTimeout;
+    bool private initialized;
 
     Milestone[] internal milestones;
     uint256 public arrayVersion;
@@ -162,6 +164,41 @@ contract DocumentaryTradeEscrow {
         uint256 commitmentWindow_,
         uint256 arbitrationTimeout_
     ) {
+        _initialize(
+            buyerAddress_, sellerAddress_, arbitrationAddress_, operatorAddress_, totalUSDC_, negotiationExpiry_,
+            commitmentWindow_, arbitrationTimeout_
+        );
+        emit ContractDeployed(buyerAddress_, sellerAddress_, arbitrationAddress_, totalUSDC_);
+    }
+
+    function initialize(
+        address buyerAddress_,
+        address sellerAddress_,
+        address arbitrationAddress_,
+        address operatorAddress_,
+        uint256 totalUSDC_,
+        uint256 negotiationExpiry_,
+        uint256 commitmentWindow_,
+        uint256 arbitrationTimeout_
+    ) external {
+        if (initialized) revert AlreadyInitialized();
+        _initialize(
+            buyerAddress_, sellerAddress_, arbitrationAddress_, operatorAddress_, totalUSDC_, negotiationExpiry_,
+            commitmentWindow_, arbitrationTimeout_
+        );
+        emit ContractDeployed(buyerAddress_, sellerAddress_, arbitrationAddress_, totalUSDC_);
+    }
+
+    function _initialize(
+        address buyerAddress_,
+        address sellerAddress_,
+        address arbitrationAddress_,
+        address operatorAddress_,
+        uint256 totalUSDC_,
+        uint256 negotiationExpiry_,
+        uint256 commitmentWindow_,
+        uint256 arbitrationTimeout_
+    ) internal {
         if (sellerAddress_ == address(0) || arbitrationAddress_ == address(0) || operatorAddress_ == address(0)) {
             revert InvalidAddress();
         }
@@ -178,8 +215,7 @@ contract DocumentaryTradeEscrow {
         negotiationExpiry = negotiationExpiry_;
         commitmentWindow = commitmentWindow_;
         arbitrationTimeout = arbitrationTimeout_;
-
-        emit ContractDeployed(buyerAddress_, sellerAddress_, arbitrationAddress_, totalUSDC_);
+        initialized = true;
     }
 
     function proposeMilestones(Milestone[] calldata array) external {

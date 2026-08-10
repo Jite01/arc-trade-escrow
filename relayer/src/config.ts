@@ -5,6 +5,10 @@ import { Interface, isAddress, type InterfaceAbi } from "ethers";
 export interface RelayerConfig {
   contractAddress: string;
   contractAbi: Interface;
+  factoryAddress: string;
+  factoryAbi: Interface;
+  factoryEventTopic: string;
+  factoryDeploymentBlock: number;
   eventTopics: Record<"MilestoneReleased" | "MilestoneArbitrated" | "ArbitrationForced" | "FundsReclaimed", string>;
   gatewayWalletAddress: string;
   gatewayMinterAddress: string;
@@ -22,6 +26,10 @@ const required = ["ARC_RPC_URL"] as const;
 interface DeploymentConfig {
   CONTRACT_ADDRESS: string;
   CONTRACT_ABI: InterfaceAbi;
+  FACTORY_ADDRESS: string;
+  FACTORY_ABI: InterfaceAbi;
+  FACTORY_EVENT_TOPIC_CREATED: string;
+  FACTORY_DEPLOYMENT_BLOCK: number;
   EVENT_TOPIC_RELEASED: string;
   EVENT_TOPIC_ARBITRATED: string;
   EVENT_TOPIC_FORCED: string;
@@ -80,9 +88,15 @@ function readDeploymentConfig(): DeploymentConfig {
   const raw = parsed as Record<string, unknown>;
   const abi = raw.CONTRACT_ABI;
   if (!Array.isArray(abi)) throw new Error("Generated deployment config CONTRACT_ABI must be a JSON array");
+  const factoryAbi = raw.FACTORY_ABI;
+  if (!Array.isArray(factoryAbi)) throw new Error("Generated deployment config FACTORY_ABI must be a JSON array");
   return {
     CONTRACT_ADDRESS: addressValue(raw.CONTRACT_ADDRESS, "CONTRACT_ADDRESS"),
     CONTRACT_ABI: abi as InterfaceAbi,
+    FACTORY_ADDRESS: addressValue(raw.FACTORY_ADDRESS, "FACTORY_ADDRESS"),
+    FACTORY_ABI: factoryAbi as InterfaceAbi,
+    FACTORY_EVENT_TOPIC_CREATED: topicValue(raw.FACTORY_EVENT_TOPIC_CREATED, "FACTORY_EVENT_TOPIC_CREATED"),
+    FACTORY_DEPLOYMENT_BLOCK: deploymentBlockValue(raw.FACTORY_DEPLOYMENT_BLOCK),
     EVENT_TOPIC_RELEASED: topicValue(raw.EVENT_TOPIC_RELEASED, "EVENT_TOPIC_RELEASED"),
     EVENT_TOPIC_ARBITRATED: topicValue(raw.EVENT_TOPIC_ARBITRATED, "EVENT_TOPIC_ARBITRATED"),
     EVENT_TOPIC_FORCED: topicValue(raw.EVENT_TOPIC_FORCED, "EVENT_TOPIC_FORCED"),
@@ -98,7 +112,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
   for (const key of required) value(env, key);
   const parsedAbi = deployment.CONTRACT_ABI;
 
-  const port = positiveInteger(env.RELAYER_PORT?.trim() || "3001", "RELAYER_PORT");
+  const port = positiveInteger(env.RELAYER_PORT?.trim() || env.PORT?.trim() || "3001", "RELAYER_PORT/PORT");
   if (port === 0 || port > 65_535) throw new Error("RELAYER_PORT must be between 1 and 65535");
   const gatewayApiBaseUrl = (env.GATEWAY_API_BASE_URL?.trim() || "https://gateway-api-testnet.circle.com").replace(/\/+$/, "");
   const relayerPrivateKey = env.RELAYER_PRIVATE_KEY?.trim() || env.OPERATOR_PRIVATE_KEY?.trim();
@@ -118,6 +132,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
   return {
     contractAddress: deployment.CONTRACT_ADDRESS,
     contractAbi: new Interface(parsedAbi),
+    factoryAddress: deployment.FACTORY_ADDRESS,
+    factoryAbi: new Interface(deployment.FACTORY_ABI),
+    factoryEventTopic: deployment.FACTORY_EVENT_TOPIC_CREATED,
+    factoryDeploymentBlock: deployment.FACTORY_DEPLOYMENT_BLOCK,
     eventTopics: {
       MilestoneReleased: deployment.EVENT_TOPIC_RELEASED,
       MilestoneArbitrated: deployment.EVENT_TOPIC_ARBITRATED,

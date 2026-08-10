@@ -24,6 +24,10 @@ dist/
 relayer.db
 relayer.db-shm
 relayer.db-wal
+dynamic-relayer.db
+dynamic-relayer.db-shm
+dynamic-relayer.db-wal
+public-demo-relayer.db
 
 # macOS
 .DS_Store

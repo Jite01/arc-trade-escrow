@@ -11,15 +11,17 @@ The contract is the source of truth for agreement state and authorization.
 ## Active demo
 
 - Network: Arc Testnet (`5042002`)
-- Contract: `0xdfe3495a871e17317b50c5b1b688554ee7194037`
-- Deployment block: `56139585`
+- Agreement factory/registry: `0x83720927588845e7e5c6d12d73eccb39ace7c9bb`
+- Factory deployment block: `56261623`
+- Hosted frontend: `https://arc-trade-escrow.vercel.app`
 - Local frontend: `http://localhost:5173`
 - Local relayer API: `http://localhost:3001`
 
-The deployed agreement is configured for three Circle Modular Wallet accounts.
-Sign in with the buyer, seller, or arbitrator passkey to see role-specific
-controls. The complete flow covers proposal and approval, securing funds,
-milestone progression, release or arbitration, and relayer settlement status.
+The frontend is a small agreement registry, not a marketplace. A buyer creates
+an agreement for a seller address; the factory deploys one escrow clone and
+indexes it for both participants. The seller opens the shared agreement ID.
+Each participant then sees role-specific controls for the existing proposal,
+funding, milestone, dispute, release, and relayer settlement flow.
 
 The submission package contains the architecture diagram and judge-facing
 project summary in `submission/`.
@@ -49,9 +51,8 @@ npm start
 Configure `frontend/.env.local`:
 
 ```dotenv
-VITE_CONTRACT_ADDRESS=0xdfe3495a871e17317b50c5b1b688554EE7194037
-VITE_CONTRACT_ABI=
-VITE_DEPLOYMENT_BLOCK=56139585
+VITE_FACTORY_ADDRESS=0x83720927588845e7e5c6d12d73eccb39ace7c9bb
+VITE_FACTORY_DEPLOYMENT_BLOCK=56261623
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
 VITE_RELAYER_BASE_URL=http://localhost:3001
 VITE_CLIENT_KEY=<Circle Modular Wallet Web Client Key>
@@ -80,13 +81,13 @@ npm run audit
 
 ## Vercel deployment
 
-Deploy the `frontend/` directory as the Vercel project root. Set these Vercel
+Deploy the existing `arc-trade-escrow` project with `frontend/` as its root.
+Set these Vercel
 environment variables for Preview and Production:
 
 ```dotenv
-VITE_CONTRACT_ADDRESS=0xdfe3495a871e17317b50c5b1b688554EE7194037
-VITE_CONTRACT_ABI=
-VITE_DEPLOYMENT_BLOCK=56139585
+VITE_FACTORY_ADDRESS=0x83720927588845e7e5c6d12d73eccb39ace7c9bb
+VITE_FACTORY_DEPLOYMENT_BLOCK=56261623
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
 VITE_RELAYER_BASE_URL=<public relayer HTTPS URL>
 VITE_CLIENT_KEY=<Circle Modular Wallet Web Client Key>
