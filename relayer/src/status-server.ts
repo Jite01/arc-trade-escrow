@@ -44,6 +44,7 @@ export class StatusServer {
     if (url.pathname === "/status") return this.respond(response, 200, {
       contractAddress: this.relayer.config.factoryAddress,
       factoryAddress: this.relayer.config.factoryAddress,
+      ready: this.relayer.listening,
       listening: this.relayer.listening,
       uptime: Math.floor((Date.now() - this.startedAt) / 1000),
       transfers: this.relayer.database.counts()

@@ -1,4 +1,6 @@
 import Database from "better-sqlite3";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import type { SettlementInput, SettlementRow, SettlementStatus } from "./types.js";
 import { companySlug, type CompanyRecord, type ProposalRecord, type ProposalStatus, type ProposalVisibility } from "./registry-types.js";
 
@@ -6,7 +8,11 @@ const TERMINAL: readonly SettlementStatus[] = ["MINTED", "FAILED", "PERMANENT_FA
 
 export class TransferDatabase {
   private readonly db: Database.Database;
-  public constructor(path: string | ":memory:") { this.db = new Database(path); this.db.pragma("journal_mode = WAL"); }
+  public constructor(path: string | ":memory:") {
+    if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
+    this.db = new Database(path);
+    this.db.pragma("journal_mode = WAL");
+  }
   public migrate(): void {
     this.db.exec(`CREATE TABLE IF NOT EXISTS settlements (
       id INTEGER PRIMARY KEY AUTOINCREMENT, settlementKey TEXT NOT NULL UNIQUE, eventType TEXT NOT NULL,

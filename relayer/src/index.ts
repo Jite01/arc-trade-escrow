@@ -33,13 +33,32 @@ async function main(): Promise<void> {
     consoleLogger
   );
   const server = new StatusServer(relayer, config.relayerPort);
-  await relayer.prepare();
+  // Bind the health endpoint before remote RPC validation. Railway probes the
+  // container while the relayer is doing startup recovery; keeping these
+  // separate prevents a slow/unreachable RPC endpoint from looking like a
+  // crashed HTTP service.
+  database.migrate();
   await server.start();
-  await relayer.initialize();
   consoleLogger.info("Relayer status server started", { port: config.relayerPort });
+
+  let initializationTimer: NodeJS.Timeout | undefined;
+  const initialize = async (): Promise<void> => {
+    try {
+      await relayer.initialize();
+      consoleLogger.info("Relayer initialization completed");
+    } catch (error) {
+      consoleLogger.error("Relayer initialization failed; retrying", {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      initializationTimer = setTimeout(() => void initialize(), 30_000);
+      initializationTimer.unref();
+    }
+  };
+  void initialize();
 
   const shutdown = async (): Promise<void> => {
     relayer.stop();
+    if (initializationTimer) clearTimeout(initializationTimer);
     await server.stop();
     database.close();
   };
