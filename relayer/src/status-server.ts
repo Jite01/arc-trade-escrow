@@ -41,6 +41,7 @@ export class StatusServer {
   }
 
   private get(url: URL, response: ServerResponse): void {
+    if (url.pathname === "/healthz") return this.respond(response, 200, { ok: true });
     if (url.pathname === "/status") return this.respond(response, 200, {
       contractAddress: this.relayer.config.factoryAddress,
       factoryAddress: this.relayer.config.factoryAddress,

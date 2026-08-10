@@ -5,7 +5,7 @@
     "dockerfilePath": "relayer/Railway.Dockerfile"
   },
   "deploy": {
-    "healthcheckPath": "/status",
+    "healthcheckPath": "/healthz",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5
