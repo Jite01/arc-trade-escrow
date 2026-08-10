@@ -108,8 +108,13 @@ with open("config.json", "w") as f:
     json.dump(config, f, indent=2)
     f.write("\n")
 
+with open("relayer/config.json", "w") as f:
+    json.dump(config, f, indent=2)
+    f.write("\n")
+
 print()
 print("config.json regenerated successfully")
+print("relayer/config.json synchronized")
 print("------------------------------------")
 print("CONTRACT_ADDRESS =", contract_address)
 print("DEPLOYMENT_BLOCK =", deployment_block)

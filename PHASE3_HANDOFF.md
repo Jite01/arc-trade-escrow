@@ -131,8 +131,8 @@ now declares the Vite build and `dist` output explicitly.
 
 The frontend is deployed to the existing Vercel project. The relayer currently
 has no durable public HTTPS deployment. `render.yaml` remains available, and
-`railway.json` provides a no-card deployment path using the existing
-`relayer/Dockerfile`; after Railway issues a public URL, change
+`railway.json` and `relayer/railway.json` provide deployment paths for either
+repository-root or `./relayer` service configuration; after Railway issues a public URL, change
 `VITE_RELAYER_BASE_URL` in Vercel away from the temporary tunnel.
 
 ## Local setup

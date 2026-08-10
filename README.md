@@ -17,11 +17,11 @@ The contract is the source of truth for agreement state and authorization.
 - Local frontend: `http://localhost:5173`
 - Local relayer API: `http://localhost:3001`
 
-The frontend is a small agreement registry, not a marketplace. A buyer creates
-an agreement for a seller address; the factory deploys one escrow clone and
-indexes it for both participants. The seller opens the shared agreement ID.
-Each participant then sees role-specific controls for the existing proposal,
-funding, milestone, dispute, release, and relayer settlement flow.
+The frontend is a small agreement registry, not a marketplace. A company
+creates a private invitation or public proposal; after the recipient accepts,
+the factory deploys one escrow clone and indexes it for both participants.
+Each participant then sees role-specific controls for funding, milestones,
+disputes, release, and relayer settlement.
 
 The submission package contains the architecture diagram and judge-facing
 project summary in `submission/`.
@@ -97,6 +97,31 @@ VITE_CLIENT_URL=https://modular-sdk.circle.com/v1/rpc/w3s/buidl
 Add the Vercel hostname to the Circle Client Key Allowed Domain and configure
 the same hostname as the Passkey Domain. The relayer must be publicly reachable
 over HTTPS; `http://localhost:3001` is only for local development.
+
+## Railway relayer deployment
+
+The repository supports both Railway source-root layouts:
+
+- With the repository root as the service root, Railway uses `/railway.json`
+  and `relayer/Render.Dockerfile`.
+- With `./relayer` as the service root, Railway uses `relayer/railway.json`
+  and the self-contained `relayer/Dockerfile`.
+
+For the second layout, no parent-directory Dockerfile paths are needed. Add
+these service variables, keeping the signing key secret:
+
+```dotenv
+ARC_RPC_URL=https://rpc.testnet.arc.network
+GATEWAY_API_BASE_URL=https://gateway-api-testnet.circle.com
+RELAYER_PRIVATE_KEY=<relayer signing key>
+SQLITE_PATH=/data/relayer.db
+```
+
+Railway supplies `PORT`; the relayer uses it automatically. Generate the
+Railway HTTPS domain, verify `/status`, then set that URL as Vercel's
+`VITE_RELAYER_BASE_URL`. The Railway URL is an API endpoint; it is not the
+Circle Allowed Domain or Passkey Domain. Those remain the Vercel frontend
+hostname.
 
 ## Verification
 

@@ -1,14 +1,15 @@
 FROM node:20-bookworm-slim
 
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY tsconfig.json config.json ./
-COPY src ./src
+COPY relayer ./relayer
 RUN npm run build
 
 ENV NODE_ENV=production
+ENV RELAYER_PORT=10000
 ENV SQLITE_PATH=/data/relayer.db
 EXPOSE 10000
 

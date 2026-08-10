@@ -2,7 +2,7 @@ services:
   - type: web
     name: arc-trade-escrow-relayer
     runtime: docker
-    dockerfilePath: ./relayer/Dockerfile
+    dockerfilePath: ./relayer/Render.Dockerfile
     plan: starter
     healthCheckPath: /status
     envVars:
