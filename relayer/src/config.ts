@@ -112,7 +112,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
   for (const key of required) value(env, key);
   const parsedAbi = deployment.CONTRACT_ABI;
 
-  const port = positiveInteger(env.RELAYER_PORT?.trim() || env.PORT?.trim() || "3001", "RELAYER_PORT/PORT");
+  const port = positiveInteger(env.PORT?.trim() || env.RELAYER_PORT?.trim() || "3001", "PORT/RELAYER_PORT");
   if (port === 0 || port > 65_535) throw new Error("RELAYER_PORT must be between 1 and 65535");
   const gatewayApiBaseUrl = (env.GATEWAY_API_BASE_URL?.trim() || "https://gateway-api-testnet.circle.com").replace(/\/+$/, "");
   const relayerPrivateKey = env.RELAYER_PRIVATE_KEY?.trim() || env.OPERATOR_PRIVATE_KEY?.trim();

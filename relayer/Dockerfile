@@ -10,6 +10,5 @@ RUN npm run build
 
 ENV NODE_ENV=production
 ENV SQLITE_PATH=/data/relayer.db
-EXPOSE 10000
 
 CMD ["node", "dist/index.js"]
