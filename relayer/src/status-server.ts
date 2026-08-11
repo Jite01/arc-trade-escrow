@@ -36,12 +36,13 @@ export class StatusServer {
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
     const url = new URL(request.url || "/", "http://localhost");
     response.setHeader("Access-Control-Allow-Origin", "*");
-    response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    response.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
     response.setHeader("Access-Control-Allow-Headers", "Content-Type");
     if (request.method === "OPTIONS") return this.respond(response, 204, null);
     try {
       if (request.method === "GET") return this.get(url, response);
       if (request.method === "POST") return this.post(url, request, response);
+      if (request.method === "DELETE") return this.delete(url, request, response);
       return this.respond(response, 405, { error: "Method not allowed" });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -84,6 +85,14 @@ export class StatusServer {
       return this.respond(response, row ? 200 : 404, row || { error: "Settlement not found" });
     }
     return this.respond(response, 404, { error: "Not found" });
+  }
+
+  private async delete(url: URL, request: IncomingMessage, response: ServerResponse): Promise<void> {
+    const match = url.pathname.match(/^\/proposals\/([^/]+)$/);
+    if (!match) return this.respond(response, 404, { error: "Not found" });
+    const body = await this.body(request);
+    const deleted = this.relayer.database.deleteExpiredProposal(decodeURIComponent(match[1]), String(body.walletAddress || ""), Math.floor(Date.now() / 1000));
+    return this.respond(response, deleted ? 204 : 404, null);
   }
 
   private async post(url: URL, request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -140,7 +149,7 @@ export class StatusServer {
   }
 
   private respond(response: ServerResponse, status: number, body: unknown): void {
-    response.writeHead(status, { "Content-Type": "application/json" });
+    response.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" });
     response.end(JSON.stringify(body));
   }
 }

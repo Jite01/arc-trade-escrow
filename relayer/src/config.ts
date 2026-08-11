@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { Interface, isAddress, type InterfaceAbi } from "ethers";
 
 export interface RelayerConfig {
@@ -150,6 +150,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
     gatewayApiBaseUrl,
     relayerPrivateKey,
     relayerPort: port,
-    sqlitePath: env.SQLITE_PATH?.trim() || "./relayer.db"
+    sqlitePath: env.SQLITE_PATH?.trim() || (env.RAILWAY_VOLUME_MOUNT_PATH?.trim() ? join(env.RAILWAY_VOLUME_MOUNT_PATH.trim(), "relayer.db") : "./relayer.db")
   };
 }

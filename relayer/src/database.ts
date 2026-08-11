@@ -94,6 +94,14 @@ export class TransferDatabase {
     this.db.prepare("UPDATE proposals SET status='ACCEPTED',acceptedByCompany=?,acceptedByAddress=?,updatedAt=? WHERE id=?").run(companySlug(company), walletAddress, now, id);
     return this.getProposal(id);
   }
+  public deleteExpiredProposal(id: string, walletAddress: string, now: number): boolean {
+    const proposal = this.getProposal(id);
+    if (!proposal) return false;
+    if (proposal.proposerAddress.toLowerCase() !== walletAddress.toLowerCase()) throw new Error("Only the proposing account can remove this proposal");
+    if (proposal.status !== "EXPIRED" && proposal.proposalExpiresAt > now) throw new Error("Only expired proposals can be removed");
+    const result = this.db.prepare("DELETE FROM proposals WHERE id=? AND proposerAddress=?").run(id, proposal.proposerAddress);
+    return result.changes === 1;
+  }
   private allProposals(sql: string, params: unknown[]): ProposalRecord[] { return (this.db.prepare(sql).all(...params) as Array<Omit<ProposalRecord,"milestones"> & {milestonesJson:string}>).map(({ milestonesJson, ...record }) => ({ ...record, milestones: JSON.parse(milestonesJson) } as ProposalRecord)); }
   public close():void{this.db.close();}
 }
