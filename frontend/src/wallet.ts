@@ -27,6 +27,16 @@ const clientKey = import.meta.env.VITE_CLIENT_KEY;
 const clientUrl = import.meta.env.VITE_CLIENT_URL;
 type Bundler = any;
 
+// Circle's passkey username is an identifier, not the display name shown in
+// the registry. Keep company names human-friendly while giving Circle a
+// stable, valid value even for names containing spaces or fewer than five
+// characters (for example, "Bose").
+export function passkeyUsername(companyName: string): string {
+  const normalized = companyName.trim().replace(/[^a-zA-Z0-9_@.:+-]+/g, "-").replace(/-{2,}/g, "-").replace(/^-+|-+$/g, "");
+  const padded = normalized.length >= 5 ? normalized : `${normalized || "company"}-co`;
+  return padded.slice(0, 50);
+}
+
 function signInError(error: unknown): CircleSignInError {
   if (error instanceof CircleSignInError) return error;
   const text = String(error).toLowerCase();
@@ -71,7 +81,7 @@ export function createCircleEmbeddedWalletAdapter(): EmbeddedWalletAdapter {
     async getSession() { return active; },
     async login(companyName, mode) {
       validateConfiguration();
-      const username = companyName.trim();
+      const username = passkeyUsername(companyName);
       if (!username) throw new CircleSignInError("CONFIGURATION");
       const passkeyTransport = toPasskeyTransport(clientUrl, clientKey);
       try {

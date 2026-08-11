@@ -25,11 +25,12 @@ button span { margin-left: 8px; }
 .site-nav { display: flex; align-items: center; gap: 26px; margin-left: auto; margin-right: 28px; }
 .site-nav a { color: #63707a; font-size: 12px; font-weight: 600; }
 .site-nav a:hover { color: #d85a3d; }
-.menu-toggle { position: relative; z-index: 12; display: grid; place-items: center; width: 42px; height: 42px; padding: 0; background: #142231; }
-.menu-toggle i { display: block; width: 17px; height: 1px; background: #f7f2e9; transition: transform .25s ease; }
-.menu-toggle i + i { margin-top: -1px; transform: translateY(-5px); }
-.menu-toggle.is-open i:first-child { transform: rotate(45deg) translate(1px, 1px); }
-.menu-toggle.is-open i + i { transform: rotate(-45deg) translate(1px, -1px); }
+.menu-toggle { position: relative; z-index: 12; display: block; width: 42px; height: 42px; padding: 0; background: #142231; }
+.menu-toggle i { position: absolute; top: 20px; left: 12px; display: block; width: 18px; height: 1px; background: #f7f2e9; transition: transform .25s ease; }
+.menu-toggle i:first-child { transform: translateY(-4px); }
+.menu-toggle i + i { transform: translateY(4px); }
+.menu-toggle.is-open i:first-child { transform: rotate(45deg); }
+.menu-toggle.is-open i + i { transform: rotate(-45deg); }
 .menu-panel { position: absolute; z-index: 11; top: 77px; right: 0; display: grid; width: min(250px, calc(100vw - 32px)); gap: 2px; padding: 10px; border: 1px solid #d6d2c8; background: #fffdf8; box-shadow: 8px 8px 0 #d8d5cc; animation: reveal-up .22s ease both; }
 .menu-panel a, .menu-panel button { display: block; width: 100%; padding: 12px 10px; color: #17212c; text-align: left; text-decoration: none; font-size: 13px; }
 .menu-panel a:hover { color: #a54a34; background: #fbe5dd; }
@@ -156,6 +157,7 @@ textarea { min-height: 98px; resize: vertical; }
 .share-result .share-row button:active { animation: copied-pop .3s ease; }
 :root[data-arc-copied="true"] .share-result .share-row button { background: #356949; animation: copied-pop .45s ease; }
 .proposal-actions { display: flex; align-items: center; }
+.activity-panel + .activity-panel { margin-top: 24px; }
 .danger { color: #a84432; }
 .danger:hover:not(:disabled) { color: #762719; border-color: #d85a3d; }
 .anchor-target { display: block; height: 1px; scroll-margin-top: 30px; }

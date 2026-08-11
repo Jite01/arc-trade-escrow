@@ -32,6 +32,11 @@ Proposal rules:
 - Public proposal references open a detail-letter modal with terms, evidence milestones, accept, and draft-response actions; the board is visually below the Issue workflow.
 - A passkey session with a missing company row shows profile recovery and no longer renders “there” or silently disables proposal creation.
 - The authenticated workspace uses a compact animated menu; account-address copying remains only in the funding actions.
+- Circle passkey usernames are normalized in `frontend/src/wallet.ts`: display names may contain spaces or be shorter than five characters, while Circle receives a stable allowed identifier (for example, `Bose` becomes `Bose-co`). Do not pass raw company names to Circle.
+- The recovery field is prefilled from the auth-flow company name/local storage, and registry errors are shown directly so Arc-Fin-style missing rows are actionable rather than an empty recovery panel.
+- Workspace activity is split into `Issued proposals` and `Received proposals`. An accepted proposal is displayed as `Live agreement` once it has an agreement ID; before the issuer deploys it, the honest intermediate label is `Accepted · waiting for issuer`.
+- The menu icon uses two absolutely positioned bars with a true center rotation into a diagonal X. Preserve this structure if changing the header.
+- Visible auth buttons are intentionally `Proceed` and `Continue`; do not add `with passkey` to button labels. Passkey remains an implementation detail, not a role or product action.
 
 Critical persistence note:
 - The registry is currently SQLite (`SQLITE_PATH`). It is global only while the deployed database survives restarts. Railway must use a persistent volume or the registry must move to a hosted database before claiming durable multi-user state.
