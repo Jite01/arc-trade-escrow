@@ -29,6 +29,9 @@ Proposal rules:
 - Vercel must rewrite deep `/signin/...` paths to `/index.html`; this is now declared in `frontend/vercel.json`.
 - The generated share result belongs inline beneath the proposal form after publish; do not restore a persistent top-of-dashboard invitation banner.
 - Expired proposals can be removed by their proposer through the authenticated `DELETE /proposals/:id` route.
+- Public proposal references open a detail-letter modal with terms, evidence milestones, accept, and draft-response actions; the board is visually below the Issue workflow.
+- A passkey session with a missing company row shows profile recovery and no longer renders “there” or silently disables proposal creation.
+- The authenticated workspace uses a compact animated menu; account-address copying remains only in the funding actions.
 
 Critical persistence note:
 - The registry is currently SQLite (`SQLITE_PATH`). It is global only while the deployed database survives restarts. Railway must use a persistent volume or the registry must move to a hosted database before claiming durable multi-user state.
