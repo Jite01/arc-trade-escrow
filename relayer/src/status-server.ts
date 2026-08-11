@@ -2,6 +2,16 @@ import { randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { Relayer } from "./relayer.js";
 
+// A proposal is an application-level record, not an on-chain transaction.  Give
+// it a short, human-shareable registry reference while retaining UUID-grade
+// entropy.  The server owns this identifier so every client observes the same
+// global reference.
+function proposalReference(): string {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const nonce = randomUUID().replaceAll("-", "").slice(0, 10).toUpperCase();
+  return `AT-${timestamp}-${nonce}`;
+}
+
 export class StatusServer {
   private server: Server | undefined;
   private readonly startedAt = Date.now();
@@ -85,7 +95,7 @@ export class StatusServer {
     }
     if (url.pathname === "/proposals") {
       const proposal = this.relayer.database.createProposal({
-        id: String(body.id || randomUUID()),
+        id: proposalReference(),
         proposerCompany: String(body.proposerCompany || ""),
         proposerAddress: String(body.proposerAddress || ""),
         recipientCompany: body.recipientCompany ? String(body.recipientCompany) : null,

@@ -24,7 +24,7 @@ export async function companyByWallet(walletAddress: string): Promise<Company | 
 export function registerCompany(name: string, walletAddress: string): Promise<Company> { return request<Company>("/companies", { method: "POST", body: JSON.stringify({ name: normalizeCompanyName(name), walletAddress }) }); }
 export function publicProposals(): Promise<Proposal[]> { return request<Proposal[]>("/proposals/public"); }
 export function companyProposals(slug: string): Promise<Proposal[]> { return request<Proposal[]>(`/proposals/company/${encodeURIComponent(slug)}`); }
-export function createProposal(input: Omit<Proposal, "createdAt" | "updatedAt" | "status" | "agreementId" | "escrowAddress" | "acceptedByCompany" | "acceptedByAddress">): Promise<Proposal> { return request<Proposal>("/proposals", { method: "POST", body: JSON.stringify(input) }); }
+export function createProposal(input: Omit<Proposal, "id" | "createdAt" | "updatedAt" | "status" | "agreementId" | "escrowAddress" | "acceptedByCompany" | "acceptedByAddress">): Promise<Proposal> { return request<Proposal>("/proposals", { method: "POST", body: JSON.stringify(input) }); }
 export function bindProposal(id: string, agreementId: string, escrowAddress: string): Promise<Proposal> { return request<Proposal>(`/proposals/${encodeURIComponent(id)}/bind`, { method: "POST", body: JSON.stringify({ agreementId, escrowAddress }) }); }
 export function acceptProposal(id: string, company: string, walletAddress: string): Promise<Proposal> { return request<Proposal>(`/proposals/${encodeURIComponent(id)}/accept`, { method: "POST", body: JSON.stringify({ company, walletAddress }) }); }
 export function getProposal(id: string): Promise<Proposal> { return request<Proposal>(`/proposals/${encodeURIComponent(id)}`); }
