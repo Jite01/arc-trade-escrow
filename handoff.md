@@ -168,6 +168,16 @@ open/close cycles.
 are durable only if the Railway volume is actually mounted and the running
 service is using `/data/relayer.db`. Validate this operationally.
 
+6. Circle’s `toWebAuthnCredential` login helper does not use the supplied
+company username to filter credentials; it calls `rp_getLoginOptions` with an
+empty user ID unless a credential ID is supplied. `frontend/src/wallet.ts` now
+stores a credential ID per company on the current device after successful
+registration/login and supplies it on later login attempts. The app validates
+the resulting smart-account address against the Railway company record before
+accepting the session, so selecting Arc-Fin while trying to access Pawn Shop
+cannot create a mislabeled recovery state. Existing devices may need each
+older credential selected once so Arc Trade can learn its ID.
+
 ## Legacy configuration that must not be mistaken for the product model
 
 The repository still contains historical singleton/demo material:

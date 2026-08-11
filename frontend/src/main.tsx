@@ -104,7 +104,7 @@ function App() {
     wallet.getSession().then(async current => {
       if (!alive || !current) return;
       setSession(current);
-      setCompanyName(name => name || localStorage.getItem(`arc-trade-company:${current.address.toLowerCase()}`) || localStorage.getItem(LAST_COMPANY_KEY) || "");
+      setCompanyName(name => name || localStorage.getItem(`arc-trade-company:${current.address.toLowerCase()}`) || "");
       await Promise.all([refreshAgreements(current.address), refreshRegistry(current.address)]);
     });
     const off = wallet.onAccountChange(async () => {
@@ -112,7 +112,7 @@ function App() {
       clearAgreement();
       setSession(next);
       if (next) {
-        setCompanyName(name => name || localStorage.getItem(`arc-trade-company:${next.address.toLowerCase()}`) || localStorage.getItem(LAST_COMPANY_KEY) || "");
+        setCompanyName(name => name || localStorage.getItem(`arc-trade-company:${next.address.toLowerCase()}`) || "");
         await Promise.all([refreshAgreements(next.address), refreshRegistry(next.address)]);
       }
     });
@@ -173,10 +173,15 @@ function App() {
         return;
       }
       const next = await wallet.login(name, existing ? "login" : "register");
-      const record = await registerCompany(name, next.address);
+      const addressCompany = await companyByWallet(next.address);
+      if (addressCompany && (!existing || addressCompany.slug !== existing.slug)) {
+        throw new Error(`This passkey is already linked to ${addressCompany.name}. Enter that company name to continue.`);
+      }
+      const record = addressCompany || await registerCompany(name, next.address);
+      wallet.rememberCredential(record.name, next.credentialId);
       localStorage.setItem(`arc-trade-company:${next.address.toLowerCase()}`, record.name);
       localStorage.setItem(LAST_COMPANY_KEY, record.name);
-      setCompany(record); setSession(next); setAuthMode(null); await Promise.all([refreshAgreements(next.address), refreshRegistry(next.address)]);
+      setCompanyName(record.name); setCompany(record); setSession(next); setAuthMode(null); await Promise.all([refreshAgreements(next.address), refreshRegistry(next.address)]);
     }
     catch (error) { console.error("Sign-in failed", error); setMessage(errorMessage(error, "signIn")); }
     finally { setBusy(""); }

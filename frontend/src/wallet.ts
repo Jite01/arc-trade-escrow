@@ -10,9 +10,9 @@ import { createPublicClient } from "viem";
 import { createBundlerClient, toWebAuthnAccount } from "viem/account-abstraction";
 import { AbstractSigner, type Provider, type TransactionRequest, type TransactionResponse, type TypedDataDomain, type TypedDataField } from "ethers";
 
-export interface EmbeddedWalletSession { address: string; signer: CircleSigner; }
+export interface EmbeddedWalletSession { address: string; signer: CircleSigner; credentialId: string; }
 export type CircleLoginMode = "register" | "login";
-export interface EmbeddedWalletAdapter { getSession(): Promise<EmbeddedWalletSession | null>; login(companyName: string, mode: CircleLoginMode): Promise<EmbeddedWalletSession>; logout(): Promise<void>; onAccountChange(listener: (address?: string) => void): () => void; }
+export interface EmbeddedWalletAdapter { getSession(): Promise<EmbeddedWalletSession | null>; login(companyName: string, mode: CircleLoginMode): Promise<EmbeddedWalletSession>; rememberCredential(companyName: string, credentialId: string): void; logout(): Promise<void>; onAccountChange(listener: (address?: string) => void): () => void; }
 export type CircleSignInErrorCode = "CONFIGURATION" | "UNSUPPORTED" | "CANCELLED" | "FAILED";
 
 export class CircleSignInError extends Error {
@@ -36,6 +36,7 @@ export function passkeyUsername(companyName: string): string {
   const padded = normalized.length >= 5 ? normalized : `${normalized || "company"}-co`;
   return padded.slice(0, 50);
 }
+const credentialStorageKey = (companyName: string) => `arc-trade-credential:${passkeyUsername(companyName).toLowerCase()}`;
 
 function signInError(error: unknown): CircleSignInError {
   if (error instanceof CircleSignInError) return error;
@@ -85,20 +86,22 @@ export function createCircleEmbeddedWalletAdapter(): EmbeddedWalletAdapter {
       if (!username) throw new CircleSignInError("CONFIGURATION");
       const passkeyTransport = toPasskeyTransport(clientUrl, clientKey);
       try {
-        const credential = await toWebAuthnCredential({ transport: passkeyTransport, mode: mode === "register" ? WebAuthnMode.Register : WebAuthnMode.Login, username });
+        const credentialId = mode === "login" ? localStorage.getItem(credentialStorageKey(companyName)) || undefined : undefined;
+        const credential = await toWebAuthnCredential({ transport: passkeyTransport, mode: mode === "register" ? WebAuthnMode.Register : WebAuthnMode.Login, username, credentialId });
         const modularTransport = toModularTransport(`${clientUrl.replace(/\/$/, "")}/arcTestnet`, clientKey);
         const client = createPublicClient({ chain: arcTestnet, transport: modularTransport });
         const smartAccount = await toCircleSmartAccount({ client, owner: toWebAuthnAccount({ credential }) });
         const bundler = createBundlerClient({ account: smartAccount, chain: arcTestnet, transport: modularTransport });
-        active = { address: smartAccount.address, signer: new CircleSigner(smartAccount.address, bundler) };
+        active = { address: smartAccount.address, signer: new CircleSigner(smartAccount.address, bundler), credentialId: credential.id };
+        if (mode === "register") localStorage.setItem(credentialStorageKey(companyName), credential.id);
         console.info("Circle participant account:", smartAccount.address, "sign-in name:", username);
-        listeners.forEach(listener => listener(active?.address));
         return active;
       } catch (error) {
         console.error("Circle passkey sign-in failed", error);
         throw signInError(error);
       }
     },
+    rememberCredential(companyName, credentialId) { if (credentialId) localStorage.setItem(credentialStorageKey(companyName), credentialId); },
     async logout() { active = null; listeners.forEach(listener => listener(undefined)); },
     onAccountChange(listener) { listeners.add(listener); return () => listeners.delete(listener); },
   };
