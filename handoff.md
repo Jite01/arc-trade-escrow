@@ -16,16 +16,6 @@ README, and submission before making architectural decisions. Identify and
 repair inconsistencies proactively. Preserve the proven escrow/Gateway core
 unless a concrete security or mainnet-readiness issue requires change.
 
-## `/goal` — copy/paste replacement for the platform goal
-
-```text
-Take Arc Trade from a hackathon-working demo to a professionally launchable documentary trade escrow product for Arc Mainnet. Arc Trade is an agreement registry, not a marketplace; defer discovery, listings, bidding, and search until the registry product is complete and reliable. Deliver a trustworthy end-to-end flow in which companies can create, receive, review, accept, fund, execute, dispute, and settle time-bound documentary agreements. Preserve the proven DocumentaryTradeEscrow, Agreement Factory, Circle ERC-1271/EIP-712 Gateway settlement, and Railway relayer architecture. Repair company/passkey onboarding, new-company creation, Arc-Fin profile recovery, durable global Railway registry state, truthful proposal-to-live-agreement lifecycle, dynamic per-agreement escrow discovery, and responsive documentary-trade branding. Remove legacy fixed-participant assumptions from user-facing product paths, review the entire repository proactively, verify the hosted E2E, and maintain a clear Arc Testnet-to-Mainnet migration path. Act as a senior React/Vite/TypeScript frontend engineer and product designer with strong architecture, accessibility, responsive UI, and branding judgment.
-```
-
-After manually replacing the platform goal, continue from the current
-repository state and commit `897f9c1`; do not restart the project or revert the
-existing factory/registry work.
-
 ## Required agent persona
 
 Act as a senior React/Vite/TypeScript frontend engineer and product designer
