@@ -20,6 +20,7 @@ const initialSignin = routeParts[0] === "signin" ? {
   recipient: routeParts[1] === "public" ? "" : routeParts[1] || "",
   proposalId: routeParts[1] === "public" ? routeParts[2] || "" : routeParts[2] || routeParts[1] || ""
 } : { recipient: "", proposalId: "" };
+const LAST_COMPANY_KEY = "arc-trade-last-company";
 const humanizeSlug = (value: string) => value.split("-").filter(Boolean).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 const roleLabel = (role: Role) => role === "BUYER" ? "Initiator" : role === "SELLER" ? "Counterparty" : role === "ARBITRATOR" ? "Arbitrator" : "Viewer";
 
@@ -36,7 +37,7 @@ function App() {
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
-  const [companyName, setCompanyName] = useState(() => initialSignin.recipient ? humanizeSlug(initialSignin.recipient) : "");
+  const [companyName, setCompanyName] = useState(() => initialSignin.recipient ? humanizeSlug(initialSignin.recipient) : localStorage.getItem(LAST_COMPANY_KEY) || "");
   const [profileCheck, setProfileCheck] = useState<"unchecked" | "new">("unchecked");
   const [recipientCompany, setRecipientCompany] = useState(() => initialSignin.recipient ? humanizeSlug(initialSignin.recipient) : "");
   const [agreementLabel, setAgreementLabel] = useState("");
@@ -103,14 +104,17 @@ function App() {
     wallet.getSession().then(async current => {
       if (!alive || !current) return;
       setSession(current);
-      setCompanyName(name => name || localStorage.getItem(`arc-trade-company:${current.address.toLowerCase()}`) || "");
+      setCompanyName(name => name || localStorage.getItem(`arc-trade-company:${current.address.toLowerCase()}`) || localStorage.getItem(LAST_COMPANY_KEY) || "");
       await Promise.all([refreshAgreements(current.address), refreshRegistry(current.address)]);
     });
     const off = wallet.onAccountChange(async () => {
       const next = await wallet.getSession();
       clearAgreement();
       setSession(next);
-      if (next) await Promise.all([refreshAgreements(next.address), refreshRegistry(next.address)]);
+      if (next) {
+        setCompanyName(name => name || localStorage.getItem(`arc-trade-company:${next.address.toLowerCase()}`) || localStorage.getItem(LAST_COMPANY_KEY) || "");
+        await Promise.all([refreshAgreements(next.address), refreshRegistry(next.address)]);
+      }
     });
     return () => { alive = false; off(); clearAgreement(); };
   }, [clearAgreement, refreshAgreements, refreshRegistry]);
@@ -152,6 +156,8 @@ function App() {
   const signIn = async (mode: CircleLoginMode) => {
     const name = companyName.trim();
     if (!name) { setMessage("Enter your company name to continue."); return; }
+    if (!/[a-z0-9]/i.test(name)) { setMessage("Use at least one letter or number in the company name."); return; }
+    localStorage.setItem(LAST_COMPANY_KEY, name);
     setBusy("signIn"); setMessage("");
     try {
       const existing = await lookupCompany(name);
@@ -169,6 +175,7 @@ function App() {
       const next = await wallet.login(name, existing ? "login" : "register");
       const record = await registerCompany(name, next.address);
       localStorage.setItem(`arc-trade-company:${next.address.toLowerCase()}`, record.name);
+      localStorage.setItem(LAST_COMPANY_KEY, record.name);
       setCompany(record); setSession(next); setAuthMode(null); await Promise.all([refreshAgreements(next.address), refreshRegistry(next.address)]);
     }
     catch (error) { console.error("Sign-in failed", error); setMessage(errorMessage(error, "signIn")); }
@@ -183,6 +190,7 @@ function App() {
     try {
       const record = await registerCompany(name, session.address);
       localStorage.setItem(`arc-trade-company:${session.address.toLowerCase()}`, record.name);
+      localStorage.setItem(LAST_COMPANY_KEY, record.name);
       setCompany(record); await refreshRegistry(session.address);
     } catch (error) { setMessage(error instanceof Error ? error.message : errorMessage(error, "restoreProfile")); }
     finally { setBusy(""); }

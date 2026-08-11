@@ -145,12 +145,15 @@ operator-assisted Gateway settlement—not fully trustless settlement.
 Circle requires a 5–50 character restricted passkey username. The latest
 `frontend/src/wallet.ts` normalizes display names into a stable Circle-safe
 identifier while preserving the company’s real display name in the registry.
-This fix must be present in the deployed Vercel bundle before retesting.
+This fix must be present in the deployed Vercel bundle before retesting. The
+frontend now also persists the last company label for post-refresh prefill and
+rejects symbol-only names before invoking Circle.
 
 2. Arc-Fin previously reached a valid passkey session without a matching
 company row. The dashboard now offers recovery and pre-fills the known company
 name. Verify the complete recovery path against the persistent Railway database;
-do not accept a UI-only recovery gimmick as complete.
+do not accept a UI-only recovery gimmick as complete. Successful recovery now
+also refreshes the last-company hint used by the next auth screen.
 
 3. Activity is split into Issued and Received proposals. An accepted proposal
 is shown as a live agreement only after it has an agreement ID and escrow
