@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS negotiation_events;
+DROP TABLE IF EXISTS proposal_milestones;
+DROP TABLE IF EXISTS proposals;
+DROP TABLE IF EXISTS trade_agreements;
+DROP FUNCTION IF EXISTS touch_trade_agreement_updated_at();
+DROP TYPE IF EXISTS negotiation_event_type;
+DROP TYPE IF EXISTS proposal_status;
+DROP TYPE IF EXISTS party_arrangement;
+DROP TYPE IF EXISTS transport_mode;
+DROP TYPE IF EXISTS agreement_status;

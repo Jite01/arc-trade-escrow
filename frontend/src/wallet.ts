@@ -59,12 +59,12 @@ function validateConfiguration(): void {
 }
 
 export class CircleSigner extends AbstractSigner {
-  public constructor(private readonly address: string, private readonly bundler: Bundler, provider?: Provider) { super(provider); }
+  public constructor(private readonly address: string, private readonly bundler: Bundler, private readonly account: any, provider?: Provider) { super(provider); }
   public async getAddress(): Promise<string> { return this.address; }
-  public connect(provider: Provider | null): CircleSigner { return new CircleSigner(this.address, this.bundler, provider ?? undefined); }
+  public connect(provider: Provider | null): CircleSigner { return new CircleSigner(this.address, this.bundler, this.account, provider ?? undefined); }
   public async signTransaction(): Promise<string> { throw new Error("The Circle passkey signs through the transaction approval flow"); }
-  public async signMessage(): Promise<string> { throw new Error("The Circle passkey signs through the transaction approval flow"); }
-  public async signTypedData(_domain: TypedDataDomain, _types: Record<string, Array<TypedDataField>>, _value: Record<string, unknown>): Promise<string> { throw new Error("The Circle passkey signs through the transaction approval flow"); }
+  public async signMessage(message: string | Uint8Array): Promise<string> { return this.account.signMessage({ message: typeof message === "string" ? message : new TextDecoder().decode(message) }); }
+  public async signTypedData(domain: TypedDataDomain, types: Record<string, Array<TypedDataField>>, value: Record<string, unknown>): Promise<string> { return this.account.signTypedData({ domain, types, primaryType: Object.keys(types)[0], message: value }); }
   public async sendTransaction(request: TransactionRequest): Promise<TransactionResponse> {
     if (!request.to) throw new Error("A contract destination is required");
     const userOpHash = await this.bundler.sendUserOperation({ calls: [{ to: request.to, data: request.data ?? "0x", value: request.value ?? 0n }], paymaster: true });
@@ -92,7 +92,7 @@ export function createCircleEmbeddedWalletAdapter(): EmbeddedWalletAdapter {
         const client = createPublicClient({ chain: arcTestnet, transport: modularTransport });
         const smartAccount = await toCircleSmartAccount({ client, owner: toWebAuthnAccount({ credential }) });
         const bundler = createBundlerClient({ account: smartAccount, chain: arcTestnet, transport: modularTransport });
-        active = { address: smartAccount.address, signer: new CircleSigner(smartAccount.address, bundler), credentialId: credential.id };
+        active = { address: smartAccount.address, signer: new CircleSigner(smartAccount.address, bundler, smartAccount), credentialId: credential.id };
         if (mode === "register") localStorage.setItem(credentialStorageKey(companyName), credential.id);
         console.info("Circle participant account:", smartAccount.address, "sign-in name:", username);
         return active;

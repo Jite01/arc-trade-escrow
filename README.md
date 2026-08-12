@@ -36,6 +36,79 @@ project summary in `submission/`.
 
 ## Local development
 
+### Commercial agreement registry
+
+The pre-contract commercial workflow is a separate Express/PostgreSQL service
+under `backend/`. It owns the four agreement-registry tables and never writes
+settlement state. Run the migration and verification transaction against a
+PostgreSQL database before starting the service:
+
+```sh
+cd backend
+npm install
+npm run migrate
+psql "$DATABASE_URL" -f migrations/verify_trade_agreements.sql
+npm run dev
+```
+
+Set `VITE_AGREEMENT_API_URL` and `VITE_OPERATOR_ADDRESS` in
+`frontend/.env.local`. The new flow is available at `/agreements/new`; the
+existing settlement dashboard remains at `/`.
+
+### Zero-cost production registry deployment
+
+Use three separate services. Do not use a Render Blueprint:
+
+1. Create a free PostgreSQL database with Neon or Supabase. Copy its pooled
+   or direct SSL connection string.
+2. In Render, choose **New → Web Service**, connect this repository, choose
+   **Docker**, set Dockerfile path to `backend/Dockerfile`, and leave the
+   repository root as the Docker context. Choose the Free instance type.
+3. Add these Render environment variables:
+
+```dotenv
+DATABASE_URL=postgresql://...
+DATABASE_SSL=true
+ARC_RPC_URL=https://rpc.testnet.arc.network
+FRONTEND_ORIGIN=https://your-frontend.vercel.app
+CIRCLE_WALLET_AUTH_SECRET=<output of openssl rand -hex 32>
+NODE_ENV=production
+```
+
+After the Render service is created, run the migration once using the hosted
+database URL:
+
+```sh
+cd backend
+export DATABASE_URL='postgresql://...'
+npm run migrate
+```
+
+The Render service's health URL must return `{"ok":true}` at `/healthz`.
+After Render gives the API an HTTPS URL, set this Vercel production variable
+before rebuilding the frontend:
+
+```dotenv
+VITE_AGREEMENT_API_URL=https://arc-trade-commercial-api.onrender.com
+VITE_OPERATOR_ADDRESS=0x0bF9683D68c79976281A6a16CFb9A49608a1a37c
+```
+
+The production frontend has no localhost fallback. If the API URL is omitted,
+the commercial workflow fails clearly instead of accidentally targeting a
+developer laptop.
+
+The production wallet gateway uses a one-time challenge signed by the Circle
+smart account passkey. The backend verifies that signature against the wallet
+contract using EIP-1271, then issues a short-lived bearer token. The API does
+not trust a browser-supplied wallet address. Circle's modular-wallet guidance
+explicitly supports signing off-chain messages for SIWE-style authentication
+and verifying them against the smart account.
+
+The API requires a bearer token obtained through the wallet challenge flow on
+every agreement request. In production, configure `CIRCLE_WALLET_AUTH_SECRET`,
+`ARC_RPC_URL`, and `FRONTEND_ORIGIN` on Render. Unsigned address headers are
+not accepted.
+
 Install root dependencies and configure the root `.env` with the required RPC,
 relayer, Gateway, and signing values. Never commit `.env` or private keys.
 
