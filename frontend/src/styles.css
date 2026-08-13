@@ -745,3 +745,167 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
   .chapter-copy p { font-size: 8px; }
   .explainer-top, .explainer-foot { font-size: 7px; letter-spacing: .08em; }
 }
+
+/* Original, code-drawn editorial board. No image assets or stock-art reference. */
+.hero-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(40px, 5.5vw, 76px);
+  min-height: 0;
+  padding: 72px 0 88px;
+}
+.hero, .trade-atlas { min-width: 0; }
+.trade-atlas {
+  width: 100%;
+  max-width: 640px;
+  justify-self: end;
+  color: #28423b;
+  background: transparent;
+}
+.atlas-heading, .atlas-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #74877e;
+  font: 9px "DM Mono", monospace;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.atlas-heading { padding: 0 0 13px; border-bottom: 1px solid #bfc8bd; }
+.atlas-heading p { margin: 0; color: #9d4b35; }
+.atlas-flow { position: relative; }
+.atlas-flow::before {
+  content: "";
+  position: absolute;
+  top: 42px;
+  bottom: 42px;
+  left: 11px;
+  width: 1px;
+  background: linear-gradient(#b45737, #b4573740 78%, transparent);
+}
+.atlas-stage { position: relative; padding: 17px 0 18px; }
+.atlas-stage + .atlas-stage { border-top: 1px solid #d2d8cf; }
+.atlas-caption { display: grid; grid-template-columns: 25px minmax(0, 1fr); gap: 10px; align-items: start; }
+.atlas-caption > span { position: relative; z-index: 1; color: #b45737; background: var(--paper); font: 10px/1.2 "DM Mono", monospace; }
+.atlas-caption h3 { margin: -2px 0 0; color: var(--ink); font: 600 18px/1.05 "Playfair Display", Georgia, serif; letter-spacing: -.035em; }
+.atlas-caption p { min-width: 0; margin: 5px 0 0; color: #6b7b73; font: 9px/1.45 "DM Mono", monospace; letter-spacing: .005em; }
+.atlas-typed {
+  --atlas-type-width: 55ch;
+  display: block;
+  width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: inherit;
+  font-style: normal;
+  white-space: nowrap;
+  border-right: 1px solid #b45737;
+  animation: atlas-caret .7s step-end infinite;
+}
+.atlas-typed--define { animation: atlas-type-define 20s steps(52, end) infinite, atlas-caret .7s step-end infinite; }
+.atlas-typed--plan { animation: atlas-type-plan 20s steps(54, end) infinite, atlas-caret .7s step-end infinite; }
+.atlas-typed--settle { animation: atlas-type-settle 20s steps(54, end) infinite, atlas-caret .7s step-end infinite; }
+.atlas-scene { display: block; width: calc(100% - 35px); height: auto; min-width: 0; margin: 8px 0 0 35px; overflow: visible; }
+.atlas-scene * { transform-box: fill-box; transform-origin: center; vector-effect: non-scaling-stroke; }
+.atlas-scene path, .atlas-scene circle { fill: none; stroke: #36584d; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
+.atlas-scene .atlas-document > path:first-child, .atlas-scene .atlas-agreement > path:first-child, .atlas-scene .atlas-final-record > path:first-child, .atlas-scene .atlas-proof-page > path:first-child, .atlas-scene .atlas-proof-crate > path:first-child, .atlas-scene .atlas-plan-record > path:first-child, .atlas-scene .atlas-settled-record > path:first-child { fill: #fbf8f1; }
+.atlas-scene .atlas-flight-line { stroke: #9cb2a7; stroke-dasharray: 2 5; }
+.atlas-scene .atlas-written-mark, .atlas-scene .atlas-check, .atlas-scene .atlas-approval-check { stroke: #b45737; stroke-width: 1.8; }
+.atlas-scene .atlas-slider-line, .atlas-scene .atlas-ruler-fill, .atlas-scene .atlas-rail-value { stroke: #b45737; stroke-width: 2.6; }
+.atlas-scene .atlas-slider, .atlas-scene .atlas-proof-marker, .atlas-scene .atlas-payment { fill: #b45737; stroke: #b45737; }
+.atlas-scene .atlas-rail-stop { fill: var(--paper-light); }
+.atlas-scene--plan { opacity: .42; animation: atlas-plan-reveal 20s ease-in-out infinite; }
+.atlas-scene--settle { opacity: .42; animation: atlas-settle-reveal 20s ease-in-out infinite; }
+
+/* Agreement: an authored sheet passes between two parties and resolves into one record. */
+.atlas-document { animation: atlas-document-cycle 20s ease-in-out infinite; }
+.atlas-writing-hand { animation: atlas-writing-hand 20s ease-in-out infinite; }
+.atlas-written-mark { stroke-dasharray: 39; stroke-dashoffset: 39; animation: atlas-write-mark 20s ease-in-out infinite; }
+.atlas-paper-plane { opacity: 0; animation: atlas-paper-exchange 20s ease-in-out infinite; }
+.atlas-agreement { opacity: 0; animation: atlas-agreement-arrives 20s ease-in-out infinite; }
+.atlas-slider { animation: atlas-slider-settles 20s ease-in-out infinite; }
+.atlas-receiving-hand { opacity: 0; animation: atlas-receiver-arrives 20s ease-in-out infinite; }
+.atlas-handshake { opacity: 0; animation: atlas-handshake-settles 20s ease-in-out infinite; }
+.atlas-final-record { opacity: 0; animation: atlas-final-record 20s ease-in-out infinite; }
+
+/* Agreement becomes a negotiated payment rule, not a percentage dashboard. */
+.atlas-ruler-base { stroke: #9bac9f !important; }
+.atlas-ruler-fill { stroke-dasharray: 426; stroke-dashoffset: 426; animation: atlas-ruler-draws 20s ease-in-out infinite; }
+.atlas-plan-hand { opacity: 0; }
+.atlas-plan-hand--left { animation: atlas-plan-hand-left 20s ease-in-out infinite; }
+.atlas-plan-hand--right { animation: atlas-plan-hand-right 20s ease-in-out infinite; }
+.atlas-pin { opacity: 0; }
+.atlas-pin--one { animation: atlas-pin-one 20s ease-in-out infinite; }
+.atlas-pin--two { animation: atlas-pin-two 20s ease-in-out infinite; }
+.atlas-proof-page, .atlas-proof-crate, .atlas-plan-record { opacity: 0; }
+.atlas-proof-page { animation: atlas-proof-page 20s ease-in-out infinite; }
+.atlas-proof-crate { animation: atlas-proof-crate 20s ease-in-out infinite; }
+.atlas-plan-record { animation: atlas-plan-record 20s ease-in-out infinite; }
+.atlas-proof-marker { opacity: 0; animation: atlas-proof-marker 20s ease-in-out infinite; }
+
+/* The final scene is a code-drawn freight journey, designed from the system's own shapes. */
+.atlas-freight { animation: atlas-freight-journey 20s ease-in-out infinite; }
+.atlas-water { animation: atlas-water 3.8s ease-in-out infinite; }
+.atlas-clouds { animation: atlas-clouds 6s ease-in-out infinite; }
+.atlas-port--start { animation: atlas-start-port 20s ease-in-out infinite; }
+.atlas-approval { opacity: 0; animation: atlas-approval 20s ease-in-out infinite; }
+.atlas-approval-check { stroke-dasharray: 24; stroke-dashoffset: 24; animation: atlas-approval-check 20s ease-in-out infinite; }
+.atlas-rail-value { stroke-dasharray: 181; stroke-dashoffset: 0; animation: atlas-rail-release 20s ease-in-out infinite; }
+.atlas-payment { opacity: 0; animation: atlas-payment-travel 20s ease-in-out infinite; }
+.atlas-rail-stop--one { animation: atlas-rail-first 20s ease-in-out infinite; }
+.atlas-rail-stop--two { animation: atlas-rail-second 20s ease-in-out infinite; }
+.atlas-settled-record { opacity: 0; animation: atlas-settled-record 20s ease-in-out infinite; }
+
+.atlas-footer { padding-top: 12px; border-top: 1px solid #bfc8bd; }
+.atlas-footer i { display: block; flex: 1; min-width: 22px; height: 1px; background: linear-gradient(90deg, #b45737, #7f9a8b); }
+
+@keyframes atlas-caret { 50% { border-color: transparent; } }
+@keyframes atlas-type-define { 0%, 2% { width: 0; } 9%, 92% { width: var(--atlas-type-width); } 96%, 100% { width: 0; } }
+@keyframes atlas-type-plan { 0%, 29% { width: 0; } 37%, 92% { width: var(--atlas-type-width); } 96%, 100% { width: 0; } }
+@keyframes atlas-type-settle { 0%, 55% { width: 0; } 64%, 92% { width: var(--atlas-type-width); } 96%, 100% { width: 0; } }
+@keyframes atlas-document-cycle { 0%, 19% { opacity: 1; transform: translateY(0); } 23%, 100% { opacity: 0; transform: translateY(-3px); } }
+@keyframes atlas-writing-hand { 0%, 3% { opacity: 0; transform: translateX(-16px); } 6%, 18% { opacity: 1; transform: translateX(0); } 21%, 100% { opacity: 0; transform: translateX(7px); } }
+@keyframes atlas-write-mark { 0%, 6% { stroke-dashoffset: 39; } 15%, 20% { stroke-dashoffset: 0; } 23%, 100% { stroke-dashoffset: 39; } }
+@keyframes atlas-paper-exchange { 0%, 17% { opacity: 0; transform: translate(0, 0) rotate(-3deg); } 19%, 28% { opacity: 1; transform: translate(151px, -18px) rotate(-2deg); } 31%, 38% { opacity: 0; } 40%, 42% { opacity: 1; transform: translate(158px, -13px) rotate(4deg); } 43%, 51% { opacity: 1; transform: translate(-34px, 2px) rotate(2deg); } 54%, 100% { opacity: 0; } }
+@keyframes atlas-agreement-arrives { 0%, 25% { opacity: 0; transform: scale(.9); } 28%, 44% { opacity: 1; transform: scale(1); } 48%, 100% { opacity: 0; } }
+@keyframes atlas-slider-settles { 0%, 30% { transform: translateX(0); } 35%, 44% { transform: translateX(27px); } 48%, 100% { transform: translateX(0); } }
+@keyframes atlas-receiver-arrives { 0%, 25% { opacity: 0; transform: translateX(12px); } 29%, 46% { opacity: 1; transform: translateX(0); } 49%, 100% { opacity: 0; } }
+@keyframes atlas-handshake-settles { 0%, 49% { opacity: 0; transform: translateY(5px); } 52%, 59% { opacity: 1; transform: translateY(0); } 63%, 100% { opacity: 0; } }
+@keyframes atlas-final-record { 0%, 60% { opacity: 0; transform: translateY(5px); } 64%, 93% { opacity: 1; transform: translateY(0); } 97%, 100% { opacity: 0; } }
+@keyframes atlas-plan-reveal { 0%, 25% { opacity: .42; } 29%, 93% { opacity: 1; } 97%, 100% { opacity: .42; } }
+@keyframes atlas-ruler-draws { 0%, 31% { stroke-dashoffset: 426; } 39%, 93% { stroke-dashoffset: 0; } 97%, 100% { stroke-dashoffset: 426; } }
+@keyframes atlas-pin-one { 0%, 38% { opacity: 0; transform: translate(9px, -14px); } 42%, 54% { opacity: 1; transform: translate(9px, 0); } 57%, 93% { opacity: 1; transform: translate(0, 0); } 97%, 100% { opacity: 0; } }
+@keyframes atlas-pin-two { 0%, 42% { opacity: 0; transform: translate(-8px, -14px); } 46%, 54% { opacity: 1; transform: translate(-8px, 0); } 57%, 93% { opacity: 1; transform: translate(0, 0); } 97%, 100% { opacity: 0; } }
+@keyframes atlas-proof-page { 0%, 43% { opacity: 0; transform: translateX(-7px); } 47%, 93% { opacity: 1; transform: translateX(0); } 97%, 100% { opacity: 0; } }
+@keyframes atlas-proof-crate { 0%, 47% { opacity: 0; transform: translateX(8px); } 51%, 93% { opacity: 1; transform: translateX(0); } 97%, 100% { opacity: 0; } }
+@keyframes atlas-plan-record { 0%, 53% { opacity: 0; transform: translateY(6px); } 57%, 93% { opacity: 1; transform: translateY(0); } 97%, 100% { opacity: 0; } }
+@keyframes atlas-proof-marker { 0%, 39% { opacity: 0; transform: translateX(0); } 42%, 47% { opacity: 1; transform: translateX(151px); } 50%, 100% { opacity: 0; } }
+@keyframes atlas-plan-hand-left { 0%, 49% { opacity: 0; transform: translateX(-8px); } 52%, 56% { opacity: 1; transform: translateX(0); } 59%, 100% { opacity: 0; } }
+@keyframes atlas-plan-hand-right { 0%, 49% { opacity: 0; transform: translateX(8px); } 52%, 56% { opacity: 1; transform: translateX(0); } 59%, 100% { opacity: 0; } }
+@keyframes atlas-settle-reveal { 0%, 51% { opacity: .42; } 55%, 93% { opacity: 1; } 97%, 100% { opacity: .42; } }
+@keyframes atlas-freight-journey { 0%, 58% { transform: translate(-8px, 0); } 63%, 72% { transform: translate(35px, -2px); } 78%, 93% { transform: translate(0, 0); } 97%, 100% { transform: translate(-8px, 0); } }
+@keyframes atlas-water { 50% { transform: translate(-7px, 1px); } }
+@keyframes atlas-clouds { 50% { transform: translateX(8px); } }
+@keyframes atlas-start-port { 0%, 62% { transform: translateX(0); } 70%, 93% { transform: translateX(-11px); } 97%, 100% { transform: translateX(0); } }
+@keyframes atlas-approval { 0%, 59% { opacity: 0; transform: translateY(5px); } 62%, 67% { opacity: 1; transform: translateY(0); } 70%, 77% { opacity: 0; } 80%, 86% { opacity: 1; transform: translateY(0); } 90%, 100% { opacity: 0; } }
+@keyframes atlas-approval-check { 0%, 62% { stroke-dashoffset: 24; } 66%, 69% { stroke-dashoffset: 0; } 70%, 80% { stroke-dashoffset: 24; } 84%, 87% { stroke-dashoffset: 0; } 90%, 100% { stroke-dashoffset: 24; } }
+@keyframes atlas-rail-release { 0%, 64% { stroke-dashoffset: 0; } 69%, 76% { stroke-dashoffset: 75; } 82%, 90% { stroke-dashoffset: 181; } 94%, 100% { stroke-dashoffset: 0; } }
+@keyframes atlas-payment-travel { 0%, 65% { opacity: 0; transform: translateX(0); } 68%, 73% { opacity: 1; transform: translateX(186px); } 76%, 81% { opacity: 0; } 83%, 88% { opacity: 1; transform: translateX(81px); } 91%, 100% { opacity: 0; } }
+@keyframes atlas-rail-first { 0%, 64%, 76%, 100% { transform: scale(1); fill: var(--paper-light); } 69% { transform: scale(1.55); fill: #b45737; } }
+@keyframes atlas-rail-second { 0%, 80%, 90%, 100% { transform: scale(1); fill: var(--paper-light); } 85% { transform: scale(1.55); fill: #b45737; } }
+@keyframes atlas-settled-record { 0%, 87% { opacity: 0; transform: translateY(5px); } 90%, 94% { opacity: 1; transform: translateY(0); } 97%, 100% { opacity: 0; } }
+
+@media (max-width: 1020px) {
+  .hero-grid { grid-template-columns: minmax(0, 1fr); gap: 42px; max-width: 720px; margin: 0 auto; padding: 62px 0 76px; }
+  .hero { max-width: 680px; }
+  .trade-atlas { max-width: 680px; justify-self: stretch; }
+}
+@media (max-width: 540px) {
+  .hero-grid { gap: 34px; padding-top: 50px; }
+  .atlas-heading, .atlas-footer { font-size: 8px; letter-spacing: .09em; }
+  .atlas-stage { padding: 15px 0 16px; }
+  .atlas-caption { grid-template-columns: 22px minmax(0, 1fr); gap: 8px; }
+  .atlas-caption h3 { font-size: 17px; }
+  .atlas-caption p { font-size: 8px; }
+  .atlas-scene { width: calc(100% - 29px); margin-left: 29px; }
+  .atlas-flow::before { left: 9px; }
+}
