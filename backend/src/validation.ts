@@ -38,6 +38,15 @@ export function validateAgreementInput(input: Record<string, unknown>, now = new
     if (!["EXW", "FCA", "FAS", "FOB", "CPT", "CIP", "CFR", "CIF", "DAP", "DPU", "DDP"].includes(input.incoterm)) return { ok: false, field: "incoterm", message: "Unknown delivery term" };
     const valid = input.transportMode === "sea" || input.transportMode === "inland_waterway";
     if (!valid && ["FAS", "FOB", "CFR", "CIF"].includes(input.incoterm)) return { ok: false, field: "incoterm", message: "That delivery term is not available for this transport mode" };
+    if (!String(input.deliveryNamedPlace || "").trim()) return { ok: false, field: "deliveryNamedPlace", message: "A named place is required when delivery terms are selected" };
+    const insurance = String(input.insuranceArranger);
+    const freight = String(input.freightArranger);
+    if (["CIF", "CIP"].includes(input.incoterm) && insurance === "buyer") return { ok: false, field: "insuranceArranger", message: "Under CIF/CIP delivery terms, the seller provides insurance. Change delivery terms or set insurance arrangement to seller." };
+    if (["CFR", "CPT"].includes(input.incoterm) && (freight !== "seller" && freight !== "tba")) return { ok: false, field: "freightArranger", message: "Under CFR/CPT delivery terms, the seller arranges main freight." };
+    if (["CFR", "CPT"].includes(input.incoterm) && (insurance !== "buyer" && insurance !== "tba")) return { ok: false, field: "insuranceArranger", message: "Under CFR/CPT delivery terms, the buyer arranges insurance." };
+    if (input.incoterm === "EXW" && (freight !== "buyer" && freight !== "tba")) return { ok: false, field: "freightArranger", message: "Under EXW delivery terms, the buyer arranges main freight." };
+    if (input.incoterm === "EXW" && (insurance !== "buyer" && insurance !== "tba")) return { ok: false, field: "insuranceArranger", message: "Under EXW delivery terms, the buyer arranges insurance." };
+    if (["FOB", "FAS", "FCA"].includes(input.incoterm) && (freight !== "buyer" && freight !== "tba")) return { ok: false, field: "freightArranger", message: "Under these delivery terms, the buyer arranges main freight." };
   }
   return { ok: true };
 }

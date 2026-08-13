@@ -1,5 +1,5 @@
-export type AgreementStatus = "drafting" | "negotiating" | "agreed" | "deployed" | "active" | "completed" | "cancelled";
-export type ProposalStatus = "pending" | "superseded" | "accepted" | "rejected";
+export type AgreementStatus = "drafting" | "negotiating" | "agreed" | "deploying" | "deployed" | "cancelled";
+export type ProposalStatus = "draft" | "pending" | "superseded" | "accepted" | "rejected" | "expired";
 
 export type MilestoneInput = {
   description: string;
@@ -30,6 +30,7 @@ export type AgreementInput = {
   destinationCountry: string;
   destinationPortCity: string;
   incoterm?: string | null;
+  deliveryNamedPlace?: string | null;
   freightArranger: string;
   insuranceArranger: string;
   deliveryDeadline: string;

@@ -7,6 +7,7 @@ export type DeliveryTerm = {
   group: "origin" | "freight" | "destination";
   seaOnly: boolean;
   mostCommon?: boolean;
+  namedPlaceLabel: string;
 };
 
 export type SuggestedMilestone = {
@@ -21,17 +22,17 @@ export type SuggestedMilestone = {
 const defaults = { sellerDeadlineSec: 7 * 86400, buyerResponseWindowSec: 48 * 3600, disputeWindowSec: 48 * 3600 };
 
 export const DELIVERY_TERMS: readonly DeliveryTerm[] = [
-  { code: "EXW", name: "Ex Works", description: "The seller makes the goods available at their premises; the buyer handles collection and onward transport.", group: "origin", seaOnly: false },
-  { code: "FCA", name: "Free Carrier", description: "The seller hands the goods to the buyer's chosen carrier at an agreed place.", group: "origin", seaOnly: false, mostCommon: true },
-  { code: "FAS", name: "Free Alongside Ship", description: "The seller places the goods alongside the vessel at the named port; the buyer takes over from there.", group: "origin", seaOnly: true },
-  { code: "FOB", name: "Free On Board", description: "The seller loads the goods on board the buyer's vessel; risk transfers once they are on board.", group: "origin", seaOnly: true, mostCommon: true },
-  { code: "CPT", name: "Carriage Paid To", description: "The seller pays carriage to the named destination, while risk transfers when the first carrier receives the goods.", group: "freight", seaOnly: false },
-  { code: "CIP", name: "Carriage and Insurance Paid To", description: "The seller pays carriage and insurance to the named destination; risk transfers to the buyer at first-carrier handover.", group: "freight", seaOnly: false },
-  { code: "CFR", name: "Cost and Freight", description: "The seller pays freight to the destination port; risk transfers when the goods are on board the vessel.", group: "freight", seaOnly: true },
-  { code: "CIF", name: "Cost Insurance and Freight", description: "The seller pays freight and insurance to the destination port; risk transfers when the goods are on board.", group: "freight", seaOnly: true, mostCommon: true },
-  { code: "DAP", name: "Delivered At Place", description: "The seller brings the goods to the named destination ready for unloading; the buyer unloads and clears import.", group: "destination", seaOnly: false, mostCommon: true },
-  { code: "DPU", name: "Delivered At Place Unloaded", description: "The seller brings and unloads the goods at the named destination; the buyer handles import clearance.", group: "destination", seaOnly: false },
-  { code: "DDP", name: "Delivered Duty Paid", description: "The seller delivers the goods ready for unloading and handles export, import, and duties.", group: "destination", seaOnly: false },
+  { code: "EXW", name: "Ex Works", description: "The seller makes the goods available at their premises; the buyer handles collection and onward transport.", group: "origin", seaOnly: false, namedPlaceLabel: "Seller's premises or named place" },
+  { code: "FCA", name: "Free Carrier", description: "The seller hands the goods to the buyer's chosen carrier at an agreed place.", group: "origin", seaOnly: false, mostCommon: true, namedPlaceLabel: "Place of delivery" },
+  { code: "FAS", name: "Free Alongside Ship", description: "The seller places the goods alongside the vessel at the named port; the buyer takes over from there.", group: "origin", seaOnly: true, namedPlaceLabel: "Port of shipment" },
+  { code: "FOB", name: "Free On Board", description: "The seller loads the goods on board the buyer's vessel; risk transfers once they are on board.", group: "origin", seaOnly: true, mostCommon: true, namedPlaceLabel: "Port of shipment" },
+  { code: "CPT", name: "Carriage Paid To", description: "The seller pays carriage to the named destination, while risk transfers when the first carrier receives the goods.", group: "freight", seaOnly: false, namedPlaceLabel: "Place of destination" },
+  { code: "CIP", name: "Carriage and Insurance Paid To", description: "The seller pays carriage and insurance to the named destination; risk transfers to the buyer at first-carrier handover.", group: "freight", seaOnly: false, namedPlaceLabel: "Place of destination" },
+  { code: "CFR", name: "Cost and Freight", description: "The seller pays freight to the destination port; risk transfers when the goods are on board the vessel.", group: "freight", seaOnly: true, namedPlaceLabel: "Port of destination" },
+  { code: "CIF", name: "Cost Insurance and Freight", description: "The seller pays freight and insurance to the destination port; risk transfers when the goods are on board.", group: "freight", seaOnly: true, mostCommon: true, namedPlaceLabel: "Port of destination" },
+  { code: "DAP", name: "Delivered At Place", description: "The seller brings the goods to the named destination ready for unloading; the buyer unloads and clears import.", group: "destination", seaOnly: false, mostCommon: true, namedPlaceLabel: "Place of destination" },
+  { code: "DPU", name: "Delivered At Place Unloaded", description: "The seller brings and unloads the goods at the named destination; the buyer handles import clearance.", group: "destination", seaOnly: false, namedPlaceLabel: "Place of destination" },
+  { code: "DDP", name: "Delivered Duty Paid", description: "The seller delivers the goods ready for unloading and handles export, import, and duties.", group: "destination", seaOnly: false, namedPlaceLabel: "Place of destination" },
 ];
 
 export const termsForMode = (mode: TransportMode): readonly DeliveryTerm[] =>

@@ -3,9 +3,12 @@ import { Pool } from "pg";
 import { createWalletAuth, type WalletRequest } from "./auth.js";
 import { createRepository } from "./repository.js";
 import { validateAgreementInput, validateProposalMilestones, isAddress } from "./validation.js";
+import { createDeploymentVerifier } from "./deploymentVerifier.js";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: Number(process.env.DATABASE_POOL_MAX || 10), ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined });
 const repository = createRepository(pool);
+const verifyDeployment = createDeploymentVerifier();
+const platformOperator = (process.env.PLATFORM_OPERATOR_ADDRESS || process.env.OPERATOR_ADDRESS || "0x0bF9683D68c79976281A6a16CFb9A49608a1a37c").toLowerCase();
 const walletAuth = createWalletAuth(pool);
 const app = express();
 app.use(express.json({ limit: "128kb" }));
@@ -16,7 +19,7 @@ app.use((request, response, next) => {
     response.setHeader("Access-Control-Allow-Origin", origin);
     response.setHeader("Vary", "Origin");
     response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    response.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
   }
   if (request.method === "OPTIONS") return response.sendStatus(204);
   next();
@@ -37,7 +40,7 @@ app.post("/auth/verify", async (request, response, next) => {
     return response.json(await walletAuth.verify(String(request.body?.challengeId || ""), String(request.body?.address || ""), String(request.body?.signature || "")));
   } catch (error) { return next(error); }
 });
-app.use(walletAuth.middleware);
+app.use((request, response, next) => request.path.startsWith("/internal/") ? next() : walletAuth.middleware(request, response, next));
 
 app.post("/agreements", async (request: Request, response, next) => {
   try {
@@ -45,6 +48,7 @@ app.post("/agreements", async (request: Request, response, next) => {
     const input = request.body as Record<string, unknown>;
     const result = validateAgreementInput(input, new Date());
     if (!result.ok) return response.status(422).json(result);
+    if (String(input.operatorAddress).toLowerCase() !== platformOperator) return response.status(422).json({ error: "operatorAddress must match the platform settlement operator" });
     if (String(input.createdBy || walletRequest.walletAddress).toLowerCase() !== walletRequest.walletAddress) return response.status(403).json({ error: "createdBy must match the authenticated wallet" });
     const buyer = String(input.buyerAddress || "").toLowerCase();
     const seller = String(input.sellerAddress || "").toLowerCase();
@@ -63,11 +67,52 @@ app.get("/agreements/:id/proposals", agreementGuard, async (request, response, n
 app.post("/agreements/:id/proposals", agreementGuard, async (request: Request, response, next) => {
   try { const walletRequest = request as WalletRequest; const result = validateProposalMilestones(request.body?.milestones); if (!result.ok) return response.status(422).json(result); return response.status(201).json(await repository.createProposal(String(request.params.id), walletRequest.walletAddress, request.body)); } catch (error) { return next(error); }
 });
-app.post("/agreements/:id/accept", agreementGuard, async (request: Request, response, next) => {
-  try { const walletRequest = request as WalletRequest; return response.json(await repository.acceptProposal(String(request.params.id), walletRequest.walletAddress)); } catch (error) { return next(error); }
+app.patch("/agreements/:id", agreementGuard, async (request: Request, response, next) => {
+  try {
+    const walletRequest = request as WalletRequest;
+    const current = await repository.getAgreement(String(request.params.id));
+    if (!current) return response.status(404).json({ error: "Agreement not found" });
+    const merged = { ...current, ...request.body, createdBy: current.createdBy } as Record<string, unknown>;
+    const result = validateAgreementInput(merged, new Date());
+    if (!result.ok) return response.status(422).json(result);
+    return response.json(await repository.updateAgreement(String(request.params.id), walletRequest.walletAddress, request.body || {}));
+  } catch (error) { return next(error); }
 });
-app.post("/agreements/:id/deploy", agreementGuard, async (request: Request, response, next) => {
-  try { const walletRequest = request as WalletRequest; const { contractAddress, deploymentBlock } = request.body || {}; if (!isAddress(contractAddress) || !Number.isInteger(Number(deploymentBlock)) || Number(deploymentBlock) < 0) return response.status(422).json({ error: "contractAddress and deploymentBlock are required" }); return response.json(await repository.recordDeployment(String(request.params.id), walletRequest.walletAddress, contractAddress, Number(deploymentBlock))); } catch (error) { return next(error); }
+app.post("/agreements/:id/accept", agreementGuard, async (request: Request, response, next) => {
+  try { const walletRequest = request as WalletRequest; const proposalId = String(request.body?.proposal_id || ""); if (!proposalId) return response.status(422).json({ error: "proposal_id is required" }); return response.json(await repository.acceptProposal(String(request.params.id), walletRequest.walletAddress, proposalId)); } catch (error) { return next(error); }
+});
+app.post("/agreements/:id/deploy-intent", agreementGuard, async (request: Request, response, next) => {
+  try { const walletRequest = request as WalletRequest; return response.json(await repository.beginDeployment(String(request.params.id), walletRequest.walletAddress)); } catch (error) { return next(error); }
+});
+app.post("/agreements/:id/deployment-confirmation", agreementGuard, async (request: Request, response, next) => {
+  try {
+    const walletRequest = request as WalletRequest; const txHash = String(request.body?.txHash || "");
+    if (!/^0x[0-9a-fA-F]{64}$/.test(txHash)) return response.status(422).json({ error: "A valid deployment transaction hash is required" });
+    if (!verifyDeployment) return response.status(503).json({ error: "Arc deployment verification is not configured" });
+    const agreement = await repository.getAgreement(String(request.params.id));
+    if (!agreement) return response.status(404).json({ error: "Agreement not found" });
+    const verified = await verifyDeployment({ id: agreement.id, seller_address: agreement.sellerAddress, buyer_address: agreement.buyerAddress, arbitration_address: agreement.arbitrationAddress, operator_address: agreement.operatorAddress, total_usdc: agreement.totalUSDC, negotiation_expiry: agreement.negotiationExpiry, commitment_window_sec: agreement.commitmentWindowSec, arbitration_timeout_sec: agreement.arbitrationTimeoutSec }, txHash);
+    return response.json(await repository.confirmDeployment(String(request.params.id), walletRequest.walletAddress, verified));
+  } catch (error) { return next(error); }
+});
+app.post("/internal/onchain-state", async (request, response, next) => {
+  try {
+    if (!process.env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN || request.header("x-registry-token") !== process.env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN) return response.sendStatus(401);
+    const { contractAddress, state, blockNumber } = request.body || {};
+    if (!isAddress(contractAddress) || !["NEGOTIATION", "COMMITTED", "ACTIVE", "FINALIZED"].includes(state) || !Number.isInteger(Number(blockNumber))) return response.status(422).json({ error: "Invalid on-chain state update" });
+    await pool.query("UPDATE trade_agreements SET onchain_state = $1, last_indexed_block = $2, last_indexed_at = now() WHERE lower(contract_address) = lower($3)", [state, Number(blockNumber), contractAddress]);
+    return response.json({ ok: true });
+  } catch (error) { return next(error); }
+});
+app.post("/internal/commitment-expired", async (request, response, next) => {
+  try {
+    if (!process.env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN || request.header("x-registry-token") !== process.env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN) return response.sendStatus(401);
+    const { contractAddress, blockNumber } = request.body || {};
+    if (!isAddress(contractAddress) || !Number.isInteger(Number(blockNumber))) return response.status(422).json({ error: "Invalid commitment expiry update" });
+    await pool.query("UPDATE trade_agreements SET status = 'negotiating', negotiation_round = negotiation_round + 1, commitment_expired_at = now(), onchain_state = 'NEGOTIATION', last_indexed_block = $1, last_indexed_at = now() WHERE lower(contract_address) = lower($2)", [Number(blockNumber), contractAddress]);
+    await pool.query("INSERT INTO negotiation_events (agreement_id,event_type,actor_address,note) SELECT id,'commitment_expired',operator_address,'Buyer commitment window expired on-chain' FROM trade_agreements WHERE lower(contract_address) = lower($1) AND status = 'negotiating'", [contractAddress]);
+    return response.json({ ok: true });
+  } catch (error) { return next(error); }
 });
 app.get("/agreements/:id/diff/:proposalId", agreementGuard, async (request, response, next) => {
   try { return response.json(await repository.diff(String(request.params.id), String(request.params.proposalId))); } catch (error) { return next(error); }
@@ -85,7 +130,7 @@ async function agreementGuard(request: Request, response: Response, next: NextFu
 
 app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {
   const message = error instanceof Error ? error.message : "Unexpected registry error";
-  const status = /not found/i.test(message) ? 404 : /only the|already accepted|no longer|must agree|no pending/i.test(message) ? 409 : 400;
+  const status = (error as { status?: number })?.status || (/not found/i.test(message) ? 404 : /only the|already accepted|no longer|must agree|no pending|newer proposal|not pending/i.test(message) ? 409 : 400);
   response.status(status).json({ error: message });
 });
 

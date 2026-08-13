@@ -10,6 +10,9 @@ export interface RelayerConfig {
   factoryEventTopic: string;
   factoryDeploymentBlock: number;
   eventTopics: Record<"MilestoneReleased" | "MilestoneArbitrated" | "ArbitrationForced" | "FundsReclaimed", string>;
+  onchainEventTopics: Record<"ContractCommitted" | "ContractActivated" | "ContractFinalized" | "CommitmentAbandoned", string>;
+  commercialRegistryUrl?: string;
+  commercialRegistryToken?: string;
   gatewayWalletAddress: string;
   gatewayMinterAddress: string;
   deploymentBlock: number;
@@ -142,6 +145,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
       ArbitrationForced: deployment.EVENT_TOPIC_FORCED,
       FundsReclaimed: deployment.EVENT_TOPIC_RECLAIMED
     },
+    onchainEventTopics: Object.fromEntries(([["ContractCommitted", "ContractCommitted"], ["ContractActivated", "ContractActivated"], ["ContractFinalized", "ContractFinalized"], ["CommitmentAbandoned", "CommitmentAbandoned"]] as const).map(([name, abiName]) => [name, new Interface(deployment.CONTRACT_ABI).getEvent(abiName)!.topicHash])) as RelayerConfig["onchainEventTopics"],
     gatewayWalletAddress: deployment.GATEWAY_WALLET_ADDRESS,
     gatewayMinterAddress: deployment.GATEWAY_MINTER_ADDRESS,
     deploymentBlock: deployment.DEPLOYMENT_BLOCK,
@@ -150,6 +154,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
     gatewayApiBaseUrl,
     relayerPrivateKey,
     relayerPort: port,
-    sqlitePath: env.SQLITE_PATH?.trim() || (env.RAILWAY_VOLUME_MOUNT_PATH?.trim() ? join(env.RAILWAY_VOLUME_MOUNT_PATH.trim(), "relayer.db") : "./relayer.db")
+    sqlitePath: env.SQLITE_PATH?.trim() || (env.RAILWAY_VOLUME_MOUNT_PATH?.trim() ? join(env.RAILWAY_VOLUME_MOUNT_PATH.trim(), "relayer.db") : "./relayer.db"),
+    commercialRegistryUrl: env.COMMERCIAL_REGISTRY_URL?.trim().replace(/\/$/, "") || undefined,
+    commercialRegistryToken: env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN?.trim() || undefined
   };
 }

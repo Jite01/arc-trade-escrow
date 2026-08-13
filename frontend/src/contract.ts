@@ -5,7 +5,7 @@ import type { CircleSigner } from "./wallet";
 export type Role = "BUYER" | "SELLER" | "ARBITRATOR" | "READ_ONLY";
 export type Terms = { buyer: string; seller: string; arbitrator: string; total: bigint; negotiationExpiry: bigint; commitmentWindow: bigint; arbitrationTimeout: bigint; };
 export type Milestone = { description: string; basisPoints: bigint; sellerDeadline: bigint; buyerResponseWindow: bigint; disputeWindow: bigint; state: number; documentHash: string; triggerAt: bigint; confirmAt: bigint; disputeAt: bigint; releaseAt: bigint; windowDeadline: bigint; amount: bigint; };
-export type AgreementRecord = { id: string; escrow: string; buyer: string; seller: string; arbitrator: string; createdAt: bigint; };
+export type AgreementRecord = { id: string; escrow: string; buyer: string; seller: string; arbitrator: string; createdAt: bigint; txHash?: string; };
 
 export const readProvider = new JsonRpcProvider(config.rpcUrl);
 export const factoryFor = (signer?: CircleSigner) => new Contract(config.factoryAddress, config.factoryAbi, signer || readProvider);
@@ -39,7 +39,7 @@ export async function createAgreement(signer: CircleSigner, id: string, seller: 
     try {
       const parsed = factoryInterface.parseLog(log);
       if (parsed?.name === "AgreementCreated") {
-        return { id: String(parsed.args[0]), escrow: String(parsed.args[1]), buyer: String(parsed.args[2]), seller: String(parsed.args[3]), arbitrator: String(parsed.args[4]), createdAt: BigInt(Math.floor(Date.now() / 1000)) };
+        return { id: String(parsed.args[0]), escrow: String(parsed.args[1]), buyer: String(parsed.args[2]), seller: String(parsed.args[3]), arbitrator: String(parsed.args[4]), createdAt: BigInt(Math.floor(Date.now() / 1000)), txHash: tx.hash };
       }
     } catch { /* ignore logs from unrelated contracts */ }
   }

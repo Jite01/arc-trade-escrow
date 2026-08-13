@@ -13,6 +13,7 @@ export class Relayer {
     const historicalTo=process.env.SKIP_HISTORICAL_SWEEP==="true"?await this.provider.getBlockNumber():await this.historicalSweep();
     this.eventSource.subscribe(this.config.factoryEventTopic,l=>this.handleFactoryLog(l));
     for(const topic of Object.values(this.config.eventTopics))this.eventSource.subscribe(topic,l=>void this.handleLog(l));
+    for(const [name, topic] of Object.entries(this.config.onchainEventTopics)) this.eventSource.subscribe(topic, l => void this.handleOnchainEvent(name as keyof RelayerConfig["onchainEventTopics"], l));
     if(this.eventSource.start)await this.eventSource.start(historicalTo);
     this.active=true;
     this.retryTimer=setInterval(()=>void this.processDueRetries(),10000);this.retryTimer.unref();
@@ -32,13 +33,19 @@ export class Relayer {
     const factoryTopics=[[this.config.factoryEventTopic]];
     const chunkSize=500;
     for(let from=this.config.factoryDeploymentBlock;from<=to;from+=chunkSize){const end=Math.min(from+chunkSize-1,to);const logs=await this.rpcRetry(`factory logs ${from}-${end}`,()=>this.provider.getLogs({address:this.config.factoryAddress,fromBlock:from,toBlock:end,topics:factoryTopics}));for(const l of logs)this.handleFactoryLog(l);}
-    const escrowTopics=[Object.values(this.config.eventTopics)];
+    const escrowTopics=[Object.values(this.config.eventTopics).concat(Object.values(this.config.onchainEventTopics))];
     for(const [address,createdBlock] of this.escrows){for(let from=createdBlock;from<=to;from+=chunkSize){const end=Math.min(from+chunkSize-1,to);const logs=await this.rpcRetry(`historical logs ${address} ${from}-${end}`,()=>this.provider.getLogs({address,fromBlock:from,toBlock:end,topics:escrowTopics}));for(const l of logs)await this.handleLog(l);}}
     return to;
   }
   private handleFactoryLog(log:ChainLog):void{if(log.removed)return;try{const d=this.config.factoryAbi.decodeEventLog("AgreementCreated",log.data,log.topics);const address=String(d[1]).toLowerCase();if(!this.escrows.has(address)){this.escrows.set(address,log.blockNumber);this.eventSource.addAddress(address);this.logger.info("Escrow discovered",{agreementId:String(d[0]),escrowAddress:address});}}catch(error){this.logger.error("Unable to decode agreement-created event",{error:String(error)});}}
   private async rpcRetry<T>(label:string,operation:()=>Promise<T>):Promise<T>{let lastError:unknown;for(const delayMs of [0,2000,5000]){if(delayMs)await new Promise<void>(resolve=>setTimeout(resolve,delayMs));try{return await operation();}catch(error){lastError=error;this.logger.warn("RPC request failed; retrying",{label,attempt:delayMs===0?1:delayMs===2000?2:3,error:String(error)});}}throw lastError;}
   public async handleLog(log:ChainLog){const input=this.decodeSettlement(log);if(!input)return;if(log.removed){this.logger.warn("reorg detected",{settlementKey:input.settlementKey});return;}if(!this.database.insert(input,this.now()))return;await this.initiateSettlement(input.settlementKey);}
+  private async handleOnchainEvent(name:keyof RelayerConfig["onchainEventTopics"], log:ChainLog){
+    if(log.removed || !this.config.commercialRegistryUrl || !this.config.commercialRegistryToken) return;
+    const state = name === "ContractActivated" ? "ACTIVE" : name === "ContractFinalized" ? "FINALIZED" : name === "ContractCommitted" ? "COMMITTED" : "NEGOTIATION";
+    try { await fetch(`${this.config.commercialRegistryUrl}${name === "CommitmentAbandoned" ? "/internal/commitment-expired" : "/internal/onchain-state"}`, { method:"POST", headers:{"content-type":"application/json","x-registry-token":this.config.commercialRegistryToken}, body:JSON.stringify({contractAddress:log.address,state,blockNumber:log.blockNumber}) }); }
+    catch(error){ this.logger.warn("Commercial registry state update failed",{error:String(error),contractAddress:log.address,state}); }
+  }
   public async resumeNonTerminal(){for(const row of this.database.nonTerminal()){if(row.status==="AUTHORIZED"||row.status==="MINTING"||row.nextRetryAt===null||row.nextRetryAt<=this.now())await this.initiateSettlement(row.settlementKey);}}
   public async processDueRetries(){for(const row of this.database.due(this.now()))await this.initiateSettlement(row.settlementKey);}
   public async initiateSettlement(key:string){if(this.inFlight.has(key))return;const row=this.database.get(key);if(!row||this.database.isTerminal(row.status))return;this.inFlight.add(key);try{await this.submit(row);}finally{this.inFlight.delete(key);}}
