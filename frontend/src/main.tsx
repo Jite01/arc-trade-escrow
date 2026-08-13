@@ -25,6 +25,53 @@ const LAST_COMPANY_KEY = "arc-trade-last-company";
 const humanizeSlug = (value: string) => value.split("-").filter(Boolean).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 const roleLabel = (role: Role) => role === "BUYER" ? "Initiator" : role === "SELLER" ? "Counterparty" : role === "ARBITRATOR" ? "Arbitrator" : "Viewer";
 
+function ExplainerBoard() {
+  return <aside className="explainer-board" aria-label="Illustrated Arc Trade agreement lifecycle">
+    <div className="explainer-top"><span>Illustrated settlement story</span><span>01—03</span></div>
+    <div className="story-chapters">
+      <section className="story-chapter chapter-define">
+        <div className="chapter-copy"><span className="chapter-no">01</span><div><h3>Define the trade</h3><p className="type-line type-define">Goods, route, delivery terms, value, and parties.</p></div></div>
+        <svg className="story-art define-art" viewBox="0 0 500 188" role="img" aria-label="A document is exchanged and agreed between two parties">
+          <g className="paper-sheet ink-shape"><path d="M116 47h92l19 19v73h-111z"/><path d="M208 47v20h19M133 77h53M133 91h70M133 105h43M133 119h64"/><path d="M189 76c9 4 13 9 18 17" className="accent-stroke"/></g>
+          <g className="writing-hand ink-shape"><path d="M47 123c16-5 28-15 42-32l19-24c5-6 14 1 9 8l-17 23 29-23c7-5 14 4 7 10l-25 22 28-13c8-4 12 6 4 10l-29 17c-10 6-17 15-26 20l-26 12z"/><path d="M99 99l-13-10"/></g>
+          <g className="paper-plane ink-shape"><path d="m139 91 57-18-29 29-12 26-10-23z"/><path d="m145 105 22-3M167 102l-12 26"/></g>
+          <g className="receiver-hand ink-shape"><path d="M414 126c-16-5-27-17-39-34l-16-24c-5-7-14 0-9 8l14 23-25-20c-7-5-13 4-6 10l23 20-27-11c-8-3-12 7-3 11l28 15c11 6 17 15 25 20l25 11z"/><path d="m365 99 12-10"/></g>
+          <g className="agreement-board ink-shape"><rect x="203" y="61" width="99" height="72" rx="3"/><path d="M218 80h69M218 113h69"/><path className="slider-track" d="M221 97h62"/><circle className="slider-knob" cx="231" cy="97" r="5"/></g>
+          <g className="handshake ink-shape"><path d="m195 143 21-17 21 16-13 13c-4 4-10 4-14 0l-6-6-6 5-19-14z"/><path d="m303 143-21-17-21 16 13 13c4 4 10 4 14 0l6-6 6 5 19-14z"/></g>
+          <path className="flight-path" d="M142 55c49-42 164-39 214 2"/>
+        </svg>
+      </section>
+      <section className="story-chapter chapter-plan">
+        <div className="chapter-copy"><span className="chapter-no">02</span><div><h3>Negotiate the payment plan</h3><p className="type-line type-plan">Milestones, proof, deadlines, and response windows.</p></div></div>
+        <svg className="story-art plan-art" viewBox="0 0 500 160" role="img" aria-label="A payment timeline with two negotiated milestones">
+          <g className="timeline"><path className="timeline-base" d="M71 85h354"/><path className="timeline-fill" d="M71 85h354"/><path className="timeline-end" d="M69 76v18M427 76v18"/></g>
+          <g className="timeline-hands ink-shape"><path d="M45 98c15-1 24-8 34-17l10-10M455 98c-15-1-24-8-34-17l-10-10"/></g>
+          <g className="milestone pin-one ink-shape"><path d="M211 52v43M202 61h18l-9-12z"/><circle cx="211" cy="85" r="6"/></g>
+          <g className="milestone pin-two ink-shape"><path d="M292 52v43M283 61h18l-9-12z"/><circle cx="292" cy="85" r="6"/></g>
+          <g className="proof-doc ink-shape"><path d="M180 38h20l5 5v22h-25zM200 38v6h5M185 49h13M185 55h9"/><path className="check-stroke" d="m187 70 5 5 10-11"/></g>
+          <g className="proof-package ink-shape"><path d="m314 43 15-8 16 8v17l-16 9-15-9zM314 43l15 9 16-9M329 52v17"/><path d="M349 57c7 2 11 7 11 14"/></g>
+          <g className="agreement-link ink-shape"><path d="M232 111h40l8 8v20h-48zM272 111v9h8"/><path d="M246 125h21M246 132h16"/><path className="lock-stroke" d="M249 105v-5c0-9 14-9 14 0v5"/></g>
+          <circle className="travelling-proof" cx="78" cy="85" r="4"/>
+        </svg>
+      </section>
+      <section className="story-chapter chapter-settle">
+        <div className="chapter-copy"><span className="chapter-no">03</span><div><h3>Deploy once, then settle</h3><p className="type-line type-settle">The agreed commercial record joins the settlement rail.</p></div></div>
+        <svg className="story-art settle-art" viewBox="0 0 500 218" role="img" aria-label="A cargo ship travels between ports as agreed settlement is released">
+          <g className="distant-port ink-shape"><path d="M35 142v-33h13v33M50 120h19v22M436 142v-47h11v47M447 106h21v36"/><path d="M20 142h55M426 142h54"/></g>
+          <g className="lighthouse ink-shape"><path d="M96 140 104 90h16l8 50M100 99h24M105 90l3-13h8l3 13M94 140h34"/><path className="lighthouse-ray" d="m100 84-29-8M122 84l27-8"/></g>
+          <g className="birds"><path d="M275 40c5-5 10-5 15 0 5-5 10-5 15 0M323 56c4-4 8-4 12 0 4-4 8-4 12 0"/></g>
+          <g className="ship ink-shape"><path d="M171 135h155l-16 26H190z"/><path d="M191 135V96h53v39M207 96V75h31v21M246 135V91h38v44M251 91V77h28v14"/><path d="M201 111h29M252 105h26M252 116h26M198 145h103"/><path d="M288 101h25v34M286 111h25M286 122h25"/><path d="M224 151c4 0 7-3 7-7M259 151c4 0 7-3 7-7"/></g>
+          <g className="water"><path d="M21 164c10-8 20-8 30 0s20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0"/><path d="M21 180c10-8 20-8 30 0s20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0"/></g>
+          <g className="settlement-rail"><path d="M151 199h198"/><path className="rail-fill" d="M151 199h145"/><circle className="rail-pin rail-first" cx="211" cy="199" r="5"/><circle className="rail-pin rail-second" cx="288" cy="199" r="5"/><circle className="payment-token" cx="211" cy="199" r="5"/></g>
+          <g className="buyer-ack ink-shape"><path d="M394 126v-25c0-5 8-5 8 0v13l7-11c4-6 12-1 8 5l-7 11h8c8 0 8 10 0 10h-16c-5 0-8-3-8-3z"/><path className="ack-mark" d="m400 91 5 5 11-13"/></g>
+          <g className="seller ink-shape"><path d="M357 204v-21c0-7 10-7 10 0v21M350 204h24M353 180h18"/></g>
+        </svg>
+      </section>
+    </div>
+    <div className="explainer-foot"><span>Commercial record</span><i /><span>Programmable settlement</span></div>
+  </aside>;
+}
+
 function App() {
   const [session, setSession] = useState<EmbeddedWalletSession | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -339,11 +386,7 @@ function App() {
         </section>}
         <div className="trust-row"><span>Passkey secured</span><span>•</span><span>Verifiable agreements</span><span>•</span><span>Documentary settlement</span></div>
       </div>
-      <aside className="hero-aside" aria-label="Arc Trade workflow">
-        <div className="aside-top"><span className="live-dot" /> Live on Arc Testnet</div>
-        <p className="eyebrow">Agreement lifecycle</p><ol><li><span className="flow-marker"><i /></span><div><strong>Define the trade</strong><small>Goods, route, delivery terms, value, and parties.</small></div></li><li><span className="flow-marker"><i /></span><div><strong>Negotiate the payment plan</strong><small>Milestones, proof, deadlines, and response windows.</small></div></li><li><span className="flow-marker"><i /></span><div><strong>Deploy once, then settle</strong><small>The agreed commercial record joins the settlement rail.</small></div></li></ol>
-        <div className="aside-footer"><span>One commercial record</span><strong>AT</strong></div>
-      </aside>
+      <ExplainerBoard />
     </section>
     <section className="how-it-works" id="how-it-works"><div><p className="eyebrow">The platform</p><h2>The commercial record is the handoff.</h2></div><div className="how-copy"><p>Before any contract is deployed, Arc Trade gives both companies a structured place to establish the commercial context and negotiate how payment follows evidence. Once the terms are accepted, the buyer deploys the settlement contract once. The registry remains the source of commercial context; the contract handles financial settlement.</p><a href="#principles">Read the operating principles <span aria-hidden>↘</span></a></div></section>
     <section className="principles" id="principles"><article><span>01</span><h3>Commercial context stays explicit</h3><p>Goods, route, delivery terms, named place, quality standards, and proof requirements live in the agreement record—not in an opaque transaction note.</p></article><article><span>02</span><h3>Payment follows agreed evidence</h3><p>Each milestone defines the amount, seller deadline, buyer response window, dispute window, and proof description before either party approves the schedule.</p></article><article><span>03</span><h3>Finalization is consequential</h3><p>Mutual acceptance produces a tamper-evident record. Buyer, seller, value, and deployment parameters are reviewed before the settlement contract is created once.</p></article></section>

@@ -624,3 +624,124 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* The landing-page story is deliberately an illustration, not a product card. */
+.hero-grid { grid-template-columns: minmax(0, .88fr) minmax(500px, 1.12fr); gap: clamp(42px, 6vw, 88px); align-items: center; }
+.explainer-board {
+  position: relative;
+  overflow: hidden;
+  padding: 17px 21px 16px;
+  color: var(--ink);
+  border: 1px solid #a6b7c5;
+  background: #f9f7ef;
+  box-shadow: 12px 12px 0 #c8d4da;
+}
+.explainer-board::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .55; background: radial-gradient(#235b9620 .65px, transparent .7px); background-size: 8px 8px; mix-blend-mode: multiply; }
+.explainer-top, .explainer-foot { position: relative; z-index: 2; display: flex; justify-content: space-between; color: #315e88; font: 9px "DM Mono", monospace; text-transform: uppercase; letter-spacing: .12em; }
+.explainer-top { padding: 0 1px 13px; border-bottom: 1px solid #a6b7c5; }
+.story-chapters { position: relative; z-index: 1; }
+.story-chapters::before { content: ""; position: absolute; top: 32px; bottom: 24px; left: 12px; width: 1px; background: repeating-linear-gradient(to bottom, #3974a8 0 3px, transparent 3px 7px); opacity: .7; }
+.story-chapter { position: relative; padding: 14px 0 12px 31px; }
+.story-chapter + .story-chapter { border-top: 1px solid #c3d0d6; }
+.chapter-copy { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.chapter-no { color: #c0563d; font: 10px "DM Mono", monospace; letter-spacing: .06em; }
+.chapter-copy h3 { margin: 0; color: #1d4e7c; font: 600 17px/1 "Playfair Display", Georgia, serif; letter-spacing: -.035em; }
+.chapter-copy p { margin: 5px 0 0; color: #557181; font: 10px/1.45 "DM Mono", monospace; white-space: nowrap; }
+.type-line { display: block; width: 0; overflow: hidden; border-right: 1px solid #c0563d; animation: type-copy 17s steps(50, end) infinite, blink-caret .7s step-end infinite; }
+.type-define { animation-delay: .3s, .3s; }
+.type-plan { animation-delay: 4.8s, 4.8s; }
+.type-settle { animation-delay: 9.5s, 9.5s; }
+.story-art { display: block; width: 100%; height: auto; margin-top: 4px; overflow: visible; }
+.story-art * { vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; }
+.story-art path, .story-art rect, .story-art circle { fill: none; stroke: #28639d; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; }
+.story-art .ink-shape { fill: #f9f7ef; }
+.story-art .accent-stroke, .story-art .check-stroke, .story-art .ack-mark { stroke: #c0563d; stroke-width: 1.8; }
+.story-art .slider-track, .story-art .timeline-fill, .story-art .rail-fill { stroke: #c0563d; stroke-width: 3; }
+.story-art .slider-knob, .story-art .travelling-proof, .story-art .rail-pin, .story-art .payment-token { fill: #f9f7ef; }
+.story-art .slider-knob, .story-art .travelling-proof, .story-art .payment-token { fill: #c0563d; stroke: #c0563d; }
+.flight-path { stroke: #82a7c5 !important; stroke-dasharray: 3 5; }
+
+/* First chapter: proposal becomes shared paper, then a quiet handshake. */
+.define-art .paper-sheet { animation: sheet-draw 17s ease-in-out infinite; }
+.define-art .writing-hand { animation: writer-hand 17s ease-in-out infinite; }
+.define-art .paper-plane { opacity: 0; animation: plane-exchange 17s ease-in-out infinite; }
+.define-art .receiver-hand { opacity: 0; animation: receiver-hand 17s ease-in-out infinite; }
+.define-art .agreement-board { opacity: 0; animation: board-arrive 17s ease-in-out infinite; }
+.define-art .slider-knob { animation: slider-settle 17s ease-in-out infinite; }
+.define-art .handshake { opacity: 0; animation: handshake 17s ease-in-out infinite; }
+
+/* Second chapter: the agreement settles into a negotiated, locked timeline. */
+.plan-art { opacity: .25; animation: chapter-reveal 17s ease-in-out infinite; }
+.plan-art .timeline-base { stroke: #86a4b9; }
+.plan-art .timeline-fill { stroke-dasharray: 354; stroke-dashoffset: 354; animation: line-establish 17s ease-in-out infinite; }
+.plan-art .milestone, .plan-art .proof-doc, .plan-art .proof-package, .plan-art .agreement-link { opacity: 0; }
+.plan-art .pin-one { animation: pin-drop-one 17s ease-in-out infinite; }
+.plan-art .pin-two { animation: pin-drop-two 17s ease-in-out infinite; }
+.plan-art .proof-doc { animation: proof-appear 17s ease-in-out infinite; }
+.plan-art .proof-package { animation: package-appear 17s ease-in-out infinite; }
+.plan-art .agreement-link { animation: lock-appear 17s ease-in-out infinite; }
+.plan-art .travelling-proof { opacity: 0; animation: proof-travel 17s ease-in-out infinite; }
+.plan-art .timeline-hands { opacity: 0; animation: timeline-hands 17s ease-in-out infinite; }
+
+/* Final chapter: the timeline becomes a rail beneath a small working vessel. */
+.settle-art { opacity: .22; animation: chapter-reveal-settle 17s ease-in-out infinite; }
+.settle-art .ship { animation: ship-voyage 17s ease-in-out infinite; }
+.settle-art .water { animation: water-sway 3.8s ease-in-out infinite; }
+.settle-art .birds { animation: birds-hover 3.6s ease-in-out infinite; }
+.settle-art .lighthouse { animation: lighthouse-pass 17s ease-in-out infinite; }
+.settle-art .lighthouse-ray { animation: lighthouse-light 2.8s ease-in-out infinite; }
+.settle-art .buyer-ack { opacity: 0; animation: acknowledgement 17s ease-in-out infinite; }
+.settle-art .ack-mark { stroke-dasharray: 22; stroke-dashoffset: 22; animation: check-draw 17s ease-in-out infinite; }
+.settle-art .rail-fill { stroke-dasharray: 145; stroke-dashoffset: 0; animation: rail-release 17s ease-in-out infinite; }
+.settle-art .payment-token { opacity: 0; animation: payment-travel 17s ease-in-out infinite; }
+.settle-art .rail-first { animation: pin-breathe 17s ease-in-out infinite; }
+.settle-art .rail-second { animation: pin-breathe-two 17s ease-in-out infinite; }
+
+.explainer-foot { align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid #a6b7c5; }
+.explainer-foot i { display: block; flex: 1; height: 1px; background: linear-gradient(90deg, #28639d, #c0563d); }
+
+@keyframes type-copy { 0%, 4% { width: 0; } 11%, 92% { width: 100%; } 96%, 100% { width: 0; } }
+@keyframes blink-caret { 50% { border-color: transparent; } }
+@keyframes sheet-draw { 0%, 8% { opacity: 0; transform: translate(-10px, 3px) rotate(-2deg); } 12%, 28% { opacity: 1; transform: translate(0) rotate(0); } 31%, 100% { opacity: 0; } }
+@keyframes writer-hand { 0%, 7% { opacity: 0; transform: translateX(-16px); } 10%, 23% { opacity: 1; transform: translateX(0); } 27%, 100% { opacity: 0; transform: translateX(5px); } }
+@keyframes plane-exchange { 0%, 22% { opacity: 0; transform: translate(-8px, 4px) rotate(-4deg); } 25% { opacity: 1; } 25%, 31% { opacity: 1; transform: translate(118px, -35px) rotate(-3deg); } 32%, 35% { opacity: 0; } 42%, 44% { opacity: 1; transform: translate(122px, -3px) rotate(9deg); } 44%, 50% { opacity: 1; transform: translate(-82px, -39px) rotate(2deg); } 52%, 100% { opacity: 0; } }
+@keyframes receiver-hand { 0%, 28% { opacity: 0; transform: translateX(10px); } 31%, 46% { opacity: 1; transform: translateX(0); } 49%, 100% { opacity: 0; } }
+@keyframes board-arrive { 0%, 31% { opacity: 0; transform: scale(.85); } 35%, 47% { opacity: 1; transform: scale(1); } 51%, 100% { opacity: 0; } }
+@keyframes slider-settle { 0%, 35% { transform: translateX(0); } 40%, 48% { transform: translateX(21px); } 51%, 100% { transform: translateX(0); } }
+@keyframes handshake { 0%, 49% { opacity: 0; transform: translateY(5px); } 52%, 58% { opacity: 1; transform: translateY(0); } 61%, 100% { opacity: 0; } }
+@keyframes chapter-reveal { 0%, 26% { opacity: .18; } 29%, 92% { opacity: 1; } 96%, 100% { opacity: .18; } }
+@keyframes chapter-reveal-settle { 0%, 53% { opacity: .18; } 56%, 92% { opacity: 1; } 96%, 100% { opacity: .18; } }
+@keyframes line-establish { 0%, 31% { stroke-dashoffset: 354; } 37%, 92% { stroke-dashoffset: 0; } 96%, 100% { stroke-dashoffset: 354; } }
+@keyframes pin-drop-one { 0%, 37% { opacity: 0; transform: translateY(-15px); } 40%, 92% { opacity: 1; transform: translateY(0); } 96%, 100% { opacity: 0; } }
+@keyframes pin-drop-two { 0%, 41% { opacity: 0; transform: translateY(-15px); } 44%, 92% { opacity: 1; transform: translateY(0); } 96%, 100% { opacity: 0; } }
+@keyframes proof-appear { 0%, 41% { opacity: 0; transform: translateX(-6px); } 45%, 92% { opacity: 1; transform: translateX(0); } 96%, 100% { opacity: 0; } }
+@keyframes package-appear { 0%, 45% { opacity: 0; transform: translateX(7px); } 48%, 92% { opacity: 1; transform: translateX(0); } 96%, 100% { opacity: 0; } }
+@keyframes lock-appear { 0%, 48% { opacity: 0; transform: translateY(5px); } 51%, 92% { opacity: 1; transform: translateY(0); } 96%, 100% { opacity: 0; } }
+@keyframes proof-travel { 0%, 40% { opacity: 0; transform: translateX(0); } 42%, 47% { opacity: 1; transform: translateX(130px); } 50%, 100% { opacity: 0; } }
+@keyframes timeline-hands { 0%, 46% { opacity: 0; } 49%, 54% { opacity: 1; } 57%, 100% { opacity: 0; } }
+@keyframes ship-voyage { 0%, 55% { transform: translateX(-6px) translateY(0); } 60%, 70% { transform: translateX(26px) translateY(-2px); } 74%, 92% { transform: translateX(0) translateY(0); } 96%, 100% { transform: translateX(-6px); } }
+@keyframes water-sway { 50% { transform: translateX(-7px) translateY(1px); } }
+@keyframes birds-hover { 50% { transform: translateY(-4px); } }
+@keyframes lighthouse-pass { 0%, 58% { transform: translateX(0); } 65% { transform: translateX(-18px); } 74%, 100% { transform: translateX(0); } }
+@keyframes lighthouse-light { 50% { opacity: .25; transform: scaleX(1.18); } }
+@keyframes acknowledgement { 0%, 59% { opacity: 0; transform: translateY(5px); } 62%, 67% { opacity: 1; transform: translateY(0); } 70%, 76% { opacity: 0; } 79%, 84% { opacity: 1; transform: translateY(0); } 88%, 100% { opacity: 0; } }
+@keyframes check-draw { 0%, 62% { stroke-dashoffset: 22; } 66%, 69% { stroke-dashoffset: 0; } 70%, 100% { stroke-dashoffset: 22; } }
+@keyframes rail-release { 0%, 64% { stroke-dashoffset: 0; } 68%, 74% { stroke-dashoffset: 52; } 80%, 88% { stroke-dashoffset: 145; } 92%, 100% { stroke-dashoffset: 0; } }
+@keyframes payment-travel { 0%, 65% { opacity: 0; transform: translateX(0); } 67%, 72% { opacity: 1; transform: translateX(147px); } 73%, 79% { opacity: 0; } 81%, 86% { opacity: 1; transform: translateX(70px); } 88%, 100% { opacity: 0; } }
+@keyframes pin-breathe { 0%, 64%, 74%, 100% { transform: scale(1); fill: #f9f7ef; } 68% { transform: scale(1.6); fill: #c0563d; } }
+@keyframes pin-breathe-two { 0%, 78%, 88%, 100% { transform: scale(1); fill: #f9f7ef; } 82% { transform: scale(1.6); fill: #c0563d; } }
+
+@media (max-width: 980px) {
+  .hero-grid { grid-template-columns: 1fr; max-width: 720px; min-height: 0; margin: 0 auto; }
+  .hero { max-width: 700px; }
+  .explainer-board { width: 100%; }
+}
+@media (max-width: 540px) {
+  .explainer-board { padding: 14px 12px; box-shadow: 7px 7px 0 #c8d4da; }
+  .story-chapter { padding-left: 24px; }
+  .story-chapters::before { left: 8px; }
+  .chapter-copy { grid-template-columns: 18px minmax(0, 1fr); gap: 5px; }
+  .chapter-copy h3 { font-size: 15px; }
+  .chapter-copy p { font-size: 8px; }
+  .explainer-top, .explainer-foot { font-size: 7px; letter-spacing: .08em; }
+}
