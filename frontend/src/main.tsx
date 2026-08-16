@@ -25,6 +25,54 @@ const LAST_COMPANY_KEY = "arc-trade-last-company";
 const humanizeSlug = (value: string) => value.split("-").filter(Boolean).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 const roleLabel = (role: Role) => role === "BUYER" ? "Initiator" : role === "SELLER" ? "Counterparty" : role === "ARBITRATOR" ? "Arbitrator" : "Viewer";
 
+function ExplainerBoard() {
+  return <aside className="trade-atlas" aria-labelledby="trade-atlas-title">
+    <div className="atlas-heading"><p id="trade-atlas-title">A trade made executable</p><span>01 — 03</span></div>
+    <div className="atlas-flow">
+      <section className="atlas-stage atlas-stage--define">
+        <div className="atlas-caption"><span>01</span><div><h3>Define the trade</h3><p><i className="atlas-typed atlas-typed--define">Goods, route, delivery terms, value, and parties.</i></p></div></div>
+        <svg className="atlas-scene atlas-scene--define" viewBox="0 0 540 154" aria-hidden="true">
+          <path className="atlas-flight-line" d="M90 84C179 17 353 19 462 82"/>
+          <g className="atlas-document"><path d="M72 39h72l18 18v64H72z"/><path d="M144 39v19h18M90 69h49M90 82h56M90 95h35M90 108h51"/><path className="atlas-written-mark" d="M124 121c11-10 17-15 25-15"/></g>
+          <g className="atlas-writing-hand"><path d="M17 127c16-4 27-13 39-31l17-25c4-6 13 0 9 7L67 99l23-18c6-5 13 3 7 9l-18 17 22-10c7-4 11 5 4 9l-24 15c-10 6-17 13-27 17l-25 9z"/><path d="m74 94-12-8"/></g>
+          <g className="atlas-paper-plane"><path d="m114 73 52-18-28 29-13 24-8-21z"/><path d="m117 87 21-3M138 84l-13 24"/></g>
+          <g className="atlas-agreement"><path d="M255 43h98v64h-98z"/><path d="M271 61h66M271 89h66"/><path className="atlas-slider-line" d="M271 75h66"/><circle className="atlas-slider" cx="278" cy="75" r="5"/></g>
+          <g className="atlas-receiving-hand"><path d="M515 126c-16-4-27-13-39-31l-17-25c-4-6-13 0-9 7l15 21-23-18c-6-5-13 3-7 9l18 17-22-10c-7-4-11 5-4 9l24 15c10 6 17 13 27 17l25 9z"/><path d="m463 94 12-8"/></g>
+          <g className="atlas-handshake"><path d="m208 123 24-16 22 16-14 15c-4 4-10 4-14 0l-7-7-7 5-19-13z"/><path d="m400 123-24-16-22 16 14 15c4 4 10 4 14 0l7-7 7 5 19-13z"/></g>
+          <g className="atlas-final-record"><path d="M287 115h35l10 10v19h-45z"/><path d="M322 115v10h10M297 130h24M297 137h17"/></g>
+        </svg>
+      </section>
+      <section className="atlas-stage atlas-stage--plan">
+        <div className="atlas-caption"><span>02</span><div><h3>Negotiate the payment plan</h3><p><i className="atlas-typed atlas-typed--plan">Milestones, proof, deadlines, and response windows.</i></p></div></div>
+        <svg className="atlas-scene atlas-scene--plan" viewBox="0 0 540 154" aria-hidden="true">
+          <path className="atlas-ruler-base" d="M57 75h426"/><path className="atlas-ruler-fill" d="M57 75h426"/><path d="M57 66v18M483 66v18"/>
+          <g className="atlas-plan-hand atlas-plan-hand--left"><path d="M25 98c16-1 28-8 42-20l12-10"/></g><g className="atlas-plan-hand atlas-plan-hand--right"><path d="M515 98c-16-1-28-8-42-20l-12-10"/></g>
+          <g className="atlas-pin atlas-pin--one"><path d="M215 42v40M205 53h20l-10-13z"/><circle cx="215" cy="75" r="6"/></g>
+          <g className="atlas-pin atlas-pin--two"><path d="M326 42v40M316 53h20l-10-13z"/><circle cx="326" cy="75" r="6"/></g>
+          <g className="atlas-proof-page"><path d="M176 28h20l6 6v25h-26zM196 28v7h6M183 42h12M183 49h9"/><path className="atlas-check" d="m182 65 5 5 11-12"/></g>
+          <g className="atlas-proof-crate"><path d="m353 37 15-8 17 8v18l-17 9-15-9zM353 37l15 9 17-9M368 46v18"/><path d="M390 49c7 2 11 7 11 14"/></g>
+          <g className="atlas-plan-record"><path d="M253 103h42l10 10v26h-52z"/><path d="M295 103v10h10M265 120h27M265 128h21"/><path className="atlas-lock" d="M268 97v-6c0-10 15-10 15 0v6"/></g>
+          <circle className="atlas-proof-marker" cx="64" cy="75" r="4"/>
+        </svg>
+      </section>
+      <section className="atlas-stage atlas-stage--settle">
+        <div className="atlas-caption"><span>03</span><div><h3>Deploy once, then settle</h3><p><i className="atlas-typed atlas-typed--settle">The agreed commercial record joins the settlement rail.</i></p></div></div>
+        <svg className="atlas-scene atlas-scene--settle" viewBox="0 0 540 184" aria-hidden="true">
+          <g className="atlas-port atlas-port--start"><path d="M27 128V91h13v37M40 105h25v23M18 128h54"/></g><g className="atlas-port atlas-port--end"><path d="M500 128V82h12v46M512 97h15v31M490 128h40"/></g>
+          <g className="atlas-clouds"><path d="M117 38c9-11 22-11 31 0 10-8 24-6 29 4M393 42c7-9 18-9 25 0 8-6 19-5 24 3"/></g>
+          <g className="atlas-freight"><path d="M166 124h193l-20 29H184z"/><path d="M191 124V91h57v33M208 91V72h29v19M251 124V88h42v36M256 88V74h32v14"/><path d="M199 106h39M258 102h26M258 113h26M192 138h142"/><path d="M297 95h33v29M297 105h33M297 114h33"/></g>
+          <g className="atlas-water"><path d="M20 153c10-8 20-8 30 0s20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0"/><path d="M20 168c10-8 20-8 30 0s20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0"/></g>
+          <g className="atlas-rail"><path d="M144 177h252"/><path className="atlas-rail-value" d="M144 177h181"/><circle className="atlas-rail-stop atlas-rail-stop--one" cx="219" cy="177" r="5"/><circle className="atlas-rail-stop atlas-rail-stop--two" cx="324" cy="177" r="5"/><circle className="atlas-payment" cx="219" cy="177" r="5"/></g>
+          <g className="atlas-approval"><path d="M420 121V97c0-5 8-5 8 0v12l7-10c4-6 12-1 8 5l-7 11h9c8 0 8 10 0 10h-17c-5 0-8-3-8-4z"/><path className="atlas-approval-check" d="m426 88 5 5 11-13"/></g>
+          <g className="atlas-payee"><path d="M405 182v-19c0-7 11-7 11 0v19M398 182h25M401 160h19"/></g>
+          <g className="atlas-settled-record"><path d="M71 143h35l9 9v20H71z"/><path d="M106 143v9h9M80 158h25M80 165h18"/></g>
+        </svg>
+      </section>
+    </div>
+    <div className="atlas-footer"><span>Commercial terms</span><i /><span>Settlement logic</span></div>
+  </aside>;
+}
+
 function App() {
   const [session, setSession] = useState<EmbeddedWalletSession | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -339,11 +387,7 @@ function App() {
         </section>}
         <div className="trust-row"><span>Passkey secured</span><span>•</span><span>Verifiable agreements</span><span>•</span><span>Documentary settlement</span></div>
       </div>
-      <aside className="hero-aside" aria-label="Arc Trade workflow">
-        <div className="aside-top"><span className="live-dot" /> Live on Arc Testnet</div>
-        <p className="eyebrow">Agreement lifecycle</p><ol><li><span className="flow-marker"><i /></span><div><strong>Define the trade</strong><small>Goods, route, delivery terms, value, and parties.</small></div></li><li><span className="flow-marker"><i /></span><div><strong>Negotiate the payment plan</strong><small>Milestones, proof, deadlines, and response windows.</small></div></li><li><span className="flow-marker"><i /></span><div><strong>Deploy once, then settle</strong><small>The agreed commercial record joins the settlement rail.</small></div></li></ol>
-        <div className="aside-footer"><span>One commercial record</span><strong>AT</strong></div>
-      </aside>
+      <ExplainerBoard />
     </section>
     <section className="how-it-works" id="how-it-works"><div><p className="eyebrow">The platform</p><h2>The commercial record is the handoff.</h2></div><div className="how-copy"><p>Before any contract is deployed, Arc Trade gives both companies a structured place to establish the commercial context and negotiate how payment follows evidence. Once the terms are accepted, the buyer deploys the settlement contract once. The registry remains the source of commercial context; the contract handles financial settlement.</p><a href="#principles">Read the operating principles <span aria-hidden>↘</span></a></div></section>
     <section className="principles" id="principles"><article><span>01</span><h3>Commercial context stays explicit</h3><p>Goods, route, delivery terms, named place, quality standards, and proof requirements live in the agreement record—not in an opaque transaction note.</p></article><article><span>02</span><h3>Payment follows agreed evidence</h3><p>Each milestone defines the amount, seller deadline, buyer response window, dispute window, and proof description before either party approves the schedule.</p></article><article><span>03</span><h3>Finalization is consequential</h3><p>Mutual acceptance produces a tamper-evident record. Buyer, seller, value, and deployment parameters are reviewed before the settlement contract is created once.</p></article></section>
