@@ -810,8 +810,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 .atlas-scene .atlas-slider-line, .atlas-scene .atlas-ruler-fill, .atlas-scene .atlas-rail-value { stroke: #b45737; stroke-width: 2.6; }
 .atlas-scene .atlas-slider, .atlas-scene .atlas-proof-marker, .atlas-scene .atlas-payment { fill: #b45737; stroke: #b45737; }
 .atlas-scene .atlas-rail-stop { fill: var(--paper-light); }
-.atlas-scene--plan { opacity: .42; animation: atlas-plan-reveal 20s ease-in-out infinite; }
-.atlas-scene--settle { opacity: .42; animation: atlas-settle-reveal 20s ease-in-out infinite; }
+.atlas-scene--define { opacity: 0; animation: atlas-define-reveal 20s linear infinite; }
+.atlas-scene--plan { opacity: 0; animation: atlas-plan-reveal 20s linear infinite; }
+.atlas-scene--settle { opacity: 0; animation: atlas-settle-reveal 20s linear infinite; }
 
 /* Agreement: an authored sheet passes between two parties and resolves into one record. */
 .atlas-document { animation: atlas-document-cycle 20s ease-in-out infinite; }
@@ -860,41 +861,42 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 .atlas-footer i { display: block; flex: 1; min-width: 22px; height: 1px; background: linear-gradient(90deg, #b45737, #7f9a8b); }
 
 @keyframes atlas-caret { 50% { border-color: transparent; } }
-@keyframes atlas-type-define { 0%, 2% { width: 0; } 9%, 92% { width: var(--atlas-type-width); } 96%, 100% { width: 0; } }
-@keyframes atlas-type-plan { 0%, 29% { width: 0; } 37%, 92% { width: var(--atlas-type-width); } 96%, 100% { width: 0; } }
-@keyframes atlas-type-settle { 0%, 55% { width: 0; } 64%, 92% { width: var(--atlas-type-width); } 96%, 100% { width: 0; } }
-@keyframes atlas-document-cycle { 0%, 19% { opacity: 1; transform: translateY(0); } 23%, 100% { opacity: 0; transform: translateY(-3px); } }
-@keyframes atlas-writing-hand { 0%, 3% { opacity: 0; transform: translate(-18px, 5px); } 6% { opacity: 1; transform: translate(0, 0); } 10% { opacity: 1; transform: translate(4px, -1px); } 14%, 18% { opacity: 1; transform: translate(8px, 1px); } 21%, 100% { opacity: 0; transform: translate(13px, 5px); } }
-@keyframes atlas-write-mark-one { 0%, 7% { stroke-dashoffset: 34; } 9%, 20% { stroke-dashoffset: 0; } 23%, 100% { stroke-dashoffset: 34; } }
-@keyframes atlas-write-mark-two { 0%, 8.5% { stroke-dashoffset: 49; } 10.5%, 20% { stroke-dashoffset: 0; } 23%, 100% { stroke-dashoffset: 49; } }
-@keyframes atlas-paper-exchange { 0%, 17% { opacity: 0; transform: translate(0, 0) rotate(-3deg); } 19%, 28% { opacity: 1; transform: translate(151px, -18px) rotate(-2deg); } 31%, 38% { opacity: 0; } 40%, 42% { opacity: 1; transform: translate(158px, -13px) rotate(4deg); } 43%, 51% { opacity: 1; transform: translate(-34px, 2px) rotate(2deg); } 54%, 100% { opacity: 0; } }
-@keyframes atlas-paper-plane-return { 0%, 42% { transform: scaleX(1); } 43%, 100% { transform: scaleX(-1); } }
-@keyframes atlas-agreement-arrives { 0%, 25% { opacity: 0; transform: scale(.9); } 28%, 44% { opacity: 1; transform: scale(1); } 48%, 100% { opacity: 0; } }
-@keyframes atlas-slider-settles { 0%, 32% { transform: translateX(0); } 36%, 46% { transform: translateX(27px); } 49%, 100% { transform: translateX(0); } }
-@keyframes atlas-receiver-arrives { 0%, 25% { opacity: 0; transform: translateX(12px); } 29%, 46% { opacity: 1; transform: translateX(0); } 49%, 100% { opacity: 0; } }
-@keyframes atlas-handshake-settles { 0%, 49% { opacity: 0; transform: translate(var(--atlas-handshake-entry), 0); } 51% { opacity: 1; transform: translate(0, 0); } 51.3% { opacity: 1; transform: translate(0, -5px); } 51.6% { opacity: 1; transform: translate(0, 4px); } 51.9% { opacity: 1; transform: translate(0, 0); } 52.2% { opacity: 1; transform: translate(0, -5px); } 52.5% { opacity: 1; transform: translate(0, 4px); } 52.8%, 54.3% { opacity: 1; transform: translate(0, 0); } 55.55%, 100% { opacity: 0; transform: translate(0, 0); } }
-@keyframes atlas-final-record { 0%, 60% { opacity: 0; transform: translateY(5px); } 64%, 93% { opacity: 1; transform: translateY(0); } 97%, 100% { opacity: 0; } }
-@keyframes atlas-plan-reveal { 0%, 25% { opacity: .42; } 29%, 93% { opacity: 1; } 97%, 100% { opacity: .42; } }
-@keyframes atlas-ruler-draws { 0%, 31% { stroke-dashoffset: 426; } 39%, 93% { stroke-dashoffset: 0; } 97%, 100% { stroke-dashoffset: 426; } }
-@keyframes atlas-pin-one { 0%, 38% { opacity: 0; transform: translate(9px, -14px); } 42%, 54% { opacity: 1; transform: translate(9px, 0); } 57%, 93% { opacity: 1; transform: translate(0, 0); } 97%, 100% { opacity: 0; } }
-@keyframes atlas-pin-two { 0%, 42% { opacity: 0; transform: translate(-8px, -14px); } 46%, 54% { opacity: 1; transform: translate(-8px, 0); } 57%, 93% { opacity: 1; transform: translate(0, 0); } 97%, 100% { opacity: 0; } }
-@keyframes atlas-proof-page { 0%, 43% { opacity: 0; transform: translateX(-7px); } 47%, 93% { opacity: 1; transform: translateX(0); } 97%, 100% { opacity: 0; } }
-@keyframes atlas-proof-crate { 0%, 47% { opacity: 0; transform: translateX(8px); } 51%, 93% { opacity: 1; transform: translateX(0); } 97%, 100% { opacity: 0; } }
-@keyframes atlas-plan-record { 0%, 53% { opacity: 0; transform: translateY(6px); } 57%, 93% { opacity: 1; transform: translateY(0); } 97%, 100% { opacity: 0; } }
-@keyframes atlas-proof-marker { 0%, 39% { opacity: 0; transform: translateX(0); } 42%, 47% { opacity: 1; transform: translateX(151px); } 50%, 100% { opacity: 0; } }
-@keyframes atlas-plan-hand-left { 0%, 49% { opacity: 0; transform: translateX(-8px); } 52%, 56% { opacity: 1; transform: translateX(0); } 59%, 100% { opacity: 0; } }
-@keyframes atlas-plan-hand-right { 0%, 49% { opacity: 0; transform: translateX(8px); } 52%, 56% { opacity: 1; transform: translateX(0); } 59%, 100% { opacity: 0; } }
-@keyframes atlas-settle-reveal { 0%, 51% { opacity: .42; } 55%, 93% { opacity: 1; } 97%, 100% { opacity: .42; } }
-@keyframes atlas-freight-journey { 0%, 60% { transform: translate(-104px, 0); } 75%, 99.5% { transform: translate(103px, -2px); } 100% { transform: translate(-104px, 0); } }
+@keyframes atlas-type-define { 0%, 2% { width: 0; } 8%, 29% { width: var(--atlas-type-width); } 31%, 100% { width: 0; } }
+@keyframes atlas-type-plan { 0%, 34% { width: 0; } 40%, 60% { width: var(--atlas-type-width); } 62%, 100% { width: 0; } }
+@keyframes atlas-type-settle { 0%, 65% { width: 0; } 71%, 93% { width: var(--atlas-type-width); } 95%, 100% { width: 0; } }
+@keyframes atlas-define-reveal { 0%, 29% { opacity: 1; } 31%, 100% { opacity: 0; } }
+@keyframes atlas-document-cycle { 0%, 13% { opacity: 1; transform: translateY(0); } 16%, 100% { opacity: 0; transform: translateY(-3px); } }
+@keyframes atlas-writing-hand { 0%, 2% { opacity: 0; transform: translate(-18px, 5px); } 4% { opacity: 1; transform: translate(0, 0); } 7% { opacity: 1; transform: translate(4px, -1px); } 11%, 13% { opacity: 1; transform: translate(8px, 1px); } 15%, 100% { opacity: 0; transform: translate(13px, 5px); } }
+@keyframes atlas-write-mark-one { 0%, 4% { stroke-dashoffset: 34; } 5.5%, 13% { stroke-dashoffset: 0; } 16%, 100% { stroke-dashoffset: 34; } }
+@keyframes atlas-write-mark-two { 0%, 5.5% { stroke-dashoffset: 49; } 7%, 13% { stroke-dashoffset: 0; } 16%, 100% { stroke-dashoffset: 49; } }
+@keyframes atlas-paper-exchange { 0%, 10% { opacity: 0; transform: translate(0, 0) rotate(-3deg); } 11% { opacity: 1; transform: translate(0, 0) rotate(-3deg); } 15% { opacity: 1; transform: translate(151px, -18px) rotate(-2deg); } 16%, 17% { opacity: 0; } 18% { opacity: 1; transform: translate(158px, -13px) rotate(4deg); } 22% { opacity: 1; transform: translate(-34px, 2px) rotate(2deg); } 24%, 100% { opacity: 0; } }
+@keyframes atlas-paper-plane-return { 0%, 17% { transform: scaleX(1); } 18%, 100% { transform: scaleX(-1); } }
+@keyframes atlas-agreement-arrives { 0%, 15% { opacity: 0; transform: scale(.9); } 17%, 24% { opacity: 1; transform: scale(1); } 27%, 100% { opacity: 0; } }
+@keyframes atlas-slider-settles { 0%, 19% { transform: translateX(0); } 20%, 23% { transform: translateX(27px); } 24%, 100% { transform: translateX(0); } }
+@keyframes atlas-receiver-arrives { 0%, 17% { opacity: 0; transform: translateX(12px); } 20%, 25% { opacity: 1; transform: translateX(0); } 28%, 100% { opacity: 0; } }
+@keyframes atlas-handshake-settles { 0%, 22% { opacity: 0; transform: translate(var(--atlas-handshake-entry), 0); } 24% { opacity: 1; transform: translate(0, 0); } 24.45% { opacity: 1; transform: translate(0, -5px); } 24.9% { opacity: 1; transform: translate(0, 4px); } 25.35% { opacity: 1; transform: translate(0, -5px); } 25.8% { opacity: 1; transform: translate(0, 4px); } 26%, 27.5% { opacity: 1; transform: translate(0, 0); } 28.75%, 100% { opacity: 0; transform: translate(0, 0); } }
+@keyframes atlas-final-record { 0%, 27% { opacity: 0; transform: translateY(5px); } 29%, 31% { opacity: 1; transform: translateY(0); } 32%, 100% { opacity: 0; } }
+@keyframes atlas-plan-reveal { 0%, 32% { opacity: 0; } 34%, 61% { opacity: 1; } 63%, 100% { opacity: 0; } }
+@keyframes atlas-ruler-draws { 0%, 34% { stroke-dashoffset: 426; } 39%, 59% { stroke-dashoffset: 0; } 62%, 100% { stroke-dashoffset: 426; } }
+@keyframes atlas-pin-one { 0%, 40% { opacity: 0; transform: translate(9px, -14px); } 42%, 50% { opacity: 1; transform: translate(9px, 0); } 53%, 60% { opacity: 1; transform: translate(0, 0); } 62%, 100% { opacity: 0; } }
+@keyframes atlas-pin-two { 0%, 43% { opacity: 0; transform: translate(-8px, -14px); } 45%, 50% { opacity: 1; transform: translate(-8px, 0); } 53%, 60% { opacity: 1; transform: translate(0, 0); } 62%, 100% { opacity: 0; } }
+@keyframes atlas-proof-page { 0%, 45% { opacity: 0; transform: translateX(-7px); } 48%, 60% { opacity: 1; transform: translateX(0); } 62%, 100% { opacity: 0; } }
+@keyframes atlas-proof-crate { 0%, 48% { opacity: 0; transform: translateX(8px); } 51%, 60% { opacity: 1; transform: translateX(0); } 62%, 100% { opacity: 0; } }
+@keyframes atlas-plan-record { 0%, 52% { opacity: 0; transform: translateY(6px); } 55%, 60% { opacity: 1; transform: translateY(0); } 62%, 100% { opacity: 0; } }
+@keyframes atlas-proof-marker { 0%, 41% { opacity: 0; transform: translateX(0); } 43%, 48% { opacity: 1; transform: translateX(151px); } 51%, 100% { opacity: 0; } }
+@keyframes atlas-plan-hand-left { 0%, 54% { opacity: 0; transform: translateX(-8px); } 56%, 59% { opacity: 1; transform: translateX(0); } 61%, 100% { opacity: 0; } }
+@keyframes atlas-plan-hand-right { 0%, 54% { opacity: 0; transform: translateX(8px); } 56%, 59% { opacity: 1; transform: translateX(0); } 61%, 100% { opacity: 0; } }
+@keyframes atlas-settle-reveal { 0%, 63% { opacity: 0; } 65%, 94% { opacity: 1; } 96%, 100% { opacity: 0; } }
+@keyframes atlas-freight-journey { 0%, 70% { transform: translate(-104px, 0); } 82%, 94% { transform: translate(103px, -2px); } 100% { transform: translate(-104px, 0); } }
 @keyframes atlas-water { 50% { transform: translate(-7px, 1px); } }
 @keyframes atlas-birds { 50% { transform: translateY(-3px); } }
-@keyframes atlas-thumbsup-start { 0%, 60% { opacity: 0; transform: translateY(4px); } 61%, 63.5% { opacity: 1; transform: translateY(0); } 64.5%, 100% { opacity: 0; transform: translateY(-2px); } }
-@keyframes atlas-thumbsup-end { 0%, 75% { opacity: 0; transform: translateY(4px); } 76%, 78.5% { opacity: 1; transform: translateY(0); } 79.5%, 100% { opacity: 0; transform: translateY(-2px); } }
-@keyframes atlas-rail-release { 0%, 63.5% { stroke-dashoffset: 0; } 64.5%, 78.5% { stroke-dashoffset: 106; } 79.5%, 93% { stroke-dashoffset: 181; } 97%, 100% { stroke-dashoffset: 0; } }
-@keyframes atlas-payment-travel { 0%, 79.5% { opacity: 0; transform: translateX(0); } 80% { opacity: 1; transform: translateX(0); } 84% { opacity: 1; transform: translateX(186px); } 85%, 100% { opacity: 0; transform: translateX(186px); } }
-@keyframes atlas-rail-first { 0%, 63.5%, 66%, 100% { transform: scale(1); fill: var(--paper-light); } 64.25% { transform: scale(1.55); fill: #b45737; } }
-@keyframes atlas-rail-second { 0%, 78.5%, 81%, 100% { transform: scale(1); fill: var(--paper-light); } 79.25% { transform: scale(1.55); fill: #b45737; } }
-@keyframes atlas-settled-record { 0%, 55% { opacity: 0; transform: translateY(5px); } 56%, 93% { opacity: 1; transform: translateY(0); } 96%, 100% { opacity: 0; transform: translateY(5px); } }
+@keyframes atlas-thumbsup-start { 0%, 67% { opacity: 0; transform: translateY(4px); } 68%, 70.5% { opacity: 1; transform: translateY(0); } 71.75%, 100% { opacity: 0; transform: translateY(-2px); } }
+@keyframes atlas-thumbsup-end { 0%, 82% { opacity: 0; transform: translateY(4px); } 83%, 85.5% { opacity: 1; transform: translateY(0); } 86.75%, 100% { opacity: 0; transform: translateY(-2px); } }
+@keyframes atlas-rail-release { 0%, 70.5% { stroke-dashoffset: 0; } 71.5%, 85.5% { stroke-dashoffset: 106; } 86.5%, 93% { stroke-dashoffset: 181; } 95%, 100% { stroke-dashoffset: 0; } }
+@keyframes atlas-payment-travel { 0%, 86.5% { opacity: 0; transform: translateX(0); } 87% { opacity: 1; transform: translateX(0); } 91% { opacity: 1; transform: translateX(186px); } 92%, 100% { opacity: 0; transform: translateX(186px); } }
+@keyframes atlas-rail-first { 0%, 70.5%, 72.5%, 100% { transform: scale(1); fill: var(--paper-light); } 71.25% { transform: scale(1.55); fill: #b45737; } }
+@keyframes atlas-rail-second { 0%, 85.5%, 87.5%, 100% { transform: scale(1); fill: var(--paper-light); } 86.25% { transform: scale(1.55); fill: #b45737; } }
+@keyframes atlas-settled-record { 0%, 64% { opacity: 0; transform: translateY(5px); } 65%, 93% { opacity: 1; transform: translateY(0); } 95%, 100% { opacity: 0; transform: translateY(5px); } }
 
 @media (max-width: 1020px) {
   .hero-grid { grid-template-columns: minmax(0, 1fr); gap: 42px; max-width: 720px; margin: 0 auto; padding: 62px 0 76px; }

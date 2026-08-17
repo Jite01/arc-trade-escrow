@@ -38,7 +38,18 @@ function ExplainerBoard() {
           <g className="atlas-paper-plane"><g className="atlas-paper-plane--return"><path d="M112 70 166 88 112 106z"/><path d="M166 88h-39"/></g></g>
           <g className="atlas-agreement"><path d="M255 43h98v64h-98z"/><path d="M271 61h66M271 89h66"/><path className="atlas-slider-line" d="M271 75h66"/><circle className="atlas-slider" cx="278" cy="75" r="5"/></g>
           <g className="atlas-receiving-hand"><path d="M524 128c-14-3-26-11-35-24l-15-23c-3-5-10-1-7 4l10 18-18-19c-4-4-10 1-6 6l16 19-20-15c-5-4-10 3-5 7l20 16-18-10c-5-3-9 4-3 7l22 15c9 6 19 10 32 12z"/><path d="m480 105-12 8"/></g>
-          <g className="atlas-handshake-hand atlas-handshake-hand--left"><path d="M-8 135c70 0 138 0 205-3 14-1 24-7 33-17l15-20c3-4 9-1 7 4l-11 18 21-16c5-4 10 3 5 7l-18 17 23-12c5-3 9 5 3 8l-22 14 23-7c6-2 8 6 2 9l-28 9c-13 4-27 5-42 5H-8z"/><path d="M241 117c8-1 16-4 23-8M246 127c9-1 18-4 26-8M249 136c9-1 18-4 27-7"/></g><g className="atlas-handshake-hand atlas-handshake-hand--right"><g transform="translate(540 0) scale(-1 1)"><path d="M-8 135c70 0 138 0 205-3 14-1 24-7 33-17l15-20c3-4 9-1 7 4l-11 18 21-16c5-4 10 3 5 7l-18 17 23-12c5-3 9 5 3 8l-22 14 23-7c6-2 8 6 2 9l-28 9c-13 4-27 5-42 5H-8z"/><path d="M241 117c8-1 16-4 23-8M246 127c9-1 18-4 26-8M249 136c9-1 18-4 27-7"/></g></g>
+          <g className="atlas-handshake-hand atlas-handshake-hand--left">
+            <path d="M154 57l38 27-17 27M162 50l38 27M192 84l8-7"/>
+            <path d="M175 111l14-19c5-7 14-8 21-3l29 22c5 4 12 5 18 2l11-6c4-2 7 3 3 7l-11 8 14-4c5-1 7 5 2 8l-16 7c-11 5-22 3-31-4l-31-23"/>
+            <path d="M211 108l12 9c6 4 12 5 18 2M204 115l12 10c5 4 11 5 16 3M197 122l11 9c4 4 9 5 14 4"/>
+          </g>
+          <g className="atlas-handshake-hand atlas-handshake-hand--right">
+            <g transform="translate(540 184) scale(-1 -1)">
+              <path d="M154 57l38 27-17 27M162 50l38 27M192 84l8-7"/>
+              <path d="M175 111l14-19c5-7 14-8 21-3l29 22c5 4 12 5 18 2l11-6c4-2 7 3 3 7l-11 8 14-4c5-1 7 5 2 8l-16 7c-11 5-22 3-31-4l-31-23"/>
+              <path d="M211 108l12 9c6 4 12 5 18 2M204 115l12 10c5 4 11 5 16 3M197 122l11 9c4 4 9 5 14 4"/>
+            </g>
+          </g>
           <g className="atlas-final-record"><path d="M287 115h35l10 10v19h-45z"/><path d="M322 115v10h10M297 130h24M297 137h17"/></g>
         </svg>
       </section>
