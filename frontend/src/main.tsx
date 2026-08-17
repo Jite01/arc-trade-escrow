@@ -38,7 +38,7 @@ function ExplainerBoard() {
           <g className="atlas-paper-plane"><g className="atlas-paper-plane--return"><path d="M112 70 166 88 112 106z"/><path d="M166 88h-39"/></g></g>
           <g className="atlas-agreement"><path d="M255 43h98v64h-98z"/><path d="M271 61h66M271 89h66"/><path className="atlas-slider-line" d="M271 75h66"/><circle className="atlas-slider" cx="278" cy="75" r="5"/></g>
           <g className="atlas-receiving-hand"><path d="M524 128c-14-3-26-11-35-24l-15-23c-3-5-10-1-7 4l10 18-18-19c-4-4-10 1-6 6l16 19-20-15c-5-4-10 3-5 7l20 16-18-10c-5-3-9 4-3 7l22 15c9 6 19 10 32 12z"/><path d="m480 105-12 8"/></g>
-          <g className="atlas-handshake-hand atlas-handshake-hand--left"><path d="M142 120h66"/><path d="M208 105h62v30h-62z"/><path d="M220 105v-9M232 105v-9M244 105v-9M256 105v-9"/><path d="m208 127 17-13"/></g><g className="atlas-handshake-hand atlas-handshake-hand--right"><path d="M398 120h-66"/><path d="M332 105h-62v30h62z"/><path d="M320 105v-9M308 105v-9M296 105v-9M284 105v-9"/><path d="m332 127-17-13"/></g>
+          <g className="atlas-handshake-hand atlas-handshake-hand--left"><path d="M-8 135c70 0 138 0 205-3 14-1 24-7 33-17l15-20c3-4 9-1 7 4l-11 18 21-16c5-4 10 3 5 7l-18 17 23-12c5-3 9 5 3 8l-22 14 23-7c6-2 8 6 2 9l-28 9c-13 4-27 5-42 5H-8z"/><path d="M241 117c8-1 16-4 23-8M246 127c9-1 18-4 26-8M249 136c9-1 18-4 27-7"/></g><g className="atlas-handshake-hand atlas-handshake-hand--right"><g transform="translate(540 0) scale(-1 1)"><path d="M-8 135c70 0 138 0 205-3 14-1 24-7 33-17l15-20c3-4 9-1 7 4l-11 18 21-16c5-4 10 3 5 7l-18 17 23-12c5-3 9 5 3 8l-22 14 23-7c6-2 8 6 2 9l-28 9c-13 4-27 5-42 5H-8z"/><path d="M241 117c8-1 16-4 23-8M246 127c9-1 18-4 26-8M249 136c9-1 18-4 27-7"/></g></g>
           <g className="atlas-final-record"><path d="M287 115h35l10 10v19h-45z"/><path d="M322 115v10h10M297 130h24M297 137h17"/></g>
         </svg>
       </section>
@@ -58,8 +58,26 @@ function ExplainerBoard() {
       <section className="atlas-stage atlas-stage--settle">
         <div className="atlas-caption"><span>03</span><div><h3>Deploy once, then settle</h3><p><i className="atlas-typed atlas-typed--settle">The agreed commercial record joins the settlement rail.</i></p></div></div>
         <svg className="atlas-scene atlas-scene--settle" viewBox="0 0 540 184" aria-hidden="true">
-          <g className="atlas-port atlas-port--start"><path d="M27 128V94h16v34z"/><path d="M43 128v-18h22v18z"/><path d="M20 128h52"/></g><g className="atlas-port atlas-port--end"><path d="M497 128V94h16v34z"/><path d="M475 128v-18h22v18z"/><path d="M468 128h52"/></g>
-          <g className="atlas-freight"><g className="atlas-birds"><path d="m207 47 7 5 7-5M239 39l6 4 6-4"/></g><path d="M166 124h193l-20 29H184z"/><path d="M191 124V91h57v33M208 91V72h29v19M251 124V88h42v36M256 88V74h32v14"/><path d="M199 106h39M258 102h26M258 113h26M192 138h142"/><path d="M297 95h33v29M297 105h33M297 114h33"/></g>
+          <g className="atlas-port atlas-port--start">
+            <path d="M27 128V94h16v34z"/>
+            <path d="M43 128v-18h22v18z"/>
+            <path d="M20 128h52"/>
+            <path d="M31 94V72h8v22z"/>
+            <circle cx="35" cy="67" r="4"/>
+          </g>
+          <g className="atlas-port atlas-port--end">
+            <path d="M497 128V94h16v34z"/>
+            <path d="M475 128v-18h22v18z"/>
+            <path d="M468 128h52"/>
+            <path d="M501 94V72h8v22z"/>
+            <circle cx="505" cy="67" r="4"/>
+          </g>
+          <g className="atlas-freight">
+            <g className="atlas-birds">
+              <path d="m207 47 7 5 7-5M239 39l6 4 6-4"/>
+            </g>
+            <path d="M166 124h193l-20 29H184z"/><path d="M191 124V91h57v33M208 91V72h29v19M251 124V88h42v36M256 88V74h32v14"/><path d="M199 106h39M258 102h26M258 113h26M192 138h142"/><path d="M297 95h33v29M297 105h33M297 114h33"/>
+          </g>
           <g className="atlas-water"><path d="M20 153c10-8 20-8 30 0s20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0"/><path d="M20 168c10-8 20-8 30 0s20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0"/></g>
           <g className="atlas-rail"><path d="M144 177h252"/><path className="atlas-rail-value" d="M144 177h181"/><circle className="atlas-rail-stop atlas-rail-stop--one" cx="219" cy="177" r="5"/><circle className="atlas-rail-stop atlas-rail-stop--two" cx="324" cy="177" r="5"/><circle className="atlas-payment" cx="219" cy="177" r="5"/></g>
           <g className="atlas-thumbsup atlas-thumbsup--start"><rect x="46" y="55" width="9" height="25" rx="4.5"/><rect x="46" y="76" width="23" height="10" rx="3"/></g>
