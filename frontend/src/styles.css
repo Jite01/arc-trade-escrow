@@ -809,7 +809,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 .atlas-scene path, .atlas-scene circle { fill: none; stroke: #36584d; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
 .atlas-scene .atlas-document > path:first-child, .atlas-scene .atlas-agreement > path:first-child, .atlas-scene .atlas-final-record > path:first-child, .atlas-scene .atlas-proof-page > path:first-child, .atlas-scene .atlas-proof-crate > path:first-child, .atlas-scene .atlas-plan-record > path:first-child, .atlas-scene .atlas-settled-record > path:first-child { fill: #fbf8f1; }
 .atlas-scene .atlas-flight-line { stroke: #9cb2a7; stroke-dasharray: 2 5; }
-.atlas-scene .atlas-written-mark, .atlas-scene .atlas-check, .atlas-scene .atlas-approval-check { stroke: #b45737; stroke-width: 1.8; }
+.atlas-scene .atlas-written-mark, .atlas-scene .atlas-check { stroke: #b45737; stroke-width: 1.8; }
+.atlas-scene .atlas-thumbsup rect { fill: none; stroke: #b45737; stroke-width: 1.45; stroke-linejoin: round; }
 .atlas-scene .atlas-slider-line, .atlas-scene .atlas-ruler-fill, .atlas-scene .atlas-rail-value { stroke: #b45737; stroke-width: 2.6; }
 .atlas-scene .atlas-slider, .atlas-scene .atlas-proof-marker, .atlas-scene .atlas-payment { fill: #b45737; stroke: #b45737; }
 .atlas-scene .atlas-rail-stop { fill: var(--paper-light); }
@@ -819,12 +820,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 /* Agreement: an authored sheet passes between two parties and resolves into one record. */
 .atlas-document { animation: atlas-document-cycle 20s ease-in-out infinite; }
 .atlas-writing-hand { animation: atlas-writing-hand 20s ease-in-out infinite; }
-.atlas-written-mark { stroke-dasharray: 39; stroke-dashoffset: 39; animation: atlas-write-mark 20s ease-in-out infinite; }
+.atlas-written-mark--one { stroke-dasharray: 34; stroke-dashoffset: 34; animation: atlas-write-mark-one 20s linear infinite; }
+.atlas-written-mark--two { stroke-dasharray: 49; stroke-dashoffset: 49; animation: atlas-write-mark-two 20s linear infinite; }
 .atlas-paper-plane { opacity: 0; animation: atlas-paper-exchange 20s ease-in-out infinite; }
+.atlas-paper-plane--return { animation: atlas-paper-plane-return 20s steps(1, end) infinite; }
 .atlas-agreement { opacity: 0; animation: atlas-agreement-arrives 20s ease-in-out infinite; }
 .atlas-slider { animation: atlas-slider-settles 20s ease-in-out infinite; }
 .atlas-receiving-hand { opacity: 0; animation: atlas-receiver-arrives 20s ease-in-out infinite; }
-.atlas-handshake { opacity: 0; animation: atlas-handshake-settles 20s ease-in-out infinite; }
+.atlas-handshake > path { --atlas-handshake-offset: 18px; opacity: 0; animation: atlas-handshake-settles 20s ease-in-out infinite; }
+.atlas-handshake > path:first-child { --atlas-handshake-offset: -18px; }
 .atlas-final-record { opacity: 0; animation: atlas-final-record 20s ease-in-out infinite; }
 
 /* Agreement becomes a negotiated payment rule, not a percentage dashboard. */
@@ -845,10 +849,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 /* The final scene is a code-drawn freight journey, designed from the system's own shapes. */
 .atlas-freight { animation: atlas-freight-journey 20s ease-in-out infinite; }
 .atlas-water { animation: atlas-water 3.8s ease-in-out infinite; }
-.atlas-clouds { animation: atlas-clouds 6s ease-in-out infinite; }
-.atlas-port--start { animation: atlas-start-port 20s ease-in-out infinite; }
-.atlas-approval { opacity: 0; animation: atlas-approval 20s ease-in-out infinite; }
-.atlas-approval-check { stroke-dasharray: 24; stroke-dashoffset: 24; animation: atlas-approval-check 20s ease-in-out infinite; }
+.atlas-birds { animation: atlas-birds 3.2s ease-in-out infinite; }
+.atlas-thumbsup { opacity: 0; }
+.atlas-thumbsup--start { animation: atlas-thumbsup-start 20s ease-in-out infinite; }
+.atlas-thumbsup--end { animation: atlas-thumbsup-end 20s ease-in-out infinite; }
 .atlas-rail-value { stroke-dasharray: 181; stroke-dashoffset: 0; animation: atlas-rail-release 20s ease-in-out infinite; }
 .atlas-payment { opacity: 0; animation: atlas-payment-travel 20s ease-in-out infinite; }
 .atlas-rail-stop--one { animation: atlas-rail-first 20s ease-in-out infinite; }
@@ -863,13 +867,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 @keyframes atlas-type-plan { 0%, 29% { width: 0; } 37%, 92% { width: var(--atlas-type-width); } 96%, 100% { width: 0; } }
 @keyframes atlas-type-settle { 0%, 55% { width: 0; } 64%, 92% { width: var(--atlas-type-width); } 96%, 100% { width: 0; } }
 @keyframes atlas-document-cycle { 0%, 19% { opacity: 1; transform: translateY(0); } 23%, 100% { opacity: 0; transform: translateY(-3px); } }
-@keyframes atlas-writing-hand { 0%, 3% { opacity: 0; transform: translateX(-16px); } 6%, 18% { opacity: 1; transform: translateX(0); } 21%, 100% { opacity: 0; transform: translateX(7px); } }
-@keyframes atlas-write-mark { 0%, 6% { stroke-dashoffset: 39; } 15%, 20% { stroke-dashoffset: 0; } 23%, 100% { stroke-dashoffset: 39; } }
+@keyframes atlas-writing-hand { 0%, 3% { opacity: 0; transform: translate(-18px, 5px); } 6% { opacity: 1; transform: translate(0, 0); } 10% { opacity: 1; transform: translate(4px, -1px); } 14%, 18% { opacity: 1; transform: translate(8px, 1px); } 21%, 100% { opacity: 0; transform: translate(13px, 5px); } }
+@keyframes atlas-write-mark-one { 0%, 7% { stroke-dashoffset: 34; } 9%, 20% { stroke-dashoffset: 0; } 23%, 100% { stroke-dashoffset: 34; } }
+@keyframes atlas-write-mark-two { 0%, 8.5% { stroke-dashoffset: 49; } 10.5%, 20% { stroke-dashoffset: 0; } 23%, 100% { stroke-dashoffset: 49; } }
 @keyframes atlas-paper-exchange { 0%, 17% { opacity: 0; transform: translate(0, 0) rotate(-3deg); } 19%, 28% { opacity: 1; transform: translate(151px, -18px) rotate(-2deg); } 31%, 38% { opacity: 0; } 40%, 42% { opacity: 1; transform: translate(158px, -13px) rotate(4deg); } 43%, 51% { opacity: 1; transform: translate(-34px, 2px) rotate(2deg); } 54%, 100% { opacity: 0; } }
+@keyframes atlas-paper-plane-return { 0%, 42% { transform: scaleX(1); } 43%, 100% { transform: scaleX(-1); } }
 @keyframes atlas-agreement-arrives { 0%, 25% { opacity: 0; transform: scale(.9); } 28%, 44% { opacity: 1; transform: scale(1); } 48%, 100% { opacity: 0; } }
 @keyframes atlas-slider-settles { 0%, 30% { transform: translateX(0); } 35%, 44% { transform: translateX(27px); } 48%, 100% { transform: translateX(0); } }
 @keyframes atlas-receiver-arrives { 0%, 25% { opacity: 0; transform: translateX(12px); } 29%, 46% { opacity: 1; transform: translateX(0); } 49%, 100% { opacity: 0; } }
-@keyframes atlas-handshake-settles { 0%, 49% { opacity: 0; transform: translateY(5px); } 52%, 59% { opacity: 1; transform: translateY(0); } 63%, 100% { opacity: 0; } }
+@keyframes atlas-handshake-settles { 0%, 50% { opacity: 0; transform: translateX(var(--atlas-handshake-offset)); } 51.5%, 53.5% { opacity: 1; transform: translateX(0); } 56%, 100% { opacity: 0; transform: translateX(0); } }
 @keyframes atlas-final-record { 0%, 60% { opacity: 0; transform: translateY(5px); } 64%, 93% { opacity: 1; transform: translateY(0); } 97%, 100% { opacity: 0; } }
 @keyframes atlas-plan-reveal { 0%, 25% { opacity: .42; } 29%, 93% { opacity: 1; } 97%, 100% { opacity: .42; } }
 @keyframes atlas-ruler-draws { 0%, 31% { stroke-dashoffset: 426; } 39%, 93% { stroke-dashoffset: 0; } 97%, 100% { stroke-dashoffset: 426; } }
@@ -882,17 +888,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 @keyframes atlas-plan-hand-left { 0%, 49% { opacity: 0; transform: translateX(-8px); } 52%, 56% { opacity: 1; transform: translateX(0); } 59%, 100% { opacity: 0; } }
 @keyframes atlas-plan-hand-right { 0%, 49% { opacity: 0; transform: translateX(8px); } 52%, 56% { opacity: 1; transform: translateX(0); } 59%, 100% { opacity: 0; } }
 @keyframes atlas-settle-reveal { 0%, 51% { opacity: .42; } 55%, 93% { opacity: 1; } 97%, 100% { opacity: .42; } }
-@keyframes atlas-freight-journey { 0%, 58% { transform: translate(-8px, 0); } 63%, 72% { transform: translate(35px, -2px); } 78%, 93% { transform: translate(0, 0); } 97%, 100% { transform: translate(-8px, 0); } }
+@keyframes atlas-freight-journey { 0%, 60% { transform: translate(-104px, 0); } 75%, 99.5% { transform: translate(103px, -2px); } 100% { transform: translate(-104px, 0); } }
 @keyframes atlas-water { 50% { transform: translate(-7px, 1px); } }
-@keyframes atlas-clouds { 50% { transform: translateX(8px); } }
-@keyframes atlas-start-port { 0%, 62% { transform: translateX(0); } 70%, 93% { transform: translateX(-11px); } 97%, 100% { transform: translateX(0); } }
-@keyframes atlas-approval { 0%, 59% { opacity: 0; transform: translateY(5px); } 62%, 67% { opacity: 1; transform: translateY(0); } 70%, 77% { opacity: 0; } 80%, 86% { opacity: 1; transform: translateY(0); } 90%, 100% { opacity: 0; } }
-@keyframes atlas-approval-check { 0%, 62% { stroke-dashoffset: 24; } 66%, 69% { stroke-dashoffset: 0; } 70%, 80% { stroke-dashoffset: 24; } 84%, 87% { stroke-dashoffset: 0; } 90%, 100% { stroke-dashoffset: 24; } }
-@keyframes atlas-rail-release { 0%, 64% { stroke-dashoffset: 0; } 69%, 76% { stroke-dashoffset: 75; } 82%, 90% { stroke-dashoffset: 181; } 94%, 100% { stroke-dashoffset: 0; } }
-@keyframes atlas-payment-travel { 0%, 65% { opacity: 0; transform: translateX(0); } 68%, 73% { opacity: 1; transform: translateX(186px); } 76%, 81% { opacity: 0; } 83%, 88% { opacity: 1; transform: translateX(81px); } 91%, 100% { opacity: 0; } }
-@keyframes atlas-rail-first { 0%, 64%, 76%, 100% { transform: scale(1); fill: var(--paper-light); } 69% { transform: scale(1.55); fill: #b45737; } }
-@keyframes atlas-rail-second { 0%, 80%, 90%, 100% { transform: scale(1); fill: var(--paper-light); } 85% { transform: scale(1.55); fill: #b45737; } }
-@keyframes atlas-settled-record { 0%, 87% { opacity: 0; transform: translateY(5px); } 90%, 94% { opacity: 1; transform: translateY(0); } 97%, 100% { opacity: 0; } }
+@keyframes atlas-birds { 50% { transform: translateY(-3px); } }
+@keyframes atlas-thumbsup-start { 0%, 60% { opacity: 0; transform: translateY(4px); } 61%, 63.5% { opacity: 1; transform: translateY(0); } 64.5%, 100% { opacity: 0; transform: translateY(-2px); } }
+@keyframes atlas-thumbsup-end { 0%, 75% { opacity: 0; transform: translateY(4px); } 76%, 78.5% { opacity: 1; transform: translateY(0); } 79.5%, 100% { opacity: 0; transform: translateY(-2px); } }
+@keyframes atlas-rail-release { 0%, 80% { stroke-dashoffset: 181; } 82%, 84% { stroke-dashoffset: 106; } 87%, 90% { stroke-dashoffset: 0; } 92%, 100% { stroke-dashoffset: 181; } }
+@keyframes atlas-payment-travel { 0%, 86% { opacity: 0; transform: translateX(0); } 87% { opacity: 1; transform: translateX(0); } 91% { opacity: 1; transform: translateX(186px); } 92%, 100% { opacity: 0; transform: translateX(186px); } }
+@keyframes atlas-rail-first { 0%, 81%, 84%, 100% { transform: scale(1); fill: var(--paper-light); } 82.5% { transform: scale(1.55); fill: #b45737; } }
+@keyframes atlas-rail-second { 0%, 86%, 89%, 100% { transform: scale(1); fill: var(--paper-light); } 87.5% { transform: scale(1.55); fill: #b45737; } }
+@keyframes atlas-settled-record { 0%, 55% { opacity: 0; transform: translateY(5px); } 56%, 93% { opacity: 1; transform: translateY(0); } 96%, 100% { opacity: 0; transform: translateY(5px); } }
 
 @media (max-width: 1020px) {
   .hero-grid { grid-template-columns: minmax(0, 1fr); gap: 42px; max-width: 720px; margin: 0 auto; padding: 62px 0 76px; }
