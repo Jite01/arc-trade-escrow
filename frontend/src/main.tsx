@@ -52,7 +52,7 @@ function ExplainerBoard() {
         </svg>
       </section>
       <section className="atlas-stage atlas-stage--plan">
-        <div className="atlas-caption"><span>02</span><div><h3>Negotiate the payment plan</h3><p><i className="atlas-typed atlas-typed--plan">Milestones, proof, deadlines, and response windows.</i></p></div></div>
+        <div className="atlas-caption"><span>02</span><div><h3>Negotiate payment milestones</h3><p><i className="atlas-typed atlas-typed--plan">Milestones, proof, deadlines, and response windows.</i></p></div></div>
         <svg className="atlas-scene atlas-scene--plan" viewBox="0 0 540 154" aria-hidden="true">
           <path className="atlas-ruler-base" d="M57 75h426"/><path className="atlas-ruler-fill" d="M57 75h426"/><path d="M57 66v18M483 66v18"/>
           <g className="atlas-plan-hand atlas-plan-hand--left"><path d="M25 98c16-1 28-8 42-20l12-10"/></g><g className="atlas-plan-hand atlas-plan-hand--right"><path d="M515 98c-16-1-28-8-42-20l-12-10"/></g>
