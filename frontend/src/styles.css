@@ -803,6 +803,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 .atlas-scene { display: block; width: calc(100% - 35px); height: auto; min-width: 0; margin: 8px 0 0 35px; overflow: visible; }
 .atlas-scene * { transform-box: fill-box; transform-origin: center; vector-effect: non-scaling-stroke; }
 .atlas-scene path, .atlas-scene circle { fill: none; stroke: #36584d; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
+.atlas-scene .atlas-handshake path { stroke-width: 2.2; }
 .atlas-scene .atlas-document > path:first-child, .atlas-scene .atlas-agreement > path:first-child, .atlas-scene .atlas-final-record > path:first-child, .atlas-scene .atlas-proof-page > path:first-child, .atlas-scene .atlas-proof-crate > path:first-child, .atlas-scene .atlas-plan-record > path:first-child, .atlas-scene .atlas-settled-record > path:first-child { fill: #fbf8f1; }
 .atlas-scene .atlas-flight-line { stroke: #9cb2a7; stroke-dasharray: 2 5; }
 .atlas-scene .atlas-written-mark, .atlas-scene .atlas-check { stroke: #b45737; stroke-width: 1.8; }
@@ -810,6 +811,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 .atlas-scene .atlas-slider-line, .atlas-scene .atlas-ruler-fill, .atlas-scene .atlas-rail-value { stroke: #b45737; stroke-width: 2.6; }
 .atlas-scene .atlas-slider, .atlas-scene .atlas-proof-marker, .atlas-scene .atlas-payment { fill: #b45737; stroke: #b45737; }
 .atlas-scene .atlas-rail-stop { fill: var(--paper-light); }
+.atlas-scene .atlas-dollar { fill: #b45737; stroke: none; font: 700 7px "DM Mono", monospace; opacity: 0; }
 .atlas-scene--define { opacity: 0; animation: atlas-define-reveal 20s linear infinite; }
 .atlas-scene--plan { opacity: 0; animation: atlas-plan-reveal 20s linear infinite; }
 .atlas-scene--settle { opacity: 0; animation: atlas-settle-reveal 20s linear infinite; }
@@ -824,9 +826,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 .atlas-agreement { opacity: 0; animation: atlas-agreement-arrives 20s ease-in-out infinite; }
 .atlas-slider { animation: atlas-slider-settles 20s ease-in-out infinite; }
 .atlas-receiving-hand { opacity: 0; animation: atlas-receiver-arrives 20s ease-in-out infinite; }
-.atlas-handshake-hand { --atlas-handshake-entry: 60px; opacity: 0; animation: atlas-handshake-settles 20s linear infinite; }
-.atlas-handshake-hand--left { --atlas-handshake-entry: -60px; }
-.atlas-handshake-hand--right { --atlas-handshake-entry: 60px; }
+.atlas-handshake { opacity: 0; animation: atlas-handshake-settles 20s linear infinite; }
 .atlas-final-record { opacity: 0; animation: atlas-final-record 20s ease-in-out infinite; }
 
 /* Agreement becomes a negotiated payment rule, not a percentage dashboard. */
@@ -855,6 +855,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 .atlas-payment { opacity: 0; animation: atlas-payment-travel 20s ease-in-out infinite; }
 .atlas-rail-stop--one { animation: atlas-rail-first 20s ease-in-out infinite; }
 .atlas-rail-stop--two { animation: atlas-rail-second 20s ease-in-out infinite; }
+.atlas-dollar--one { animation: atlas-dollar-one 20s linear infinite; }
+.atlas-dollar--two { animation: atlas-dollar-two 20s linear infinite; }
 .atlas-settled-record { opacity: 0; animation: atlas-settled-record 20s ease-in-out infinite; }
 
 .atlas-footer { padding-top: 12px; border-top: 1px solid #bfc8bd; }
@@ -874,7 +876,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 @keyframes atlas-agreement-arrives { 0%, 15% { opacity: 0; transform: scale(.9); } 17%, 24% { opacity: 1; transform: scale(1); } 27%, 100% { opacity: 0; } }
 @keyframes atlas-slider-settles { 0%, 19% { transform: translateX(0); } 20%, 23% { transform: translateX(27px); } 24%, 100% { transform: translateX(0); } }
 @keyframes atlas-receiver-arrives { 0%, 17% { opacity: 0; transform: translateX(12px); } 20%, 25% { opacity: 1; transform: translateX(0); } 28%, 100% { opacity: 0; } }
-@keyframes atlas-handshake-settles { 0%, 22% { opacity: 0; transform: translate(var(--atlas-handshake-entry), 0); } 24% { opacity: 1; transform: translate(0, 0); } 24.45% { opacity: 1; transform: translate(0, -5px); } 24.9% { opacity: 1; transform: translate(0, 4px); } 25.35% { opacity: 1; transform: translate(0, -5px); } 25.8% { opacity: 1; transform: translate(0, 4px); } 26%, 27.5% { opacity: 1; transform: translate(0, 0); } 28.75%, 100% { opacity: 0; transform: translate(0, 0); } }
+@keyframes atlas-handshake-settles { 0%, 21% { opacity: 0; transform: translateY(6px); } 23%, 27% { opacity: 1; transform: translateY(0); } 29%, 100% { opacity: 0; transform: translateY(0); } }
 @keyframes atlas-final-record { 0%, 27% { opacity: 0; transform: translateY(5px); } 29%, 31% { opacity: 1; transform: translateY(0); } 32%, 100% { opacity: 0; } }
 @keyframes atlas-plan-reveal { 0%, 32% { opacity: 0; } 34%, 61% { opacity: 1; } 63%, 100% { opacity: 0; } }
 @keyframes atlas-ruler-draws { 0%, 34% { stroke-dashoffset: 426; } 39%, 59% { stroke-dashoffset: 0; } 62%, 100% { stroke-dashoffset: 426; } }
@@ -896,6 +898,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--signal); box-sha
 @keyframes atlas-payment-travel { 0%, 86.5% { opacity: 0; transform: translateX(0); } 87% { opacity: 1; transform: translateX(0); } 91% { opacity: 1; transform: translateX(186px); } 92%, 100% { opacity: 0; transform: translateX(186px); } }
 @keyframes atlas-rail-first { 0%, 70.5%, 72.5%, 100% { transform: scale(1); fill: var(--paper-light); } 71.25% { transform: scale(1.55); fill: #b45737; } }
 @keyframes atlas-rail-second { 0%, 85.5%, 87.5%, 100% { transform: scale(1); fill: var(--paper-light); } 86.25% { transform: scale(1.55); fill: #b45737; } }
+@keyframes atlas-dollar-one { 0%, 71.25% { opacity: 0; transform: scale(.6); } 71.75% { opacity: 1; transform: scale(1.2); } 72% { opacity: 1; transform: scale(1); } 73.25% { opacity: 1; transform: scale(1); } 74.25%, 100% { opacity: 0; transform: scale(.6); } }
+@keyframes atlas-dollar-two { 0%, 86.25% { opacity: 0; transform: scale(.6); } 86.75% { opacity: 1; transform: scale(1.2); } 87% { opacity: 1; transform: scale(1); } 88.25% { opacity: 1; transform: scale(1); } 89.25%, 100% { opacity: 0; transform: scale(.6); } }
 @keyframes atlas-settled-record { 0%, 64% { opacity: 0; transform: translateY(5px); } 65%, 93% { opacity: 1; transform: translateY(0); } 95%, 100% { opacity: 0; transform: translateY(5px); } }
 
 @media (max-width: 1020px) {
