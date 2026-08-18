@@ -406,7 +406,7 @@ function App() {
     <section className="hero-grid">
       <div className="hero">
         <p className="eyebrow">Commercial agreement registry · Arc Testnet</p>
-        <h1>Settlements <em>exactly</em>as agreed.</h1>
+        <h1>Settlements <em> exactly </em>as agreed.</h1>
         <p className="hero-copy">Arc Trade is an escrow service for import/export trade. Negotiate the commercial record — goods, route, delivery terms, and milestone conditions. Agree what proves performance. The contract handles settlement in USDC.</p>
         {message && <div className="error">{message}</div>}
         {authMode === null ? <div className="actions hero-actions"><button disabled={!!busy} onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>Draft an agreement <span aria-hidden>↗</span></button><button className="secondary" disabled={!!busy} onClick={() => session ? setMarketingHome(false) : (setAuthMode("login"), setMessage(""))}>{session ? "Open the trade desk" : "Sign in to the trade desk"}</button></div> : <section className="panel auth-panel">
