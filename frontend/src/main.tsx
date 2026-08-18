@@ -65,7 +65,7 @@ function ExplainerBoard() {
         </svg>
       </section>
       <section className="atlas-stage atlas-stage--settle">
-        <div className="atlas-caption"><span>03</span><div><h3>Deploy once, then settle</h3><p><i className="atlas-typed atlas-typed--settle">The agreed commercial record joins the settlement rail.</i></p></div></div>
+        <div className="atlas-caption"><span>03</span><div><h3>Deploy once, settle in USDC.</h3><p><i className="atlas-typed atlas-typed--settle">The agreed commercial record joins the settlement rail.</i></p></div></div>
         <svg className="atlas-scene atlas-scene--settle" viewBox="0 0 540 184" aria-hidden="true">
           <g className="atlas-port atlas-port--start">
             <path d="M27 128V94h16v34z"/>
@@ -406,8 +406,8 @@ function App() {
     <section className="hero-grid">
       <div className="hero">
         <p className="eyebrow">Commercial agreement registry · Arc Testnet</p>
-        <h1>The agreement <em>comes first.</em></h1>
-        <p className="hero-copy">Buyers and sellers negotiate the full commercial record — goods, route, delivery terms, and milestone conditions — before a single dollar is committed. The settlement follows the agreement. Not the other way around.</p>
+        <h1>Settlements <em>exactly</em>as agreed.</h1>
+        <p className="hero-copy">Arc Trade is an escrow service for import/export trade. Negotiate the commercial record — goods, route, delivery terms, and milestone conditions. Agree what proves performance. The contract handles settlement in USDC.</p>
         {message && <div className="error">{message}</div>}
         {authMode === null ? <div className="actions hero-actions"><button disabled={!!busy} onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>Draft an agreement <span aria-hidden>↗</span></button><button className="secondary" disabled={!!busy} onClick={() => session ? setMarketingHome(false) : (setAuthMode("login"), setMessage(""))}>{session ? "Open the trade desk" : "Sign in to the trade desk"}</button></div> : <section className="panel auth-panel">
           <p className="eyebrow">{initialSignin.proposalId ? "Proposal invitation" : authMode === "register" ? "Create access" : "Sign in"}</p>
