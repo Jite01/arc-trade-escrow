@@ -22,6 +22,7 @@ const initialSignin = routeParts[0] === "signin" ? {
   proposalId: routeParts[1] === "public" ? routeParts[2] || "" : routeParts[2] || routeParts[1] || ""
 } : { recipient: "", proposalId: "" };
 const LAST_COMPANY_KEY = "arc-trade-last-company";
+const isLandingHash = (hash: string) => hash === "#how-it-works" || hash === "#principles" || hash === "#support";
 const humanizeSlug = (value: string) => value.split("-").filter(Boolean).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 const roleLabel = (role: Role) => role === "BUYER" ? "Initiator" : role === "SELLER" ? "Counterparty" : role === "ARBITRATOR" ? "Arbitrator" : "Viewer";
 
@@ -50,9 +51,12 @@ function ExplainerBoard() {
           </g>
           <g className="atlas-agreement"><path d="M255 43h98v64h-98z"/><path d="M271 61h66M271 89h66"/><path className="atlas-slider-line" d="M271 75h66"/><circle className="atlas-slider" cx="278" cy="75" r="5"/></g>
           <g className="atlas-receiving-hand">
-            <path d="M526 131c-19 2-36-3-50-13l-16-13"/>
-            <path d="M520 141c-19 0-36-6-50-16l-16-11c-4-3-8 1-5 4l8 8-11-6c-4-2-6 3-2 5l11 7-13-4c-3-1-5 3-1 5l16 8c6 3 12 3 17-1l8-6"/>
-            <path d="M460 105c-4-4-8-6-10-3-2 2-1 4 2 6l9 8"/>
+            <path d="M524 132c-18 2-35-5-48-18l-14-15"/>
+            <path d="M515 138c-19-1-36-9-49-22l-12-14"/>
+            <path d="M462 99c-4-3-8-2-9 1l4 7"/>
+            <path d="M457 107l-7 5c-3 2-6-1-4-4l7-6"/>
+            <path d="M451 102l-7 7"/>
+            <path d="M450 108 435 93M445 113 430 98M435 93l-5 5M450 108l-5 5"/>
           </g>
           <g className="atlas-handshake">
             <g transform="translate(0 8)">
@@ -125,7 +129,7 @@ function App() {
   const [session, setSession] = useState<EmbeddedWalletSession | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [pathname, setPathname] = useState(window.location.pathname);
-  const [marketingHome, setMarketingHome] = useState(() => window.location.hash === "#resources");
+  const [marketingHome, setMarketingHome] = useState(() => isLandingHash(window.location.hash));
   const [company, setCompany] = useState<Company | null>(null);
   const [openProposals, setOpenProposals] = useState<Proposal[]>([]);
   const [myProposals, setMyProposals] = useState<Proposal[]>([]);
@@ -158,20 +162,48 @@ function App() {
     setPathname(new URL(path, window.location.origin).pathname);
   }, []);
   const openCommercial = useCallback(() => { setMarketingHome(false); navigate("/agreements/new"); }, [navigate]);
-  const goHome = useCallback(() => { setMarketingHome(true); navigate("/#resources"); window.setTimeout(() => document.querySelector("#resources")?.scrollIntoView({ behavior: "smooth" }), 0); }, [navigate]);
+  const goHome = useCallback(() => { setMarketingHome(true); navigate("/#how-it-works"); window.setTimeout(() => document.querySelector("#how-it-works")?.scrollIntoView({ behavior: "smooth" }), 0); }, [navigate]);
 
   useEffect(() => {
-    const handleNavigation = () => { setPathname(window.location.pathname); setMarketingHome(window.location.hash === "#resources"); };
+    const handleNavigation = () => { setPathname(window.location.pathname); setMarketingHome(isLandingHash(window.location.hash)); };
     window.addEventListener("popstate", handleNavigation);
     window.addEventListener("hashchange", handleNavigation);
     return () => { window.removeEventListener("popstate", handleNavigation); window.removeEventListener("hashchange", handleNavigation); };
   }, []);
 
   useEffect(() => {
-    if (!marketingHome || window.location.hash !== "#resources") return;
-    const timer = window.setTimeout(() => document.querySelector("#resources")?.scrollIntoView({ behavior: "smooth" }), 0);
+    if (!marketingHome || !isLandingHash(window.location.hash)) return;
+    const timer = window.setTimeout(() => document.querySelector(window.location.hash)?.scrollIntoView({ behavior: "auto", block: "start" }), 40);
     return () => window.clearTimeout(timer);
   }, [marketingHome]);
+
+  useEffect(() => {
+    if (session && !marketingHome) return;
+    const root = document.documentElement;
+    root.classList.add("landing-motion-ready");
+    const revealItems = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
+    revealItems.forEach((item, index) => item.style.setProperty("--reveal-delay", `${Math.min(index * 70, 420)}ms`));
+    if (typeof IntersectionObserver === "undefined") {
+      revealItems.forEach(item => item.classList.add("is-visible"));
+      return () => root.classList.remove("landing-motion-ready");
+    }
+    const revealObserver = new IntersectionObserver(entries => entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+        revealObserver.unobserve(entry.target);
+      }
+    }), { threshold: 0.12, rootMargin: "0px 0px -8%" });
+    revealItems.forEach(item => revealObserver.observe(item));
+    const readingObserver = new IntersectionObserver(entries => entries.forEach(entry => {
+      entry.target.classList.toggle("is-reading", entry.isIntersecting && entry.intersectionRatio > 0.35);
+    }), { threshold: [0.35, 0.7], rootMargin: "-16% 0px -38%" });
+    document.querySelectorAll<HTMLElement>(".how-step, .principles article").forEach(item => readingObserver.observe(item));
+    return () => {
+      revealObserver.disconnect();
+      readingObserver.disconnect();
+      root.classList.remove("landing-motion-ready");
+    };
+  }, [marketingHome, session]);
 
   const clearAgreement = useCallback(() => {
     generation.current++;
@@ -418,7 +450,7 @@ function App() {
   if (!session && !sessionChecked) return <main className="shell landing-shell app-loading"><div className="loading-card"><span className="mark">AT</span><p className="eyebrow">Arc Trade</p><h1>Opening your trade desk.</h1><p>Checking your secure session…</p></div></main>;
 
   if (!session || marketingHome) return <main className="shell landing-shell">
-    <header className="site-header"><a className="brand" href="/#resources" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><nav className="site-nav"><a href="#how-it-works">Platform</a><a href="#principles">Principles</a><a href="#resources">Resources</a></nav><button className="secondary" disabled={!!busy} onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>{busy ? "Opening…" : session ? "Draft an agreement" : "Get started"}</button></header>
+    <header className="site-header"><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><nav className="site-nav"><a href="#how-it-works">Platform</a><a href="#principles">Principles</a></nav><button className="secondary" disabled={!!busy} onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>{busy ? "Opening…" : session ? "Draft an agreement" : "Get started"}</button></header>
     <section className="hero-grid">
       <div className="hero">
         <p className="eyebrow">Commercial agreement registry · Arc Testnet</p>
@@ -437,11 +469,21 @@ function App() {
       </div>
       <ExplainerBoard />
     </section>
-    <section className="how-it-works" id="how-it-works"><div><p className="eyebrow">The platform</p><h2>Agree first. Deploy once. Settle on the terms you wrote.</h2></div><div className="how-copy"><p>Before any contract is deployed, Arc Trade gives both companies a structured place to establish the commercial context and negotiate how payment follows evidence. Once the terms are accepted, the buyer deploys the settlement contract once. The registry remains the source of commercial context; the contract handles financial settlement.</p><a href="#principles">Read the operating principles <span aria-hidden>↘</span></a></div></section>
-    <section className="principles" id="principles"><article><span>01</span><h3>Commercial context stays explicit</h3><p>Goods, route, delivery terms, named place, quality standards, and proof requirements live in the agreement record—not in an opaque transaction note.</p></article><article><span>02</span><h3>Payment follows agreed evidence</h3><p>Each milestone defines the amount, seller deadline, buyer response window, dispute window, and proof description before either party approves the schedule.</p></article><article><span>03</span><h3>Finalization is consequential</h3><p>Mutual acceptance produces a tamper-evident record. Buyer, seller, value, and deployment parameters are reviewed before the settlement contract is created once.</p></article></section>
-    <section className="resources" id="resources"><div className="resources-intro"><p className="eyebrow">Product resources</p><h2>Know what the record does before you use it.</h2><p>Arc Trade is built for consequential commercial agreements. These resources explain the workflow, the settlement boundary, and how to get help.</p></div><div className="resource-grid"><a className="resource-card" href="#how-it-works" id="documentation"><span>01 / Documentation</span><strong>Read the agreement guide ↗</strong><p>Understand the commercial record, proposal versions, finalization, and deployment handoff.</p></a><a className="resource-card" href="#faqs" id="faqs"><span>02 / FAQs</span><strong>Common questions ↘</strong><p>Answers about wallets, delivery terms, milestones, evidence, and Arc Testnet settlement.</p></a><a className="resource-card" href="#support" id="help-resource"><span>03 / Help &amp; support</span><strong>Get help with a trade record ↗</strong><p>Bring the agreement reference and the step where you need assistance.</p></a><button className="resource-card resource-card-button" onClick={() => { setAuthMode("register"); setMessage(""); }}><span>04 / Mainnet waitlist</span><strong>Join the mainnet waitlist ↗</strong><p>Start on Arc Testnet today and register your interest in mainnet access.</p></button></div></section>
-    <section className="faq-section"><div><p className="eyebrow">FAQs</p><h2>Clear answers for a serious workflow.</h2></div><div className="faq-list"><details><summary>Is Arc Trade the settlement contract?</summary><p>No. Arc Trade stores the commercial agreement and negotiation record. The settlement contract is deployed once to handle the financial rail after both parties approve the milestone schedule.</p></details><details><summary>What happens before deployment?</summary><p>The parties establish the goods, route, delivery terms, value, counterparties, deadlines, and milestone payment plan. The buyer deploys only after mutual acceptance.</p></details><details><summary>What does a wallet represent?</summary><p>Your wallet is your account identity. It is used to authenticate actions and sign the deployment or settlement transactions that belong to your company profile.</p></details></div></section>
-    <footer className="site-footer" id="support"><div><a className="brand" href="/#resources" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><p>Commercial agreement infrastructure for documentary trade.</p></div><nav><a href="#documentation">Documentation</a><a href="#faqs">FAQs</a><a href="#support">Help &amp; support</a><a href="#resources">Mainnet waitlist</a></nav><small>Arc Testnet · Commercial records are complementary to on-chain settlement.</small></footer>
+    <section className="how-it-works" id="how-it-works" data-reveal>
+      <ol className="how-steps">
+        <li className="how-step" data-reveal><span className="how-step-number">01</span><h2>Negotiate the record</h2><p>Both parties agree the goods, route, delivery terms, evidence requirements, and milestone payment schedule before anything is deployed.</p></li>
+        <li className="how-step" data-reveal><span className="how-step-number">02</span><h2>Finalize and deploy</h2><p>Mutual acceptance produces a tamper-evident record. The buyer deploys the settlement contract once, against the agreed terms.</p></li>
+        <li className="how-step" data-reveal><span className="how-step-number">03</span><h2>Settle by milestone</h2><p>Evidence is submitted per milestone. Confirmed or released automatically. The contract executes what the agreement specified.</p></li>
+      </ol>
+    </section>
+    <section className="principles" id="principles" data-reveal>
+      <p className="eyebrow">Why it works this way</p>
+      <article data-reveal><span>01</span><h3>The record is the handoff.</h3><p>Commercial terms live in the agreement — not in a transaction note, a chat thread, or an email chain. Both parties sign the same record.</p></article>
+      <article data-reveal><span>02</span><h3>Payment follows proof, not trust.</h3><p>Each milestone names the evidence required before that portion of the settlement releases. The contract enforces what the parties wrote.</p></article>
+      <article data-reveal><span>03</span><h3>One deployment. No amendments.</h3><p>The settlement contract is created once, after mutual acceptance. Its parameters are the agreed record. They do not change.</p></article>
+    </section>
+    <section className="landing-cta" data-reveal><div><h2>Start on Arc Testnet.</h2><p>Mainnet migration underway. Agreements drafted today carry forward.</p></div><div className="landing-cta-actions"><button onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>Draft an agreement <span aria-hidden>↗</span></button><button className="secondary" onClick={() => { setAuthMode("register"); setMessage(""); }}>Join the mainnet waitlist</button></div></section>
+    <footer className="site-footer" id="support" data-reveal><div><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a></div><nav><a href="#how-it-works">Platform</a><a href="#principles">Principles</a><a href="#how-it-works" onClick={event => { event.preventDefault(); setAuthMode("register"); setMessage(""); }}>Get started</a></nav><small>Arc Testnet · Mainnet migration in progress.</small></footer>
   </main>;
 
   if (pathname.startsWith("/agreements")) return <CommercialWorkflow session={session} onSignOut={signOut} onHome={goHome} />;
@@ -464,7 +506,7 @@ function Dashboard(props: { session: EmbeddedWalletSession; company: Company | n
   const setProposalForJoin = (proposal: Proposal) => { props.setJoinId(proposal.id); setSelectedProposal(proposal); };
   const draftProposal = (proposal: Proposal) => { props.setAgreementLabel(proposal.title); props.setProposalDescription(proposal.description); props.setProposalVisibility(proposal.visibility); props.setRecipientCompany(proposal.recipientCompany || ""); setSelectedProposal(null); jumpTo(".create-panel"); };
   return <main className="shell workspace-shell">
-    <header className="site-header"><a className="brand" href="/#resources" onClick={event => { event.preventDefault(); props.goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><div className="account"><strong>{props.company?.name || "Company profile"}</strong></div><button className={`menu-toggle${menuOpen ? " is-open" : ""}`} aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}><i /><i /></button>{menuOpen && <nav className="menu-panel"><a href="#issue" onClick={() => { setMenuOpen(false); jumpTo(".create-panel"); }}>Draft a proposal</a><a href="#board" onClick={() => { setMenuOpen(false); jumpTo("#board"); }}>Public offers</a><a href="#live-agreements" onClick={() => { setMenuOpen(false); jumpTo("#live-agreements"); }}>Live agreements</a><button className="quiet" onClick={props.signOut}>Sign out</button></nav>}</header>
+    <header className="site-header"><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); props.goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><div className="account"><strong>{props.company?.name || "Company profile"}</strong></div><button className={`menu-toggle${menuOpen ? " is-open" : ""}`} aria-label="Open navigation" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}><i /><i /></button>{menuOpen && <nav className="menu-panel"><a href="#issue" onClick={() => { setMenuOpen(false); jumpTo(".create-panel"); }}>Draft a proposal</a><a href="#board" onClick={() => { setMenuOpen(false); jumpTo("#board"); }}>Public offers</a><a href="#live-agreements" onClick={() => { setMenuOpen(false); jumpTo("#live-agreements"); }}>Live agreements</a><button className="quiet" onClick={props.signOut}>Sign out</button></nav>}</header>
     {props.message && <div className="error">{props.message}</div>}{!props.company && <section className="panel profile-recovery"><div><p className="eyebrow">Profile needs attention</p><h2>Restore your company profile</h2><p className="notice">This passkey is valid, but its company record is missing from the registry. Restore it once to unlock proposals and agreements.</p></div><div className="recovery-row"><input aria-label="Company name" placeholder="Company name" value={profileName} onChange={event => setProfileName(event.target.value)} /><button disabled={props.busy === "restoreProfile"} onClick={() => props.restoreProfile(profileName)}>{props.busy === "restoreProfile" ? "Restoring…" : "Restore profile"}</button></div></section>}{selectedProposal && <ProposalLetter proposal={selectedProposal} onClose={() => setSelectedProposal(null)} onAccept={() => { setSelectedProposal(null); void props.join(); }} onDraft={() => draftProposal(selectedProposal)} />}
     <section className="workspace-hero"><div><p className="eyebrow">Trade desk</p><h1>Good to see you, <span>{props.company?.name || "your company"}.</span></h1><p>Review incoming commercial proposals, continue your drafts, and monitor live agreements from one operating desk.</p></div><div className="workspace-metrics" aria-label="Trade desk sections">{issued.length > 0 ? <a href="#proposals-drafted"><strong>{issued.filter(proposal => proposal.status !== "OPEN").length}</strong><span>concluded drafts</span></a> : <div className="metric-empty"><strong>0</strong><span>concluded drafts</span></div>}{issued.length > 0 ? <a href="#proposals-drafted"><strong>{issued.length}</strong><span>proposals drafted</span></a> : <div className="metric-empty"><strong>0</strong><span>proposals drafted</span></div>}{props.agreements.length > 0 ? <a href="#live-agreements"><strong>{props.agreements.length}</strong><span>live agreements</span></a> : <div className="metric-empty"><strong>0</strong><span>live agreements</span></div>}</div></section>
 {props.agreements.length > 0 && <section className="panel agreements-panel" id="live-agreements"><div className="section-head"><div><p className="eyebrow">Live agreements</p><h2>Settlement registry</h2></div><code>{ref(props.session.address)}</code></div><div className="agreement-list">{props.agreements.map(record => <button className="agreement-row" key={record.id} onClick={() => props.select(record)}><span className="agreement-index">{record.buyer.toLowerCase() === props.session.address.toLowerCase() ? "Buyer" : "Seller"}</span><strong>{ref(record.id)}</strong><code>{ref(record.escrow)}</code><span aria-hidden>→</span></button>)}</div></section>}
