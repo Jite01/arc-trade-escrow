@@ -39,14 +39,48 @@ function ExplainerBoard() {
           <g className="atlas-agreement"><path d="M255 43h98v64h-98z"/><path d="M271 61h66M271 89h66"/><path className="atlas-slider-line" d="M271 75h66"/><circle className="atlas-slider" cx="278" cy="75" r="5"/></g>
           <g className="atlas-receiving-hand"><path d="M524 128c-14-3-26-11-35-24l-15-23c-3-5-10-1-7 4l10 18-18-19c-4-4-10 1-6 6l16 19-20-15c-5-4-10 3-5 7l20 16-18-10c-5-3-9 4-3 7l22 15c9 6 19 10 32 12z"/><path d="m480 105-12 8"/></g>
           <g className="atlas-handshake">
-            <path d="M183 64l36 24M190 57l36 24M213 84l14 16M220 80l14 16"/>
-            <path d="M226 99c11 0 19-5 27-14 7-8 16-9 23-3l18 13"/>
-            <path d="M253 99c6-7 13-9 19-6 7 4 10 11 16 14 6 3 12 1 14-3"/>
-            <path d="M226 99c-5 6-3 12 3 17 8 6 15 14 22 17 6 3 11-1 11-6M237 114c7 8 14 17 21 20 6 3 11-2 11-7"/>
-            <path d="M357 64l-36 24M350 57l-36 24M327 84l-14 16M320 80l-14 16"/>
-            <path d="M314 99c-11 0-19-5-27-14-7-8-16-9-23-3l-18 13"/>
-            <path d="M287 99c-6-7-13-9-19-6-7 4-10 11-16 14-6 3-12 1-14-3"/>
-            <path d="M314 99c5 6 3 12-3 17-8 6-15 14-22 17-6 3-11-1-11-6M303 114c-7 8-14 17-21 20-6 3-11-2-11-7"/>
+            {/* LEFT FOREARM
+                Enters from upper-left.
+                Two parallel edge lines + curved sleeve cap.
+                Upper edge: (191,52) → (261,82)
+                Lower edge: (255,93) → (185,62), cap curves left */}
+            <path d="M191 52 L261 82"/>
+            <path d="M255 93 L185 62 Q181 57 191 52"/>
+
+            {/* LEFT CUFF — two short lines perpendicular to arm axis */}
+            <path d="M215 65 L211 73"/>
+            <path d="M220 67 L216 75"/>
+
+            {/* RIGHT FOREARM
+                Enters from lower-right. 180° rotational mirror of left.
+                Upper edge: (349,138) → (279,108)
+                Lower edge: (285,97) → (355,128), cap curves right */}
+            <path d="M349 138 L279 108"/>
+            <path d="M285 97 L355 128 Q359 133 349 138"/>
+
+            {/* RIGHT CUFF */}
+            <path d="M325 125 L329 117"/>
+            <path d="M320 123 L324 115"/>
+
+            {/* LEFT THUMB
+                Emerges from left palm at grip.
+                Curves upward-right. Crosses over right thumb. */}
+            <path d="M263 88 C267 76 276 65 284 60"/>
+
+            {/* RIGHT THUMB
+                Emerges from right palm at grip.
+                Curves upward-left. Crosses over left thumb.
+                Both thumbs cross near (270,80) forming a V above the grip. */}
+            <path d="M277 92 C271 80 262 69 254 64"/>
+
+            {/* FOUR FINGER LOOPS
+                Drawn left to right so each overlaps the previous.
+                ink-shape fill creates correct visual layering.
+                Centered at x=270, hanging below the grip zone. */}
+            <ellipse className="ink-shape" cx="258" cy="116" rx="7" ry="10"/>
+            <ellipse className="ink-shape" cx="265" cy="119" rx="7" ry="10"/>
+            <ellipse className="ink-shape" cx="275" cy="119" rx="7" ry="10"/>
+            <ellipse className="ink-shape" cx="282" cy="116" rx="7" ry="10"/>
           </g>
           <g className="atlas-final-record"><path d="M287 115h35l10 10v19h-45z"/><path d="M322 115v10h10M297 130h24M297 137h17"/></g>
         </svg>
