@@ -49,7 +49,7 @@ function ExplainerBoard() {
               <path d="m130 88 39 0-28 9"/>
             </g>
           </g>
-          <g className="atlas-agreement" transform="translate(130 0)"><path d="M255 43h98v64h-98z"/><path d="M271 61h66M271 89h66"/><path className="atlas-slider-line" d="M271 75h66"/><circle className="atlas-slider" cx="278" cy="75" r="5"/></g>
+          <g className="atlas-agreement"><path d="M385 43h98v64h-98z"/><path d="M401 61h66M401 89h66"/><path className="atlas-slider-line" d="M401 75h66"/><circle className="atlas-slider" cx="408" cy="75" r="5"/></g>
           <g className="atlas-receiving-hand">
             <path d="M524 132c-18 2-35-5-48-18l-14-15"/>
             <path d="M515 138c-19-1-36-9-49-22l-12-14"/>
@@ -140,6 +140,8 @@ function App() {
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
   const [companyName, setCompanyName] = useState(() => initialSignin.recipient ? humanizeSlug(initialSignin.recipient) : localStorage.getItem(LAST_COMPANY_KEY) || "");
   const [profileCheck, setProfileCheck] = useState<"unchecked" | "new">("unchecked");
   const [recipientCompany, setRecipientCompany] = useState(() => initialSignin.recipient ? humanizeSlug(initialSignin.recipient) : "");
@@ -477,7 +479,7 @@ function App() {
         <article data-reveal><h3>Verified on-chain</h3><p>Every agreement finalization and settlement event is publicly verifiable.</p><a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">[ View on Arc Explorer ↗ ]</a></article>
       </div>
     </section>
-    <section className="landing-cta" data-reveal><div><h2>Start on Arc Testnet.</h2><p>Mainnet migration underway. Agreements drafted today carry forward.</p></div><div className="landing-cta-actions"><button onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>Draft an agreement <span aria-hidden>↗</span></button><button className="secondary" onClick={() => { setAuthMode("register"); setMessage(""); }}>Join the mainnet waitlist</button></div></section>
+    <section className="landing-cta" data-reveal><div><h2>Start on Arc Testnet.</h2><p>Mainnet migration underway. Agreements drafted today carry forward.</p></div><div className="landing-cta-actions"><button onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>Draft an agreement <span aria-hidden>↗</span></button>{waitlistJoined ? <div className="waitlist-success" role="status"><strong>You&apos;re on the list.</strong><span>We&apos;ll let you know when mainnet opens.</span></div> : <form className="waitlist-form" onSubmit={event => { event.preventDefault(); setWaitlistJoined(true); }}><input aria-label="Email address" type="email" placeholder="you@email.com" value={waitlistEmail} onChange={event => setWaitlistEmail(event.target.value)} required /><button className="secondary" type="submit">Join the mainnet waitlist</button></form>}</div></section>
     <footer className="site-footer" id="support" data-reveal><div><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a></div><nav><a href="#how-it-works">Platform</a><a href="#settlement-infrastructure">Settlement</a><a href="#how-it-works" onClick={event => { event.preventDefault(); setAuthMode("register"); setMessage(""); }}>Get started</a></nav><small>Arc Testnet · Mainnet migration in progress.</small></footer>
   </main>;
 
