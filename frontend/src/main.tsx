@@ -34,53 +34,29 @@ function ExplainerBoard() {
         <svg className="atlas-scene atlas-scene--define" viewBox="0 0 540 154" aria-hidden="true">
           <path className="atlas-flight-line" d="M90 84C179 17 353 19 462 82"/>
           <g className="atlas-document"><path d="M72 39h72l18 18v64H72z"/><path d="M144 39v19h18M90 69h49M90 82h56M90 95h35"/><path className="atlas-written-mark atlas-written-mark--one" d="M90 108h34"/><path className="atlas-written-mark atlas-written-mark--two" d="M90 117h49"/></g>
-          <g className="atlas-writing-hand"><path d="M16 128c14-3 26-11 35-24l15-23c3-5 10-1 7 4l-10 18 18-19c4-4 10 1 6 6l-16 19 20-15c5-4 10 3 5 7l-20 16 18-10c5-3 9 4 3 7l-22 15c-9 6-19 10-32 12z"/><path d="m60 105 12 8"/></g>
-          <g className="atlas-paper-plane"><g className="atlas-paper-plane--return"><path d="M112 70 166 88 112 106z"/><path d="M166 88h-39"/></g></g>
+          <g className="atlas-writing-hand">
+            <path d="M15 130c17 2 32-4 44-17l12-15 11 9-7 12 11-10c3-3 7 2 4 5l-10 10 14-7c4-2 6 3 2 5l-17 10c-12 7-26 10-42 9z"/>
+            <path d="M70 98 90 78l6 6-20 21z"/>
+            <path d="m87 81 5 5"/>
+          </g>
+          <g className="atlas-paper-plane">
+            <g className="atlas-paper-plane--return">
+              <path d="M110 74 169 88 118 106l12-18z"/>
+              <path d="m130 88 39 0-28 9"/>
+            </g>
+          </g>
           <g className="atlas-agreement"><path d="M255 43h98v64h-98z"/><path d="M271 61h66M271 89h66"/><path className="atlas-slider-line" d="M271 75h66"/><circle className="atlas-slider" cx="278" cy="75" r="5"/></g>
-          <g className="atlas-receiving-hand"><path d="M524 128c-14-3-26-11-35-24l-15-23c-3-5-10-1-7 4l10 18-18-19c-4-4-10 1-6 6l16 19-20-15c-5-4-10 3-5 7l20 16-18-10c-5-3-9 4-3 7l22 15c9 6 19 10 32 12z"/><path d="m480 105-12 8"/></g>
+          <g className="atlas-receiving-hand">
+            <path d="M525 131c-18 1-33-5-45-17l-13-14-10 9 7 11-11-9c-3-3-7 2-4 5l10 9-14-6c-4-2-6 3-2 5l18 9c12 6 26 9 42 8z"/>
+            <path d="m467 100-16-11"/>
+            <path d="m463 107-17-8"/>
+          </g>
           <g className="atlas-handshake">
-            {/* LEFT FOREARM
-                Enters from upper-left.
-                Two parallel edge lines + curved sleeve cap.
-                Upper edge: (191,52) → (261,82)
-                Lower edge: (255,93) → (185,62), cap curves left */}
-            <path d="M191 52 L261 82"/>
-            <path d="M255 93 L185 62 Q181 57 191 52"/>
-
-            {/* LEFT CUFF — two short lines perpendicular to arm axis */}
-            <path d="M215 65 L211 73"/>
-            <path d="M220 67 L216 75"/>
-
-            {/* RIGHT FOREARM
-                Enters from lower-right. 180° rotational mirror of left.
-                Upper edge: (349,138) → (279,108)
-                Lower edge: (285,97) → (355,128), cap curves right */}
-            <path d="M349 138 L279 108"/>
-            <path d="M285 97 L355 128 Q359 133 349 138"/>
-
-            {/* RIGHT CUFF */}
-            <path d="M325 125 L329 117"/>
-            <path d="M320 123 L324 115"/>
-
-            {/* LEFT THUMB
-                Emerges from left palm at grip.
-                Curves upward-right. Crosses over right thumb. */}
-            <path d="M263 88 C267 76 276 65 284 60"/>
-
-            {/* RIGHT THUMB
-                Emerges from right palm at grip.
-                Curves upward-left. Crosses over left thumb.
-                Both thumbs cross near (270,80) forming a V above the grip. */}
-            <path d="M277 92 C271 80 262 69 254 64"/>
-
-            {/* FOUR FINGER LOOPS
-                Drawn left to right so each overlaps the previous.
-                ink-shape fill creates correct visual layering.
-                Centered at x=270, hanging below the grip zone. */}
-            <ellipse className="ink-shape" cx="258" cy="116" rx="7" ry="10"/>
-            <ellipse className="ink-shape" cx="265" cy="119" rx="7" ry="10"/>
-            <ellipse className="ink-shape" cx="275" cy="119" rx="7" ry="10"/>
-            <ellipse className="ink-shape" cx="282" cy="116" rx="7" ry="10"/>
+            <path d="M176 61 236 85l10 19-59-24z"/>
+            <path d="M364 133 304 109l-10-19 59 24z"/>
+            <path d="m213 76-6 14m12-11-6 14m113 24 6-14m-12 11 6-14"/>
+            <path d="M236 85c7-3 13-2 19 3l17 13 14 4c4 1 5 6 1 8-2 1-5 1-8 0l-11-4 15 12c3 3-1 7-4 4l-14-12 10 11c3 3-1 7-4 4l-15-13-8-6"/>
+            <path d="M294 90c-6 1-11 5-15 9l-11 11-12-8c-3-2-7 2-4 5l10 9c4 4 9 4 13 1l14-12"/>
           </g>
           <g className="atlas-final-record"><path d="M287 115h35l10 10v19h-45z"/><path d="M322 115v10h10M297 130h24M297 137h17"/></g>
         </svg>
