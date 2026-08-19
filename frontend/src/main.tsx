@@ -68,7 +68,6 @@ function ExplainerBoard() {
               <path d="M380 123c-28-5-53-14-74-25-6-3-12-2-17 3l-14 15-10-7c-3-2-7 2-4 5l10 10c4 4 10 4 14 1l17-14"/>
             </g>
           </g>
-          <g className="atlas-final-record"><path d="M287 115h35l10 10v19h-45z"/><path d="M322 115v10h10M297 130h24M297 137h17"/></g>
         </svg>
       </section>
       <section className="atlas-stage atlas-stage--plan">
@@ -447,7 +446,7 @@ function App() {
     <header className="site-header"><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><nav className="site-nav"><a href="#how-it-works">Platform</a><a href="#principles">Principles</a></nav><button className="secondary" disabled={!!busy} onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>{busy ? "Opening…" : session ? "Draft an agreement" : "Get started"}</button></header>
     <section className="hero-grid">
       <div className="hero">
-        <p className="eyebrow">Commercial agreement registry · Arc Testnet</p>
+        <p className="eyebrow">Commercial agreement registry</p>
         <h1>Settlements <em> exactly </em>as agreed.</h1>
         <p className="hero-copy">Arc Trade is an escrow service for import/export trade. Negotiate the commercial record — goods, route, delivery terms, and milestone conditions. Agree what proves performance. The contract handles settlement in USDC.</p>
         {message && <div className="error">{message}</div>}
