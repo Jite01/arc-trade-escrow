@@ -172,12 +172,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!marketingHome || !isLandingHash(window.location.hash)) return;
-    const timer = window.setTimeout(() => document.querySelector(window.location.hash)?.scrollIntoView({ behavior: "auto", block: "start" }), 40);
-    return () => window.clearTimeout(timer);
-  }, [marketingHome]);
-
-  useEffect(() => {
     if (session && !marketingHome) return;
     const root = document.documentElement;
     root.classList.add("landing-motion-ready");
