@@ -22,7 +22,7 @@ const initialSignin = routeParts[0] === "signin" ? {
   proposalId: routeParts[1] === "public" ? routeParts[2] || "" : routeParts[2] || routeParts[1] || ""
 } : { recipient: "", proposalId: "" };
 const LAST_COMPANY_KEY = "arc-trade-last-company";
-const isLandingHash = (hash: string) => hash === "#how-it-works" || hash === "#principles" || hash === "#support";
+const isLandingHash = (hash: string) => hash === "#how-it-works" || hash === "#settlement-infrastructure" || hash === "#support";
 const humanizeSlug = (value: string) => value.split("-").filter(Boolean).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 const roleLabel = (role: Role) => role === "BUYER" ? "Initiator" : role === "SELLER" ? "Counterparty" : role === "ARBITRATOR" ? "Arbitrator" : "Viewer";
 
@@ -49,7 +49,7 @@ function ExplainerBoard() {
               <path d="m130 88 39 0-28 9"/>
             </g>
           </g>
-          <g className="atlas-agreement"><path d="M255 43h98v64h-98z"/><path d="M271 61h66M271 89h66"/><path className="atlas-slider-line" d="M271 75h66"/><circle className="atlas-slider" cx="278" cy="75" r="5"/></g>
+          <g className="atlas-agreement" transform="translate(130 0)"><path d="M255 43h98v64h-98z"/><path d="M271 61h66M271 89h66"/><path className="atlas-slider-line" d="M271 75h66"/><circle className="atlas-slider" cx="278" cy="75" r="5"/></g>
           <g className="atlas-receiving-hand">
             <path d="M524 132c-18 2-35-5-48-18l-14-15"/>
             <path d="M515 138c-19-1-36-9-49-22l-12-14"/>
@@ -190,7 +190,7 @@ function App() {
     const readingObserver = new IntersectionObserver(entries => entries.forEach(entry => {
       entry.target.classList.toggle("is-reading", entry.isIntersecting && entry.intersectionRatio > 0.35);
     }), { threshold: [0.35, 0.7], rootMargin: "-16% 0px -38%" });
-    document.querySelectorAll<HTMLElement>(".how-step, .principles article").forEach(item => readingObserver.observe(item));
+    document.querySelectorAll<HTMLElement>(".how-step").forEach(item => readingObserver.observe(item));
     return () => {
       revealObserver.disconnect();
       readingObserver.disconnect();
@@ -443,12 +443,12 @@ function App() {
   if (!session && !sessionChecked) return <main className="shell landing-shell app-loading"><div className="loading-card"><span className="mark">AT</span><p className="eyebrow">Arc Trade</p><h1>Opening your trade desk.</h1><p>Checking your secure session…</p></div></main>;
 
   if (!session || marketingHome) return <main className="shell landing-shell">
-    <header className="site-header"><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><nav className="site-nav"><a href="#how-it-works">Platform</a><a href="#principles">Principles</a></nav><button className="secondary" disabled={!!busy} onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>{busy ? "Opening…" : session ? "Draft an agreement" : "Get started"}</button></header>
+    <header className="site-header"><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><nav className="site-nav"><a href="#how-it-works">Platform</a><a href="#settlement-infrastructure">Settlement</a></nav><button className="secondary" disabled={!!busy} onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>{busy ? "Opening…" : session ? "Draft an agreement" : "Get started"}</button></header>
     <section className="hero-grid">
       <div className="hero">
         <p className="eyebrow">Commercial agreement registry</p>
         <h1>Settlements <em> exactly </em>as agreed.</h1>
-        <p className="hero-copy">Arc Trade is an escrow service for import/export trade. Negotiate the commercial record — goods, route, delivery terms, and milestone conditions. Agree what proves performance. The contract handles settlement in USDC.</p>
+        <p className="hero-copy">Before goods move, payment locks. Before payment releases, evidence confirms. Arc Trade turns your commercial negotiation into an executable settlement contract — in USDC, on Arc, without a bank.</p>
         {message && <div className="error">{message}</div>}
         {authMode === null ? <div className="actions hero-actions"><button disabled={!!busy} onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>Draft an agreement <span aria-hidden>↗</span></button><button className="secondary" disabled={!!busy} onClick={() => session ? setMarketingHome(false) : (setAuthMode("login"), setMessage(""))}>{session ? "Open the trade desk" : "Sign in to the trade desk"}</button></div> : <section className="panel auth-panel">
           <p className="eyebrow">{initialSignin.proposalId ? "Proposal invitation" : authMode === "register" ? "Create access" : "Sign in"}</p>
@@ -469,14 +469,16 @@ function App() {
         <li className="how-step" data-reveal><span className="how-step-number">03</span><h2>Settle by milestone</h2><p>Evidence is submitted per milestone. Confirmed or released automatically. The contract executes what the agreement specified.</p></li>
       </ol>
     </section>
-    <section className="principles" id="principles" data-reveal>
-      <p className="eyebrow">Why it works this way</p>
-      <article data-reveal><span>01</span><h3>The record is the handoff.</h3><p>Commercial terms live in the agreement — not in a transaction note, a chat thread, or an email chain. Both parties sign the same record.</p></article>
-      <article data-reveal><span>02</span><h3>Payment follows proof, not trust.</h3><p>Each milestone names the evidence required before that portion of the settlement releases. The contract enforces what the parties wrote.</p></article>
-      <article data-reveal><span>03</span><h3>One deployment. No amendments.</h3><p>The settlement contract is created once, after mutual acceptance. Its parameters are the agreed record. They do not change.</p></article>
+    <section className="chain-strip" id="settlement-infrastructure" data-reveal>
+      <p className="eyebrow">Settlement infrastructure</p>
+      <div className="chain-columns">
+        <article data-reveal><h3>USDC</h3><p>Settlement is denominated and executed in USDC. Amounts are exact. There is no FX conversion step.</p></article>
+        <article data-reveal><img className="chain-logo" src="https://arjo-defi.vercel.app/brand/arc-logo.jpg" alt="Arc" /><h3>Arc</h3><p>Contracts deploy to Arc, Circle&apos;s stablecoin-native L1. Milestone execution and payment are on-chain.</p></article>
+        <article data-reveal><h3>Verified on-chain</h3><p>Every agreement finalization and settlement event is publicly verifiable.</p><a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">[ View on Arc Explorer ↗ ]</a></article>
+      </div>
     </section>
     <section className="landing-cta" data-reveal><div><h2>Start on Arc Testnet.</h2><p>Mainnet migration underway. Agreements drafted today carry forward.</p></div><div className="landing-cta-actions"><button onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>Draft an agreement <span aria-hidden>↗</span></button><button className="secondary" onClick={() => { setAuthMode("register"); setMessage(""); }}>Join the mainnet waitlist</button></div></section>
-    <footer className="site-footer" id="support" data-reveal><div><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a></div><nav><a href="#how-it-works">Platform</a><a href="#principles">Principles</a><a href="#how-it-works" onClick={event => { event.preventDefault(); setAuthMode("register"); setMessage(""); }}>Get started</a></nav><small>Arc Testnet · Mainnet migration in progress.</small></footer>
+    <footer className="site-footer" id="support" data-reveal><div><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a></div><nav><a href="#how-it-works">Platform</a><a href="#settlement-infrastructure">Settlement</a><a href="#how-it-works" onClick={event => { event.preventDefault(); setAuthMode("register"); setMessage(""); }}>Get started</a></nav><small>Arc Testnet · Mainnet migration in progress.</small></footer>
   </main>;
 
   if (pathname.startsWith("/agreements")) return <CommercialWorkflow session={session} onSignOut={signOut} onHome={goHome} />;
