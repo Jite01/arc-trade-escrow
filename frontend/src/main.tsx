@@ -16,11 +16,15 @@ const money = (n: bigint) => formatUnits(n, 6);
 const proposalAmount = (proposal: Proposal) => proposal.totalUSDC;
 const ref = (s?: string | null) => s ? `Ref: ${s.slice(2, 6).toUpperCase()}...${s.slice(-4).toUpperCase()}` : "—";
 const date = (n: bigint) => n === 0n ? "—" : new Date(Number(n) * 1000).toLocaleString();
-const routeParts = window.location.pathname.split("/").filter(Boolean);
-const initialSignin = routeParts[0] === "signin" ? {
-  recipient: routeParts[1] === "public" ? "" : routeParts[1] || "",
-  proposalId: routeParts[1] === "public" ? routeParts[2] || "" : routeParts[2] || routeParts[1] || ""
-} : { recipient: "", proposalId: "" };
+const parseSigninRoute = (pathname: string) => {
+  const routeParts = pathname.split("/").filter(Boolean);
+  if (routeParts[0] !== "signin") return { recipient: "", proposalId: "" };
+  return {
+    recipient: routeParts[1] === "public" ? "" : routeParts[1] || "",
+    proposalId: routeParts[1] === "public" ? routeParts[2] || "" : routeParts[2] || routeParts[1] || ""
+  };
+};
+const initialSignin = parseSigninRoute(window.location.pathname);
 const LAST_COMPANY_KEY = "arc-trade-last-company";
 const isLandingHash = (hash: string) => hash === "#how-it-works" || hash === "#settlement-infrastructure" || hash === "#support";
 const humanizeSlug = (value: string) => value.split("-").filter(Boolean).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
@@ -113,8 +117,8 @@ function ExplainerBoard() {
           </g>
           <g className="atlas-water"><path d="M20 153c10-8 20-8 30 0s20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0"/><path d="M20 168c10-8 20-8 30 0s20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0 20-8 30 0 20 8 30 0"/></g>
           <g className="atlas-rail"><path d="M144 177h252"/><path className="atlas-rail-value" d="M144 177h181"/><circle className="atlas-rail-stop atlas-rail-stop--one" cx="219" cy="177" r="5"/><circle className="atlas-rail-stop atlas-rail-stop--two" cx="324" cy="177" r="5"/><text className="atlas-dollar atlas-dollar--one" x="219" y="178" textAnchor="middle" dominantBaseline="middle">$</text><text className="atlas-dollar atlas-dollar--two" x="324" y="178" textAnchor="middle" dominantBaseline="middle">$</text><circle className="atlas-payment" cx="219" cy="177" r="5"/></g>
-          <g className="atlas-thumbsup atlas-thumbsup--start"><rect x="46" y="55" width="9" height="25" rx="4.5"/><rect x="46" y="76" width="23" height="10" rx="3"/></g>
-          <g className="atlas-thumbsup atlas-thumbsup--end"><rect x="485" y="55" width="9" height="25" rx="4.5"/><rect x="471" y="76" width="23" height="10" rx="3"/></g>
+          <g className="atlas-thumbsup atlas-thumbsup--start"><path className="atlas-thumbsup-outline" d="M51 78V63c0-2 1-4 3-5l5-8c1-2 4-2 5 0 1 1 1 3 0 4l-2 7h11c3 0 5 2 5 5v10c0 7-5 11-12 11H57c-3 0-6-3-6-7z"/><path className="atlas-thumbsup-fingers" d="M66 67h7M66 72h7M66 77h6"/><path className="atlas-thumbsup-cuff" d="M43 75h8v14h-8z"/></g>
+          <g className="atlas-thumbsup atlas-thumbsup--end"><path className="atlas-thumbsup-outline" d="M489 78V63c0-2-1-4-3-5l-5-8c-1-2-4-2-5 0-1 1-1 3 0 4l2 7h-11c-3 0-5 2-5 5v10c0 7 5 11 12 11h4c3 0 6-3 6-7z"/><path className="atlas-thumbsup-fingers" d="M474 67h-7M474 72h-7M474 77h-6"/><path className="atlas-thumbsup-cuff" d="M489 75h8v14h-8z"/></g>
           <g className="atlas-payee"><path d="M405 182v-19c0-7 11-7 11 0v19M398 182h25M401 160h19"/></g>
           <g className="atlas-settled-record"><path d="M71 143h35l9 9v20H71z"/><path d="M106 143v9h9M80 158h25M80 165h18"/></g>
         </svg>
@@ -128,6 +132,7 @@ function App() {
   const [session, setSession] = useState<EmbeddedWalletSession | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [pathname, setPathname] = useState(window.location.pathname);
+  const [search, setSearch] = useState(window.location.search);
   const [marketingHome, setMarketingHome] = useState(() => isLandingHash(window.location.hash));
   const [company, setCompany] = useState<Company | null>(null);
   const [openProposals, setOpenProposals] = useState<Proposal[]>([]);
@@ -139,7 +144,10 @@ function App() {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
-  const [authMode, setAuthMode] = useState<"login" | "register" | null>(null);
+  const [authMode, setAuthMode] = useState<"login" | "register" | null>(() => {
+    if (window.location.pathname === "/login") return new URLSearchParams(window.location.search).get("mode") === "register" ? "register" : "login";
+    return initialSignin.proposalId ? "login" : null;
+  });
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistJoined, setWaitlistJoined] = useState(false);
   const [companyName, setCompanyName] = useState(() => initialSignin.recipient ? humanizeSlug(initialSignin.recipient) : localStorage.getItem(LAST_COMPANY_KEY) || "");
@@ -159,14 +167,18 @@ function App() {
   const timers = useRef<number[]>([]);
 
   const navigate = useCallback((path: string) => {
-    window.history.pushState({}, "", path);
-    setPathname(new URL(path, window.location.origin).pathname);
+    const url = new URL(path, window.location.origin);
+    window.history.pushState({}, "", url);
+    setPathname(url.pathname);
+    setSearch(url.search);
+    setMarketingHome(isLandingHash(url.hash));
   }, []);
   const openCommercial = useCallback(() => { setMarketingHome(false); navigate("/agreements/new"); }, [navigate]);
+  const openLogin = useCallback((mode: "login" | "register" = "login") => { setAuthMode(mode); setMessage(""); navigate(mode === "register" ? "/login?mode=register" : "/login"); }, [navigate]);
   const goHome = useCallback(() => { setMarketingHome(true); navigate("/#how-it-works"); window.setTimeout(() => document.querySelector("#how-it-works")?.scrollIntoView({ behavior: "smooth" }), 0); }, [navigate]);
 
   useEffect(() => {
-    const handleNavigation = () => { setPathname(window.location.pathname); setMarketingHome(isLandingHash(window.location.hash)); };
+    const handleNavigation = () => { setPathname(window.location.pathname); setSearch(window.location.search); setMarketingHome(isLandingHash(window.location.hash)); };
     window.addEventListener("popstate", handleNavigation);
     window.addEventListener("hashchange", handleNavigation);
     return () => { window.removeEventListener("popstate", handleNavigation); window.removeEventListener("hashchange", handleNavigation); };
@@ -300,6 +312,10 @@ function App() {
     }).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (session && pathname === "/login") navigate("/");
+  }, [navigate, pathname, session]);
+
   const signIn = async (mode: CircleLoginMode) => {
     const name = companyName.trim();
     if (!name) { setMessage("Enter your company name to continue."); return; }
@@ -311,6 +327,7 @@ function App() {
       if (mode === "login" && !existing) {
         setAuthMode("register");
         setProfileCheck("new");
+        if (pathname === "/login") navigate("/login?mode=register");
         setMessage("We couldn’t find a company profile with that name. If this is a new profile, continue to create access.");
         return;
       }
@@ -328,7 +345,7 @@ function App() {
       wallet.rememberCredential(record.name, next.credentialId);
       localStorage.setItem(`arc-trade-company:${next.address.toLowerCase()}`, record.name);
       localStorage.setItem(LAST_COMPANY_KEY, record.name);
-      setCompanyName(record.name); setCompany(record); setSession(next); setAuthMode(null); await Promise.all([refreshAgreements(next.address), refreshRegistry(next.address)]);
+      setCompanyName(record.name); setCompany(record); setSession(next); setAuthMode(null); if (pathname === "/login") navigate("/"); await Promise.all([refreshAgreements(next.address), refreshRegistry(next.address)]);
     }
     catch (error) { console.error("Sign-in failed", error); setMessage(errorMessage(error, "signIn")); }
     finally { setBusy(""); }
@@ -444,22 +461,36 @@ function App() {
 
   if (!session && !sessionChecked) return <main className="shell landing-shell app-loading"><div className="loading-card"><span className="mark">AT</span><p className="eyebrow">Arc Trade</p><h1>Opening your trade desk.</h1><p>Checking your secure session…</p></div></main>;
 
+  const invitation = parseSigninRoute(pathname);
+  const activeAuthMode = pathname === "/login"
+    ? new URLSearchParams(search).get("mode") === "register" ? "register" : authMode || "login"
+    : authMode || "login";
+
+  if (session && pathname === "/login") return <main className="shell landing-shell app-loading"><div className="loading-card"><span className="mark">AT</span><p className="eyebrow">Arc Trade</p><h1>Opening your trade desk.</h1><p>Redirecting to your secure workspace…</p></div></main>;
+
+  if (!session && (pathname === "/login" || invitation.proposalId)) return <main className="shell landing-shell auth-shell">
+    <header className="site-header"><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><a className="auth-back" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}>Back to Arc Trade</a></header>
+    <section className="auth-layout"><section className="panel auth-panel standalone-auth">
+      <p className="eyebrow">{invitation.proposalId ? "Proposal invitation" : activeAuthMode === "register" ? "Create access" : "Secure sign in"}</p>
+      <h1>{invitation.proposalId ? `Review the invitation for ${companyName || "your company"}` : activeAuthMode === "register" ? "Create your company access" : "Open your trade desk"}</h1>
+      <p className="notice">{invitation.proposalId ? `You have been invited to review proposal ${invitation.proposalId}. Enter the invited company name to continue.` : activeAuthMode === "register" ? "Your company name identifies the commercial profile. A passkey then secures access to its agreements." : "Enter your company name first. We will check whether the profile exists, then open it with your passkey."}</p>
+      {message && <div className="error" role="alert">{message}</div>}
+      <label className="field-label">Company name<input aria-label="Company name" placeholder="e.g. Northstar Logistics" value={companyName} onChange={event => { setCompanyName(event.target.value); setProfileCheck("unchecked"); setMessage(""); }} autoComplete="organization" /></label>
+      <p className="auth-help">No password is stored here. Your device passkey confirms that you control this company profile.</p>
+      <div className="actions">{activeAuthMode === "register" ? <button disabled={!!busy} onClick={() => void signIn("register")}>{busy ? "Checking profile…" : profileCheck === "new" ? "Continue with passkey" : "Check company name"}</button> : <button disabled={!!busy} onClick={() => void signIn("login")}>{busy ? "Checking profile…" : "Continue with passkey"}</button>}<button className="secondary" disabled={!!busy} onClick={() => goHome()}>Cancel</button></div>
+      {!invitation.proposalId && <p className="auth-switch">{activeAuthMode === "register" ? "Already have company access?" : "New to Arc Trade?"} <button className="quiet" disabled={!!busy} onClick={() => openLogin(activeAuthMode === "register" ? "login" : "register")}>{activeAuthMode === "register" ? "Sign in" : "Create access"}</button></p>}
+    </section><aside className="auth-aside"><p className="eyebrow">Arc Trade access</p><h2>One secure key for the trade desk.</h2><p>Use your company profile to review proposals, negotiate terms, and monitor agreements secured on Arc.</p><ul><li>Passkey secured</li><li>Company-scoped access</li><li>Verifiable settlement records</li></ul></aside></section>
+  </main>;
+
   if (!session || marketingHome) return <main className="shell landing-shell">
-    <header className="site-header"><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><nav className="site-nav"><a href="#how-it-works">Platform</a><a href="#settlement-infrastructure">Settlement</a></nav><button className="secondary" disabled={!!busy} onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>{busy ? "Opening…" : session ? "Draft an agreement" : "Get started"}</button></header>
+    <header className="site-header"><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><nav className="site-nav"><a href="#how-it-works">Platform</a><a href="#settlement-infrastructure">Settlement</a></nav><button className="secondary" disabled={!!busy} onClick={() => session ? openCommercial() : openLogin("register")}>{busy ? "Opening…" : session ? "Draft an agreement" : "Get started"}</button></header>
     <section className="hero-grid">
       <div className="hero">
         <p className="eyebrow">Commercial agreement registry</p>
         <h1>Settlements <em> exactly </em>as agreed.</h1>
         <p className="hero-copy">Before goods move, payment locks. Before payment releases, evidence confirms. Arc Trade turns your commercial negotiation into an executable settlement contract — in USDC, on Arc, without a bank.</p>
         {message && <div className="error">{message}</div>}
-        {authMode === null ? <div className="actions hero-actions"><button disabled={!!busy} onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>Draft an agreement <span aria-hidden>↗</span></button><button className="secondary" disabled={!!busy} onClick={() => session ? setMarketingHome(false) : (setAuthMode("login"), setMessage(""))}>{session ? "Open the trade desk" : "Sign in to the trade desk"}</button></div> : <section className="panel auth-panel">
-          <p className="eyebrow">{initialSignin.proposalId ? "Proposal invitation" : authMode === "register" ? "Create access" : "Sign in"}</p>
-          <h2>{initialSignin.proposalId ? `Review the invitation for ${companyName || "your company"}` : authMode === "register" ? "Create your company access" : "Open your trade desk"}</h2>
-          <p className="notice">{initialSignin.proposalId ? `You have been invited to review proposal ${initialSignin.proposalId}. Enter the invited company name to continue.` : authMode === "register" ? "Your company name identifies the commercial profile. A passkey then secures access to its agreements." : "Enter your company name first. We will check whether the profile exists, then open it with your passkey."}</p>
-          <label className="field-label">Company name<input aria-label="Company name" placeholder="e.g. Northstar Logistics" value={companyName} onChange={event => { setCompanyName(event.target.value); setProfileCheck("unchecked"); setMessage(""); }} autoComplete="organization" /></label>
-          <p className="auth-help">No password is stored here. Your device passkey confirms that you control this company profile.</p>
-          <div className="actions">{authMode === "register" ? <button disabled={!!busy} onClick={() => void signIn("register")}>{busy ? "Checking profile…" : profileCheck === "new" ? "Continue with passkey" : "Check company name"}</button> : <button disabled={!!busy} onClick={() => void signIn("login")}>{busy ? "Checking profile…" : "Continue with passkey"}</button>}<button className="secondary" disabled={!!busy} onClick={() => { setAuthMode(null); setMessage(""); }}>Cancel</button></div>
-        </section>}
+        <div className="actions hero-actions"><button disabled={!!busy} onClick={() => session ? openCommercial() : openLogin("register")}>Draft an agreement <span aria-hidden>↗</span></button><button className="secondary" disabled={!!busy} onClick={() => session ? setMarketingHome(false) : openLogin("login")}>{session ? "Open the trade desk" : "Sign in to the trade desk"}</button></div>
         <div className="trust-row"><span>Passkey secured</span><span>•</span><span>Verifiable agreements</span><span>•</span><span>Documentary settlement</span></div>
       </div>
       <ExplainerBoard />
@@ -479,8 +510,8 @@ function App() {
         <article data-reveal><h3>Verified on-chain</h3><p>Every agreement finalization and settlement event is publicly verifiable.</p><a href="https://testnet.arcscan.app" target="_blank" rel="noreferrer">[ View on Arc Explorer ↗ ]</a></article>
       </div>
     </section>
-    <section className="landing-cta" data-reveal><div><h2>Start on Arc Testnet.</h2><p>Mainnet migration underway. Agreements drafted today carry forward.</p></div><div className="landing-cta-actions"><button onClick={() => session ? openCommercial() : (setAuthMode("register"), setMessage(""))}>Draft an agreement <span aria-hidden>↗</span></button>{waitlistJoined ? <div className="waitlist-success" role="status"><strong>You&apos;re on the list.</strong><span>We&apos;ll let you know when mainnet opens.</span></div> : <form className="waitlist-form" onSubmit={event => { event.preventDefault(); setWaitlistJoined(true); }}><input aria-label="Email address" type="email" placeholder="you@email.com" value={waitlistEmail} onChange={event => setWaitlistEmail(event.target.value)} required /><button className="secondary" type="submit">Join the mainnet waitlist</button></form>}</div></section>
-    <footer className="site-footer" id="support" data-reveal><div><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a></div><nav><a href="#how-it-works">Platform</a><a href="#settlement-infrastructure">Settlement</a><a href="#how-it-works" onClick={event => { event.preventDefault(); setAuthMode("register"); setMessage(""); }}>Get started</a></nav><small>Arc Testnet · Mainnet migration in progress.</small></footer>
+    <section className="landing-cta" data-reveal><div><h2>Start on Arc Testnet.</h2><p>Mainnet migration underway. Agreements drafted today carry forward.</p></div><div className="landing-cta-actions"><button onClick={() => session ? openCommercial() : openLogin("register")}>Draft an agreement <span aria-hidden>↗</span></button>{waitlistJoined ? <div className="waitlist-success" role="status"><strong>You&apos;re on the list.</strong><span>We&apos;ll let you know when mainnet opens.</span></div> : <form className="waitlist-form" onSubmit={event => { event.preventDefault(); setWaitlistJoined(true); }}><input aria-label="Email address" type="email" placeholder="you@email.com" value={waitlistEmail} onChange={event => setWaitlistEmail(event.target.value)} required /><button className="secondary" type="submit">Join the mainnet waitlist</button></form>}</div></section>
+    <footer className="site-footer" id="support" data-reveal><div><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a></div><nav><a href="#how-it-works">Platform</a><a href="#settlement-infrastructure">Settlement</a><a href="/login?mode=register" onClick={event => { event.preventDefault(); openLogin("register"); }}>Get started</a></nav><small>Arc Testnet · Mainnet migration in progress.</small></footer>
   </main>;
 
   if (pathname.startsWith("/agreements")) return <CommercialWorkflow session={session} onSignOut={signOut} onHome={goHome} />;
