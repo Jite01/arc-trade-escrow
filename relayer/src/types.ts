@@ -11,6 +11,7 @@ export type EventType = "MilestoneReleased" | "MilestoneArbitrated" | "Arbitrati
 
 export interface SettlementInput {
   settlementKey: string;
+  logicalSettlementKey: string;
   escrowAddress: string;
   eventType: EventType;
   milestoneIndex: number | null;
@@ -103,6 +104,7 @@ export interface GatewayClient {
 }
 
 export interface BurnIntentAuthorization {
+  eventType: EventType;
   settlementIndex: bigint;
   maxBlockHeight: bigint;
   maxFee: bigint;

@@ -16,6 +16,7 @@ export class TransferDatabase {
   public migrate(): void {
     this.db.exec(`CREATE TABLE IF NOT EXISTS settlements (
       id INTEGER PRIMARY KEY AUTOINCREMENT, settlementKey TEXT NOT NULL UNIQUE, eventType TEXT NOT NULL,
+      logicalSettlementKey TEXT NOT NULL,
       escrowAddress TEXT NOT NULL DEFAULT '', milestoneIndex INTEGER, recipient TEXT NOT NULL, amount TEXT NOT NULL, txHash TEXT NOT NULL,
       blockNumber INTEGER NOT NULL, logIndex INTEGER, status TEXT NOT NULL DEFAULT 'PENDING',
       attemptCount INTEGER NOT NULL DEFAULT 0, nextRetryAt INTEGER, lastAttemptAt INTEGER,
@@ -40,15 +41,18 @@ export class TransferDatabase {
       CREATE INDEX IF NOT EXISTS idx_proposals_recipient ON proposals(recipientCompany);`);
     const columns = this.db.prepare("PRAGMA table_info(settlements)").all() as Array<{name:string}>;
     if (!columns.some((column) => column.name === "escrowAddress")) this.db.exec("ALTER TABLE settlements ADD COLUMN escrowAddress TEXT NOT NULL DEFAULT ''");
+    if (!columns.some((column) => column.name === "logicalSettlementKey")) this.db.exec("ALTER TABLE settlements ADD COLUMN logicalSettlementKey TEXT");
+    this.db.exec("UPDATE settlements SET logicalSettlementKey = lower(escrowAddress) || ':' || coalesce(cast(milestoneIndex as text), 'reclaim') WHERE logicalSettlementKey IS NULL OR logicalSettlementKey = ''");
+    this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_settlements_logical_key ON settlements(logicalSettlementKey)");
     const proposalColumns = this.db.prepare("PRAGMA table_info(proposals)").all() as Array<{name:string}>;
     if (!proposalColumns.some((column) => column.name === "acceptedByCompany")) this.db.exec("ALTER TABLE proposals ADD COLUMN acceptedByCompany TEXT");
     if (!proposalColumns.some((column) => column.name === "acceptedByAddress")) this.db.exec("ALTER TABLE proposals ADD COLUMN acceptedByAddress TEXT");
   }
   public insert(input: SettlementInput, now: number): boolean {
     try { this.db.prepare(`INSERT INTO settlements
-      (settlementKey,escrowAddress,eventType,milestoneIndex,recipient,amount,txHash,blockNumber,logIndex,status,createdAt,updatedAt)
-      VALUES (@settlementKey,@escrowAddress,@eventType,@milestoneIndex,@recipient,@amount,@txHash,@blockNumber,@logIndex,'PENDING',@now,@now)`).run({...input, now}); return true; }
-    catch (e) { if (e instanceof Error && /UNIQUE constraint failed: settlements\.settlementKey/.test(e.message)) return false; throw e; }
+      (settlementKey,logicalSettlementKey,escrowAddress,eventType,milestoneIndex,recipient,amount,txHash,blockNumber,logIndex,status,createdAt,updatedAt)
+      VALUES (@settlementKey,@logicalSettlementKey,@escrowAddress,@eventType,@milestoneIndex,@recipient,@amount,@txHash,@blockNumber,@logIndex,'PENDING',@now,@now)`).run({...input, now}); return true; }
+    catch (e) { if (e instanceof Error && /UNIQUE constraint failed: settlements\.(settlementKey|logicalSettlementKey)/.test(e.message)) return false; throw e; }
   }
   public get(key: string): SettlementRow | undefined { return this.db.prepare("SELECT * FROM settlements WHERE settlementKey=?").get(key) as SettlementRow | undefined; }
   public all(): SettlementRow[] { return this.db.prepare("SELECT * FROM settlements ORDER BY createdAt DESC,id DESC").all() as SettlementRow[]; }
