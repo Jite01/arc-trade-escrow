@@ -32,7 +32,8 @@ The active demo targets Arc Testnet, chain ID `5042002`.
 | Local relayer and proposal registry | <http://localhost:3001> |
 | Arc RPC | <https://rpc.testnet.arc.network> |
 | Legacy demo factory | `0x83720927588845e7e5c6d12d73eccb39ace7c9bb` |
-| Factory deployment block | `56261623` |
+| Legacy factory deployment block | `56261623` |
+| Router-backed production factory | Not yet configured; deploy a fresh factory with `ResolutionRouter` |
 | Reference escrow deployment | `0xc36a8ca590405fa7c9df44c46ff784a33530a4b0` |
 | Reference escrow deployment block | `56256269` |
 | Arc Testnet USDC used by the app | `0x3600000000000000000000000000000000000000` |
@@ -70,9 +71,10 @@ The commercial workflow is the pre-contract negotiation layer:
 2. The parties exchange milestone proposals through the PostgreSQL registry.
 3. The UI shows proposal versions and field-level differences for counteroffers.
 4. Both parties accept the same milestone plan.
-5. The buyer creates the on-chain escrow through the factory.
-6. The backend verifies the deployment transaction and records the contract
-   address and deployment block.
+5. The buyer creates the on-chain escrow through a router-backed factory. The
+   frontend first checks the factory's immutable arbitration authority.
+6. The backend verifies the deployment transaction, factory, router, escrow
+   terms, and records the contract address and deployment block.
 7. The existing on-chain milestone runner takes over.
 
 The commercial registry does not hold settlement funds and does not deploy the
@@ -97,10 +99,26 @@ The nominated resolver is metadata until the Router verifies the exact
 escrow/milestone case and signed decision. The Router does not hold funds,
 discover resolvers, or submit Gateway transfers.
 
+The Router uses one signed authorization model for both ArcTrade's default
+resolver and mutually selected resolvers. Buyer, seller, and resolver sign an
+assignment; the resolver separately signs the recipient decision. EOA
+signatures use strict low-s ECDSA recovery and smart accounts use ERC-1271.
+The case identity is:
+
+```text
+caseId = keccak256(abi.encode(chainId, router, escrow, milestoneIndex))
+```
+
+This matches the current one-shot dispute semantics. A future escrow that
+permits repeated disputes for one milestone needs an explicit dispute nonce and
+a new case schema. See [RESOLUTION_ROUTER.md](RESOLUTION_ROUTER.md) for the
+full authorization model.
+
 ### On-chain settlement workflow
 
-Each factory-created escrow clone stores the buyer, seller, arbitrator,
-operator, total USDC amount, deadlines, and milestone rules. Its lifecycle is:
+Each factory-created escrow clone stores the buyer, seller, fixed Router
+arbitration authority, operator, total USDC amount, deadlines, and milestone
+rules. Its lifecycle is:
 
 1. Propose and approve a milestone array.
 2. Commit the agreement and deposit USDC into the escrow/Gateway flow.
@@ -113,6 +131,26 @@ operator, total USDC amount, deadlines, and milestone rules. Its lifecycle is:
 
 The contracts enforce role and state transitions. The frontend only exposes
 actions allowed by the current participant role and contract state.
+
+### Live Gateway findings
+
+Disposable Arc Testnet validation used a fresh Router-backed escrow and
+confirmed:
+
+- the unchanged escrow accepts the Resolution Router as `arbitrationAddress`;
+- the escrow's ERC-1271 contract-signer response changes from invalid to valid
+  after `authorizeBurnIntent`;
+- Gateway accepts different salts for the same escrow, recipient, and amount;
+- Gateway therefore does not enforce ArcTrade's logical settlement identity;
+- the relayer must enforce one settlement per `(escrow, settlementIndex)`,
+  persist one burn intent/salt, and never blind-replace an uncertain submission;
+- pending Gateway intents reserve liquidity and must be reconciled before any
+  retry or replacement decision.
+
+The live harness is disposable and operational only; its experimental behavior
+is not part of production logic. The relayer validates the live escrow
+settlement, `BurnIntentAuthorized` event, Gateway fee reserve, and block-height
+before submission.
 
 ## Architecture
 
@@ -237,8 +275,12 @@ Create `frontend/.env.local`:
 
 ```dotenv
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
+# The legacy demo factory above is not Router-backed and will be rejected by
+# the commercial deployment preflight. Use a fresh Router-backed factory for
+# the commercial workflow.
 VITE_FACTORY_ADDRESS=0x83720927588845e7e5c6d12d73eccb39ace7c9bb
 VITE_FACTORY_DEPLOYMENT_BLOCK=56261623
+VITE_RESOLUTION_ROUTER_ADDRESS=<deployed-resolution-router-address>
 VITE_RELAYER_BASE_URL=http://localhost:3001
 
 # Required for Circle passkey sign-in
@@ -274,6 +316,8 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/arc_trade
 DATABASE_SSL=false
 PORT=4000
 ARC_RPC_URL=https://rpc.testnet.arc.network
+RESOLUTION_ROUTER_ADDRESS=<deployed-resolution-router-address>
+FACTORY_ADDRESS=<router-backed-factory-address>
 FRONTEND_ORIGIN=http://localhost:5173
 CIRCLE_WALLET_AUTH_SECRET=<openssl rand -hex 32>
 ```
@@ -286,7 +330,7 @@ npm run migrate
 npm run dev
 ```
 
-`npm run migrate` applies the three migrations in order:
+`npm run migrate` applies the four migrations in order:
 
 1. `001_trade_agreements.sql` — agreement and proposal tables.
 2. `002_wallet_auth.sql` — one-time wallet challenges.
@@ -307,8 +351,6 @@ address supplied by the browser.
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `ARC_RPC_URL` | Yes | Arc Testnet JSON-RPC endpoint |
-| `RESOLUTION_ROUTER_ADDRESS` | Yes for commercial deployment | Fixed on-chain arbitration authority |
-| `FACTORY_ADDRESS` | Yes for commercial deployment | Router-backed factory verified by the registry |
 | `ARC_WSS_URL` | No | Optional; HTTP log polling remains the resilient event path |
 | `GATEWAY_API_BASE_URL` | No | Defaults to Circle Testnet Gateway API |
 | `RELAYER_PRIVATE_KEY` | Yes | Server-only key for burn-intent authorization and minting |
@@ -317,6 +359,17 @@ address supplied by the browser.
 | `PORT` / `RELAYER_PORT` | No | Defaults to `3001`; platforms commonly provide `PORT` |
 | `COMMERCIAL_REGISTRY_URL` | No | Backend URL for internal on-chain state callbacks |
 | `COMMERCIAL_REGISTRY_INTERNAL_TOKEN` | No | Shared secret for those callbacks |
+
+### Commercial API (`backend/.env`)
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `RESOLUTION_ROUTER_ADDRESS` | Yes | Fixed on-chain arbitration authority |
+| `FACTORY_ADDRESS` | Yes | Router-backed factory checked during deployment verification |
+| `ARC_RPC_URL` | Yes | Arc Testnet RPC used for deployment verification |
+| `PLATFORM_OPERATOR_ADDRESS` / `OPERATOR_ADDRESS` | Yes | Existing escrow settlement operator |
+| `CIRCLE_WALLET_AUTH_SECRET` | Yes | Server-only wallet challenge secret |
 
 ### Frontend (`frontend/.env.local`)
 
@@ -421,9 +474,27 @@ designed for duplicate coordination.
 
 The commercial API is packaged by `backend/Dockerfile`. Provide a managed
 PostgreSQL database and configure `DATABASE_URL`, `DATABASE_SSL`,
-`FRONTEND_ORIGIN`, `ARC_RPC_URL`, and `CIRCLE_WALLET_AUTH_SECRET`. Run the
-migrations once against the production database before serving traffic. Then
-set the API's HTTPS URL as `VITE_AGREEMENT_API_URL` in the frontend deployment.
+`FRONTEND_ORIGIN`, `ARC_RPC_URL`, `RESOLUTION_ROUTER_ADDRESS`,
+`FACTORY_ADDRESS`, and `CIRCLE_WALLET_AUTH_SECRET`. Run the migrations once
+against the production database before serving traffic. Then set the API's
+HTTPS URL as `VITE_AGREEMENT_API_URL` in the frontend deployment.
+
+### Router-backed factory deployment
+
+Deploy the Router first, then deploy a new factory with
+`RESOLUTION_ROUTER_ADDRESS` set. The existing factory contract is unchanged;
+only its immutable constructor value determines whether its clones are
+Router-backed. Do not point the commercial API or frontend at the legacy demo
+factory. The deployment scripts are:
+
+```sh
+forge script script/DeployResolutionRouter.s.sol:DeployResolutionRouter --rpc-url "$ARC_RPC_URL" --broadcast
+forge script script/DeployDocumentaryTradeEscrowFactory.s.sol:DeployDocumentaryTradeEscrowFactory --rpc-url "$ARC_RPC_URL" --broadcast
+```
+
+After deployment, set the new Router and factory addresses in the backend and
+frontend environments, regenerate deployment manifests where applicable, and
+record the factory deployment block for event indexing.
 
 ## Testing and checks
 
@@ -461,13 +532,44 @@ TypeScript build.
 - Keep `RELAYER_PRIVATE_KEY`, `CIRCLE_WALLET_AUTH_SECRET`, database URLs, and
   deployment keys outside the repository.
 - The relayer resumes non-terminal settlement rows after restart and retries
-  transient Gateway failures. A transfer whose Gateway outcome is unknown is
-  marked for manual recovery rather than blindly submitted again.
+  transient Gateway failures. Settlement rows are keyed by
+  `(escrow, settlementIndex)` and protected by a persistent lease. A transfer
+  whose Gateway outcome is unknown is marked `RECONCILIATION_REQUIRED` rather
+  than blindly submitted again. Known transfer IDs are recovered through the
+  Gateway status endpoint; pending intents are persisted and retried without a
+  new salt.
+- A persisted burn intent is written before authorization/submission, and its
+  exact salt, fee, block height, recipient, and amount are reused across
+  restart/retry. `SUBMITTING`, `GATEWAY_PENDING`, and
+  `RECONCILIATION_REQUIRED` are operational recovery states, not replacement
+  authorization paths.
+- Gateway accepts distinct salts for otherwise identical transfers. Logical
+  uniqueness is therefore an ArcTrade relayer invariant, not a Gateway
+  invariant. The operator key remains capable of direct contract
+  authorization; production monitoring and key controls must protect that
+  boundary.
 - `config.json` and `relayer/config.json` are generated from deployment
   broadcasts. Regenerate them after contract changes or a new deployment.
 - The frontend uses Arc Testnet chain ID `5042002`; do not point it at a
   different chain without regenerating deployment configuration and reviewing
   Gateway addresses.
+
+## Readiness boundaries
+
+The repository has local contract, relayer, backend, and frontend coverage,
+including a factory-created Router-to-escrow resolution test. The live Gateway
+evidence comes from the disposable Arc Testnet harness described above. Before
+production or mainnet use:
+
+- deploy and configure a fresh Router-backed factory;
+- provide the commercial resolution service that collects resolver assignment
+  and decision signatures for each disputed case;
+- use one shared persistent relayer database or an equivalent distributed
+  coordination mechanism;
+- add finalized-block/reorg rollback handling to the event indexer;
+- define monitoring and manual procedures for unknown Gateway submissions,
+  pending liquidity reservations, operator key failure, and Gateway status
+  drift.
 
 ## Submission material
 
