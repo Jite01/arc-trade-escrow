@@ -28,6 +28,8 @@ The active demo targets Arc Testnet, chain ID `5042002`.
 | --- | --- |
 | Frontend | <https://arc-trade-escrow.vercel.app> |
 | Hosted relayer and proposal registry | <https://arc-trade-escrow-relayer-production-56a0.up.railway.app> |
+| Commercial registry backend | <https://arc-trade-commercial-registry-production.up.railway.app> |
+| Relayer failover host B | <https://arc-trade-escrow-relayer-b-production.up.railway.app> |
 | Local frontend | <http://localhost:5173> |
 | Local relayer and proposal registry | <http://localhost:3001> |
 | Arc RPC | <https://rpc.testnet.arc.network> |
@@ -467,6 +469,13 @@ Configure `ARC_RPC_URL`, `GATEWAY_API_BASE_URL`, and
 Railway supplies `PORT`; the relayer honors it automatically. Use `/healthz`
 for platform health checks and `/status` to confirm that initialization has
 completed.
+
+The current distributed test deployment uses two separate Railway services,
+with stable IDs `arc-relayer-a` and `arc-relayer-b`, coordinated through the
+commercial registry's PostgreSQL-backed claim table. The disposable deployment
+currently sets `SKIP_HISTORICAL_SWEEP=true` because Arc Testnet RPC timed out on
+the historical 500-block query; new confirmed events are still polled normally.
+Run a bounded backfill before relying on the service for older settlements.
 
 ### Relayer on Render
 
