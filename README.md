@@ -472,10 +472,11 @@ completed.
 
 The current distributed test deployment uses two separate Railway services,
 with stable IDs `arc-relayer-a` and `arc-relayer-b`, coordinated through the
-commercial registry's PostgreSQL-backed claim table. The disposable deployment
-currently sets `SKIP_HISTORICAL_SWEEP=true` because Arc Testnet RPC timed out on
-the historical 500-block query; new confirmed events are still polled normally.
-Run a bounded backfill before relying on the service for older settlements.
+commercial registry's PostgreSQL-backed claim table. Historical discovery runs
+in the background with bounded RPC requests controlled by `RPC_LOG_CHUNK_SIZE`
+and retries after transient RPC failures, so readiness is not blocked by a
+slow historical sweep. Confirm the sweep has caught up before relying on the
+service for older settlements.
 
 ### Relayer on Render
 
@@ -513,6 +514,33 @@ by `0x5a3b38f486c75444174dc88967ef8de0014134ac`. The deployed factory's
 immutable `arbitrator()` was read on-chain and matched the Router. After any
 future deployment, set the new Router and factory addresses in backend and
 frontend environments, regenerate all manifests, and record the factory block.
+
+### Live Router, relayer, and Gateway validation
+
+The disposable Arc Testnet failover run completed the full path:
+
+```text
+agreement → factory deployment → funding → milestone approval
+          → trigger → dispute → Router resolution → relayer → Gateway settlement
+```
+
+The test used a fresh escrow, not the legacy reference escrow. The key evidence
+was:
+
+| Step | Transaction / identifier |
+| --- | --- |
+| Agreement creation | `0x66d5fb0784cd275438ee01961aa3f0d159ab6bdcdeb4341c48bafc2e71abc8b` |
+| Dispute | `0xd04ad5f435469419321161a0cacbf5f44f0f6f0728032b480542971996013369` |
+| Router resolution | `0x4a3c3b53354d5be6f4d616698111c77f8d4d5d11f0a4955ee886874a3ef51540` |
+| Escrow burn-intent authorization | `0x5f05fef4580c24b282570e6ed7af34b5b26b8ba0d4b4796526c16e43630c1cae` |
+| Gateway transfer ID | `504acd8e-c6f2-4ac6-a310-272343e1fe11` |
+| Finalized Gateway settlement | `0x6a02ac0604a86bfefc969b50f7d3eafbeff97837cb1ddb1ac1780a49a7c3e26f` |
+
+Relayer A was interrupted during settlement and relayer B recovered the same
+logical settlement. Gateway reported `finalized`; exactly one transfer was
+minted, using the persisted burn intent and deterministic salt. The Gateway fee
+was `0.0035 USDC`. This validates failover and idempotency for this scenario;
+it does not make Gateway enforce ArcTrade's logical uniqueness rule.
 
 ## Testing and checks
 
