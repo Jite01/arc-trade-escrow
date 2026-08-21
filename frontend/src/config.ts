@@ -9,6 +9,7 @@ const relayerUrl = configuredRelayer && !stalePublicTunnel ? configuredRelayer :
 
 export const config = {
   factoryAddress: import.meta.env.VITE_FACTORY_ADDRESS || generated.FACTORY_ADDRESS,
+  resolutionRouterAddress: import.meta.env.VITE_RESOLUTION_ROUTER_ADDRESS || generated.RESOLUTION_ROUTER_ADDRESS,
   factoryAbi: generated.FACTORY_ABI,
   escrowAbi: import.meta.env.VITE_CONTRACT_ABI ? JSON.parse(import.meta.env.VITE_CONTRACT_ABI) : generated.CONTRACT_ABI,
   rpcUrl,

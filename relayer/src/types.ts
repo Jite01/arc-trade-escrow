@@ -23,6 +23,7 @@ export interface SettlementInput {
   txHash: string;
   blockNumber: number;
   logIndex: number | null;
+  blockHash: string | null;
 }
 
 export interface SettlementRow extends SettlementInput {
@@ -53,18 +54,27 @@ export interface ChainLog {
   blockNumber: number;
   logIndex?: number;
   removed?: boolean;
+  blockHash?: string;
 }
 
 export interface LogProvider {
   getBlockNumber(): Promise<number>;
   getCode(address: string): Promise<string>;
+  getBlockHash?(blockNumber: number): Promise<string | null>;
+  getFactoryArbitrator?(factoryAddress: string): Promise<string>;
   getAvailableBalance?(token: string, depositor: string): Promise<bigint>;
   getLogs(filter: { address: string; fromBlock: number; toBlock: number; topics: readonly (readonly string[])[] }): Promise<ChainLog[]>;
+}
+
+export interface SettlementCoordinator {
+  claim(logicalSettlementKey: string, ownerId: string): Promise<boolean>;
+  complete(logicalSettlementKey: string, ownerId: string): Promise<void>;
 }
 
 export interface EventSource {
   subscribe(topic: string, listener: (log: ChainLog) => void): void;
   addAddress(address: string): void;
+  removeAddress?(address: string): void;
   start?(fromBlock: number): void | Promise<void>;
   unsubscribe(): void;
 }

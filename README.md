@@ -33,13 +33,16 @@ The active demo targets Arc Testnet, chain ID `5042002`.
 | Arc RPC | <https://rpc.testnet.arc.network> |
 | Legacy demo factory | `0x83720927588845e7e5c6d12d73eccb39ace7c9bb` |
 | Legacy factory deployment block | `56261623` |
-| Router-backed production factory | Not yet configured; deploy a fresh factory with `ResolutionRouter` |
+| Resolution Router | `0xa2110cfa087542bdf67b8774b0ed064f4d080755` |
+| Router-backed testnet factory | `0xc0d427ee142d5e74be2a5805e0924adea3e2a2c2` |
+| Router-backed testnet factory deployment block | `58181125` |
 | Reference escrow deployment | `0xc36a8ca590405fa7c9df44c46ff784a33530a4b0` |
 | Reference escrow deployment block | `56256269` |
 | Arc Testnet USDC used by the app | `0x3600000000000000000000000000000000000000` |
 
-The factory address, ABI, event topics, and deployment blocks are also stored
-in the generated `config.json` and `relayer/config.json`. Treat those files as
+The factory address, Router address, ABI, event topics, and deployment blocks are
+also stored in the generated `config.json`, `frontend/config.json`, and
+`relayer/config.json`. Treat those files as
 deployment artifacts, not hand-maintained application configuration.
 
 ## Product flows
@@ -267,7 +270,8 @@ files with:
 ```
 
 That script expects Foundry broadcast output for the Arc Testnet deployment and
-rewrites `config.json` and `relayer/config.json`.
+rewrites all three generated manifests. Set `RESOLUTION_ROUTER_ADDRESS` when
+running it; a Router address is required for a production factory manifest.
 
 ### 3. Configure and start the frontend
 
@@ -275,12 +279,9 @@ Create `frontend/.env.local`:
 
 ```dotenv
 VITE_ARC_RPC_URL=https://rpc.testnet.arc.network
-# The legacy demo factory above is not Router-backed and will be rejected by
-# the commercial deployment preflight. Use a fresh Router-backed factory for
-# the commercial workflow.
-VITE_FACTORY_ADDRESS=0x83720927588845e7e5c6d12d73eccb39ace7c9bb
-VITE_FACTORY_DEPLOYMENT_BLOCK=56261623
-VITE_RESOLUTION_ROUTER_ADDRESS=<deployed-resolution-router-address>
+VITE_FACTORY_ADDRESS=0xc0d427ee142d5e74be2a5805e0924adea3e2a2c2
+VITE_FACTORY_DEPLOYMENT_BLOCK=58181125
+VITE_RESOLUTION_ROUTER_ADDRESS=0xa2110cfa087542bdf67b8774b0ed064f4d080755
 VITE_RELAYER_BASE_URL=http://localhost:3001
 
 # Required for Circle passkey sign-in
@@ -352,6 +353,10 @@ address supplied by the browser.
 | --- | --- | --- |
 | `ARC_RPC_URL` | Yes | Arc Testnet JSON-RPC endpoint |
 | `ARC_WSS_URL` | No | Optional; HTTP log polling remains the resilient event path |
+| `FACTORY_ADDRESS` | No | Optional assertion against the generated Router-backed factory |
+| `RESOLUTION_ROUTER_ADDRESS` | No | Optional assertion against the generated Router address |
+| `CONFIRMATION_DEPTH` | No | Blocks required before events enter settlement processing; defaults to `12` |
+| `REORG_LOOKBACK_BLOCKS` | No | Historical overlap used to replay logs after a short reorg; defaults to `48` |
 | `GATEWAY_API_BASE_URL` | No | Defaults to Circle Testnet Gateway API |
 | `RELAYER_PRIVATE_KEY` | Yes | Server-only key for burn-intent authorization and minting |
 | `OPERATOR_PRIVATE_KEY` | Fallback | Legacy alias accepted when `RELAYER_PRIVATE_KEY` is absent |
@@ -368,6 +373,7 @@ address supplied by the browser.
 | `RESOLUTION_ROUTER_ADDRESS` | Yes | Fixed on-chain arbitration authority |
 | `FACTORY_ADDRESS` | Yes | Router-backed factory checked during deployment verification |
 | `ARC_RPC_URL` | Yes | Arc Testnet RPC used for deployment verification |
+| `ARC_CHAIN_ID` | No | Expected chain ID; defaults to Arc Testnet `5042002` |
 | `PLATFORM_OPERATOR_ADDRESS` / `OPERATOR_ADDRESS` | Yes | Existing escrow settlement operator |
 | `CIRCLE_WALLET_AUTH_SECRET` | Yes | Server-only wallet challenge secret |
 
@@ -492,9 +498,12 @@ forge script script/DeployResolutionRouter.s.sol:DeployResolutionRouter --rpc-ur
 forge script script/DeployDocumentaryTradeEscrowFactory.s.sol:DeployDocumentaryTradeEscrowFactory --rpc-url "$ARC_RPC_URL" --broadcast
 ```
 
-After deployment, set the new Router and factory addresses in the backend and
-frontend environments, regenerate deployment manifests where applicable, and
-record the factory deployment block for event indexing.
+The current disposable deployment is recorded above. Its deployment transaction
+is `0xe68c9f11ea2d27cda687b230829564b31db890e541f144b98159ab713a3d4c13`, sent
+by `0x5a3b38f486c75444174dc88967ef8de0014134ac`. The deployed factory's
+immutable `arbitrator()` was read on-chain and matched the Router. After any
+future deployment, set the new Router and factory addresses in backend and
+frontend environments, regenerate all manifests, and record the factory block.
 
 ## Testing and checks
 
@@ -548,8 +557,13 @@ TypeScript build.
   invariant. The operator key remains capable of direct contract
   authorization; production monitoring and key controls must protect that
   boundary.
-- `config.json` and `relayer/config.json` are generated from deployment
-  broadcasts. Regenerate them after contract changes or a new deployment.
+- `config.json`, `frontend/config.json`, and `relayer/config.json` are generated
+  from deployment broadcasts. Regenerate them after contract changes or a new
+  deployment.
+- Settlement events are processed only after `CONFIRMATION_DEPTH` blocks. The
+  source block hash is persisted; if a later reconciliation observes that the
+  source block changed, the row is moved to `RECONCILIATION_REQUIRED` and is
+  never automatically paid again.
 - The frontend uses Arc Testnet chain ID `5042002`; do not point it at a
   different chain without regenerating deployment configuration and reviewing
   Gateway addresses.
@@ -564,12 +578,58 @@ production or mainnet use:
 - deploy and configure a fresh Router-backed factory;
 - provide the commercial resolution service that collects resolver assignment
   and decision signatures for each disputed case;
-- use one shared persistent relayer database or an equivalent distributed
-  coordination mechanism;
-- add finalized-block/reorg rollback handling to the event indexer;
+- for one host, use one persistent shared SQLite database; for separate hosts,
+  use `RELAYER_COORDINATION_MODE=distributed` with the PostgreSQL-backed
+  commercial registry coordination endpoints and a stable instance ID;
+- treat distributed claims as fail-closed: a crash or unknown Gateway outcome
+  keeps the logical settlement claimed until reconciliation, rather than
+  allowing a second host to create another intent;
 - define monitoring and manual procedures for unknown Gateway submissions,
   pending liquidity reservations, operator key failure, and Gateway status
   drift.
+
+### Relayer incident recovery
+
+Distributed claims are deliberately fail-closed. If a relayer host dies while a
+settlement is in progress, stop or quarantine the old host before recovery.
+Use the persisted `(escrow, settlementIndex)` row and burn-intent salt as the
+source of truth; never generate a replacement salt.
+
+For an unknown Gateway submission:
+
+1. Do not retry the POST and do not authorize a second intent.
+2. If a transfer ID was returned or persisted, query the Gateway transfer
+   endpoint until it is finalized, rejected, or definitively absent.
+3. Compare the Gateway transfer specification with the escrow's recorded
+   recipient, amount, source escrow, and persisted burn intent.
+4. If finalized, record/reconcile the mint and mark the logical settlement
+   complete. If rejected or definitively absent, requeue the same persisted
+   intent and salt only after confirming that no executable transfer remains.
+5. If the outcome cannot be established, leave the row in
+   `RECONCILIATION_REQUIRED` and escalate; pending transfers reserve liquidity.
+
+After an operator has completed that Gateway reconciliation and confirmed the
+old host is stopped, release only the affected distributed claim from the
+commercial registry database, for example:
+
+```sql
+DELETE FROM relayer_settlement_claims
+WHERE logical_settlement_key = '<escrow-lowercase>:<milestone-index>'
+  AND completed_at IS NULL;
+```
+
+The replacement host may then replay the on-chain settlement event. It must
+reuse the persisted burn intent if one exists. This SQL is an incident action,
+not an automated lease-expiry mechanism.
+
+For a deep reorg, stop settlement processing, compare the persisted source
+block hash with the canonical chain, and verify the escrow's current milestone
+state and any Gateway transfer status. Rows marked `RECONCILIATION_REQUIRED`
+must not be paid automatically. Reconcile a finalized Gateway transfer against
+the canonical escrow result; otherwise requeue only after the canonical chain
+proves the settlement is still valid and the previous intent is not executable.
+Keep the original row, transaction hash, block hashes, Gateway response, and
+operator decision in the incident record.
 
 ## Submission material
 

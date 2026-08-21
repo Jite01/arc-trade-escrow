@@ -93,6 +93,9 @@ if os.path.isfile(factory_json_path):
     )
     factory_block_raw = factory_receipt["blockNumber"]
     factory_block = int(factory_block_raw, 16) if isinstance(factory_block_raw, str) and factory_block_raw.startswith("0x") else int(factory_block_raw)
+    router_address = os.environ.get("RESOLUTION_ROUTER_ADDRESS", "").strip()
+    if not router_address:
+        raise SystemExit("ERROR: RESOLUTION_ROUTER_ADDRESS is required when generating a Router-backed factory manifest")
     factory_abi_raw = subprocess.check_output(
         ["forge", "inspect", "DocumentaryTradeEscrowFactory", "abi", "--json"],
         text=True
@@ -101,6 +104,7 @@ if os.path.isfile(factory_json_path):
         "FACTORY_ADDRESS": factory_tx["contractAddress"],
         "FACTORY_ABI": json.loads(factory_abi_raw),
         "FACTORY_DEPLOYMENT_BLOCK": factory_block,
+        "RESOLUTION_ROUTER_ADDRESS": router_address,
         "FACTORY_EVENT_TOPIC_CREATED": topic("AgreementCreated(bytes32,address,address,address,address,uint256)")
     })
 
@@ -112,9 +116,15 @@ with open("relayer/config.json", "w") as f:
     json.dump(config, f, indent=2)
     f.write("\n")
 
+if os.path.isdir("frontend"):
+    with open("frontend/config.json", "w") as f:
+        json.dump(config, f, indent=2)
+        f.write("\n")
+
 print()
 print("config.json regenerated successfully")
 print("relayer/config.json synchronized")
+print("frontend/config.json synchronized")
 print("------------------------------------")
 print("CONTRACT_ADDRESS =", contract_address)
 print("DEPLOYMENT_BLOCK =", deployment_block)

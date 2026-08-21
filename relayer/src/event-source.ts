@@ -13,7 +13,11 @@ export class EthersLogProvider implements LogProvider {
   }
   public async getLogs(filter: { address: string; fromBlock: number; toBlock: number; topics: readonly (readonly string[])[] }): Promise<ChainLog[]> {
     const logs = await this.provider.getLogs({ address: filter.address, fromBlock: filter.fromBlock, toBlock: filter.toBlock, topics: filter.topics as string[][] });
-    return logs.map((log) => ({ address: log.address, topics: log.topics, data: log.data, transactionHash: log.transactionHash, blockNumber: log.blockNumber, logIndex: log.index, removed: log.removed }));
+    return logs.map((log) => ({ address: log.address, topics: log.topics, data: log.data, transactionHash: log.transactionHash, blockNumber: log.blockNumber, logIndex: log.index, blockHash: log.blockHash || undefined, removed: log.removed }));
+  }
+  public async getBlockHash(blockNumber: number): Promise<string | null> { return (await this.provider.getBlock(blockNumber))?.hash ?? null; }
+  public async getFactoryArbitrator(factoryAddress: string): Promise<string> {
+    return String(await new Contract(factoryAddress, ["function arbitrator() view returns (address)"], this.provider).arbitrator());
   }
 }
 
@@ -27,6 +31,7 @@ type SubscriptionProvider = JsonRpcProvider | WebSocketProvider;
 export class EthersPollingEventSource implements EventSource {
   private readonly listeners = new Map<string, (log: ChainLog) => void>();
   private cursor = 0;
+  private startBlock = 0;
   private timer: NodeJS.Timeout | undefined;
   private polling = false;
   private stopped = false;
@@ -41,8 +46,10 @@ export class EthersPollingEventSource implements EventSource {
   }
 
   public addAddress(address: string): void { this.addresses.add(address.toLowerCase()); }
+  public removeAddress(address: string): void { this.addresses.delete(address.toLowerCase()); }
 
   public async start(fromBlock: number): Promise<void> {
+    this.startBlock = fromBlock;
     this.cursor = fromBlock;
     this.stopped = false;
     await this.poll();
@@ -62,10 +69,13 @@ export class EthersPollingEventSource implements EventSource {
     this.polling = true;
     try {
       const latest = await this.provider.getBlockNumber();
+      const confirmedLatest = latest - this.config.confirmationDepth;
+      const fromStart = Math.max(this.startBlock, this.cursor - this.config.reorgLookbackBlocks);
+      if (confirmedLatest < fromStart) return;
       const factoryTopics = [[this.config.factoryEventTopic]];
       const escrowTopics = [Object.values(this.config.eventTopics)];
-      for (let from = this.cursor + 1; from <= latest; from += this.chunkSize) {
-        const to = Math.min(from + this.chunkSize - 1, latest);
+      for (let from = fromStart; from <= confirmedLatest; from += this.chunkSize) {
+        const to = Math.min(from + this.chunkSize - 1, confirmedLatest);
         const factoryLogs = await this.provider.getLogs({ address: this.config.factoryAddress, fromBlock: from, toBlock: to, topics: factoryTopics });
         for (const log of factoryLogs) this.listeners.get(log.topics[0]?.toLowerCase())?.(log);
         const logs: ChainLog[] = [];
@@ -74,7 +84,7 @@ export class EthersPollingEventSource implements EventSource {
           logs.push(...await this.provider.getLogs({ address, fromBlock: from, toBlock: to, topics: escrowTopics }));
         }
         for (const log of logs) this.listeners.get(log.topics[0]?.toLowerCase())?.(log);
-        this.cursor = to;
+        this.cursor = Math.max(this.cursor, to);
       }
     } catch (error) {
       console.error("HTTP event polling failed; will retry", error instanceof Error ? error.message : String(error));
@@ -108,6 +118,8 @@ export class EthersContractEventSource implements EventSource {
   public addAddress(_address: string): void {
     throw new Error("WebSocket event source does not support dynamic escrow addresses");
   }
+
+  public removeAddress(_address: string): void {}
 
   public unsubscribe(): void {
     this.stopped = true;

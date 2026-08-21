@@ -6,6 +6,7 @@ export interface RelayerConfig {
   contractAddress: string;
   contractAbi: Interface;
   factoryAddress: string;
+  resolutionRouterAddress: string;
   factoryAbi: Interface;
   factoryEventTopic: string;
   factoryDeploymentBlock: number;
@@ -22,6 +23,10 @@ export interface RelayerConfig {
   relayerPrivateKey: string;
   relayerPort: number;
   sqlitePath: string;
+  confirmationDepth: number;
+  reorgLookbackBlocks: number;
+  coordinationMode: "shared-sqlite" | "distributed";
+  instanceId: string;
 }
 
 const required = ["ARC_RPC_URL"] as const;
@@ -30,6 +35,7 @@ interface DeploymentConfig {
   CONTRACT_ADDRESS: string;
   CONTRACT_ABI: InterfaceAbi;
   FACTORY_ADDRESS: string;
+  RESOLUTION_ROUTER_ADDRESS: string;
   FACTORY_ABI: InterfaceAbi;
   FACTORY_EVENT_TOPIC_CREATED: string;
   FACTORY_DEPLOYMENT_BLOCK: number;
@@ -97,6 +103,7 @@ function readDeploymentConfig(): DeploymentConfig {
     CONTRACT_ADDRESS: addressValue(raw.CONTRACT_ADDRESS, "CONTRACT_ADDRESS"),
     CONTRACT_ABI: abi as InterfaceAbi,
     FACTORY_ADDRESS: addressValue(raw.FACTORY_ADDRESS, "FACTORY_ADDRESS"),
+    RESOLUTION_ROUTER_ADDRESS: addressValue(raw.RESOLUTION_ROUTER_ADDRESS, "RESOLUTION_ROUTER_ADDRESS"),
     FACTORY_ABI: factoryAbi as InterfaceAbi,
     FACTORY_EVENT_TOPIC_CREATED: topicValue(raw.FACTORY_EVENT_TOPIC_CREATED, "FACTORY_EVENT_TOPIC_CREATED"),
     FACTORY_DEPLOYMENT_BLOCK: deploymentBlockValue(raw.FACTORY_DEPLOYMENT_BLOCK),
@@ -114,6 +121,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
   const deployment = readDeploymentConfig();
   for (const key of required) value(env, key);
   const parsedAbi = deployment.CONTRACT_ABI;
+  const configuredFactory = env.FACTORY_ADDRESS?.trim();
+  if (configuredFactory && configuredFactory.toLowerCase() !== deployment.FACTORY_ADDRESS.toLowerCase()) {
+    throw new Error(`FACTORY_ADDRESS does not match generated deployment config: expected ${deployment.FACTORY_ADDRESS}, got ${configuredFactory}`);
+  }
+  const configuredRouter = env.RESOLUTION_ROUTER_ADDRESS?.trim();
+  if (configuredRouter && configuredRouter.toLowerCase() !== deployment.RESOLUTION_ROUTER_ADDRESS.toLowerCase()) {
+    throw new Error(`RESOLUTION_ROUTER_ADDRESS does not match generated deployment config: expected ${deployment.RESOLUTION_ROUTER_ADDRESS}, got ${configuredRouter}`);
+  }
 
   const port = positiveInteger(env.PORT?.trim() || env.RELAYER_PORT?.trim() || "3001", "PORT/RELAYER_PORT");
   if (port === 0 || port > 65_535) throw new Error("RELAYER_PORT must be between 1 and 65535");
@@ -121,6 +136,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
   const relayerPrivateKey = env.RELAYER_PRIVATE_KEY?.trim() || env.OPERATOR_PRIVATE_KEY?.trim();
   if (!relayerPrivateKey) throw new Error("Missing required configuration value: RELAYER_PRIVATE_KEY or OPERATOR_PRIVATE_KEY");
   const arcRpcUrl = value(env, "ARC_RPC_URL");
+  const confirmationDepth = positiveInteger(env.CONFIRMATION_DEPTH?.trim() || "12", "CONFIRMATION_DEPTH");
+  const reorgLookbackBlocks = positiveInteger(env.REORG_LOOKBACK_BLOCKS?.trim() || String(Math.max(24, confirmationDepth * 4)), "REORG_LOOKBACK_BLOCKS");
+  const coordinationMode = env.RELAYER_COORDINATION_MODE?.trim() === "distributed" ? "distributed" : "shared-sqlite";
+  const instanceId = env.RELAYER_INSTANCE_ID?.trim() || "";
+  if (coordinationMode === "distributed" && (!env.COMMERCIAL_REGISTRY_URL?.trim() || !env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN?.trim() || !instanceId)) {
+    throw new Error("Distributed relayer coordination requires COMMERCIAL_REGISTRY_URL, COMMERCIAL_REGISTRY_INTERNAL_TOKEN, and RELAYER_INSTANCE_ID");
+  }
   const arcWssUrl = env.ARC_WSS_URL?.trim() || undefined;
   try {
     new URL(gatewayApiBaseUrl);
@@ -136,6 +158,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
     contractAddress: deployment.CONTRACT_ADDRESS,
     contractAbi: new Interface(parsedAbi),
     factoryAddress: deployment.FACTORY_ADDRESS,
+    resolutionRouterAddress: deployment.RESOLUTION_ROUTER_ADDRESS,
     factoryAbi: new Interface(deployment.FACTORY_ABI),
     factoryEventTopic: deployment.FACTORY_EVENT_TOPIC_CREATED,
     factoryDeploymentBlock: deployment.FACTORY_DEPLOYMENT_BLOCK,
@@ -155,6 +178,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
     relayerPrivateKey,
     relayerPort: port,
     sqlitePath: env.SQLITE_PATH?.trim() || (env.RAILWAY_VOLUME_MOUNT_PATH?.trim() ? join(env.RAILWAY_VOLUME_MOUNT_PATH.trim(), "relayer.db") : "./relayer.db"),
+    confirmationDepth,
+    reorgLookbackBlocks,
+    coordinationMode,
+    instanceId,
     commercialRegistryUrl: env.COMMERCIAL_REGISTRY_URL?.trim().replace(/\/$/, "") || undefined,
     commercialRegistryToken: env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN?.trim() || undefined
   };

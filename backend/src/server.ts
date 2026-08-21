@@ -3,7 +3,7 @@ import { Pool } from "pg";
 import { createWalletAuth, type WalletRequest } from "./auth.js";
 import { createRepository } from "./repository.js";
 import { validateAgreementInput, validateProposalMilestones, isAddress } from "./validation.js";
-import { createDeploymentVerifier } from "./deploymentVerifier.js";
+import { createDeploymentVerifier, validateDeploymentConfiguration } from "./deploymentVerifier.js";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: Number(process.env.DATABASE_POOL_MAX || 10), ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined });
 const repository = createRepository(pool);
@@ -117,6 +117,30 @@ app.post("/internal/commitment-expired", async (request, response, next) => {
     return response.json({ ok: true });
   } catch (error) { return next(error); }
 });
+app.post("/internal/settlement-claims/claim", async (request, response, next) => {
+  try {
+    if (!process.env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN || request.header("x-registry-token") !== process.env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN) return response.sendStatus(401);
+    const logicalKey = String(request.body?.logicalSettlementKey || "").trim();
+    const ownerId = String(request.body?.ownerId || "").trim();
+    if (!logicalKey || !ownerId || logicalKey.length > 500 || ownerId.length > 200) return response.status(422).json({ error: "logicalSettlementKey and ownerId are required" });
+    const inserted = await pool.query("INSERT INTO relayer_settlement_claims (logical_settlement_key, owner_id) VALUES ($1,$2) ON CONFLICT (logical_settlement_key) DO NOTHING RETURNING logical_settlement_key", [logicalKey, ownerId]);
+    if (inserted.rowCount) return response.json({ acquired: true, completed: false });
+    const existing = await pool.query("SELECT owner_id, completed_at FROM relayer_settlement_claims WHERE logical_settlement_key = $1", [logicalKey]);
+    if (!existing.rowCount) return response.status(409).json({ acquired: false, error: "Settlement claim disappeared during coordination" });
+    const row = existing.rows[0];
+    return response.json({ acquired: String(row.owner_id) === ownerId && !row.completed_at, completed: Boolean(row.completed_at), ownerId: row.owner_id });
+  } catch (error) { return next(error); }
+});
+app.post("/internal/settlement-claims/complete", async (request, response, next) => {
+  try {
+    if (!process.env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN || request.header("x-registry-token") !== process.env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN) return response.sendStatus(401);
+    const logicalKey = String(request.body?.logicalSettlementKey || "").trim();
+    const ownerId = String(request.body?.ownerId || "").trim();
+    if (!logicalKey || !ownerId) return response.status(422).json({ error: "logicalSettlementKey and ownerId are required" });
+    const result = await pool.query("UPDATE relayer_settlement_claims SET completed_at = now() WHERE logical_settlement_key = $1 AND owner_id = $2 AND completed_at IS NULL", [logicalKey, ownerId]);
+    return response.json({ completed: result.rowCount === 1 });
+  } catch (error) { return next(error); }
+});
 app.get("/agreements/:id/diff/:proposalId", agreementGuard, async (request, response, next) => {
   try { return response.json(await repository.diff(String(request.params.id), String(request.params.proposalId))); } catch (error) { return next(error); }
 });
@@ -138,5 +162,13 @@ app.use((error: unknown, _request: Request, response: Response, _next: NextFunct
 });
 
 const port = Number(process.env.PORT || 4000);
-if (process.env.NODE_ENV !== "test") app.listen(port, "0.0.0.0", () => console.log(`Commercial registry listening on ${port}`));
+const isTestRuntime = process.env.NODE_ENV === "test" || process.argv.includes("--test");
+if (!isTestRuntime) {
+  void validateDeploymentConfiguration()
+    .then(() => app.listen(port, "0.0.0.0", () => console.log(`Commercial registry listening on ${port}`)))
+    .catch((error: unknown) => {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+    });
+}
 export { app, pool };

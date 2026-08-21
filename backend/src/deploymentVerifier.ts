@@ -2,6 +2,8 @@ import { Contract, Interface, JsonRpcProvider, id as keccakId, isAddress } from 
 
 const FACTORY_ABI = [
   "function createAgreement(bytes32 id,address seller,uint256 total,uint256 negotiationExpiry,uint256 commitmentWindow,uint256 arbitrationTimeout)",
+  "function arbitrator() view returns (address)",
+  "function operator() view returns (address)",
   "event AgreementCreated(bytes32 indexed id,address indexed escrow,address indexed buyer,address seller,address arbitrator,uint256 createdAt)"
 ];
 const ESCROW_ABI = [
@@ -50,6 +52,26 @@ export function createDeploymentVerifier() {
     if (BigInt(await contract.totalUSDC()) !== usdcUnits(String(agreement.total_usdc))) throw new Error("on-chain totalUSDC mismatch");
     return { contractAddress: escrow, chainId: 5042002, txHash, blockNumber: Number(receipt.blockNumber) };
   };
+}
+
+export async function validateDeploymentConfiguration(): Promise<void> {
+  const rpcUrl = process.env.ARC_RPC_URL || process.env.VITE_ARC_RPC_URL;
+  const factoryAddress = process.env.FACTORY_ADDRESS || process.env.VITE_FACTORY_ADDRESS;
+  const resolutionRouter = process.env.RESOLUTION_ROUTER_ADDRESS || process.env.ROUTER_ADDRESS;
+  if (!rpcUrl) throw new Error("Commercial API startup validation failed: ARC_RPC_URL is required");
+  if (!factoryAddress || !isAddress(factoryAddress)) throw new Error("Commercial API startup validation failed: FACTORY_ADDRESS is required and must be an address");
+  if (!resolutionRouter || !isAddress(resolutionRouter)) throw new Error("Commercial API startup validation failed: RESOLUTION_ROUTER_ADDRESS is required and must be an address");
+  const provider = new JsonRpcProvider(rpcUrl);
+  const expectedChainId = BigInt(process.env.ARC_CHAIN_ID || "5042002");
+  const network = await provider.getNetwork();
+  if (network.chainId !== expectedChainId) throw new Error(`Commercial API startup validation failed: expected chain ${expectedChainId}, connected to ${network.chainId}`);
+  if ((await provider.getCode(factoryAddress)) === "0x") throw new Error(`Commercial API startup validation failed: no factory code at ${factoryAddress}`);
+  if ((await provider.getCode(resolutionRouter)) === "0x") throw new Error(`Commercial API startup validation failed: no Resolution Router code at ${resolutionRouter}`);
+  const factory = new Contract(factoryAddress, FACTORY_ABI, provider);
+  const actualRouter = String(await factory.arbitrator());
+  if (actualRouter.toLowerCase() !== resolutionRouter.toLowerCase()) {
+    throw new Error(`Commercial API startup validation failed: factory ${factoryAddress} references ${actualRouter}, expected ${resolutionRouter}`);
+  }
 }
 
 function usdcUnits(value: string) {

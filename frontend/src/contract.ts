@@ -10,7 +10,13 @@ export type AgreementRecord = { id: string; escrow: string; buyer: string; selle
 export const readProvider = new JsonRpcProvider(config.rpcUrl);
 export const factoryFor = (signer?: CircleSigner) => new Contract(config.factoryAddress, config.factoryAbi, signer || readProvider);
 export const contractFor = (address: string, signer?: CircleSigner) => new Contract(address, config.escrowAbi, signer || readProvider);
-export async function factoryArbitrationAddress(signer?: CircleSigner): Promise<string> { return String(await factoryFor(signer).arbitrator()); }
+export async function factoryArbitrationAddress(signer?: CircleSigner): Promise<string> {
+  const actual = String(await factoryFor(signer).arbitrator());
+  if (actual.toLowerCase() !== config.resolutionRouterAddress.toLowerCase()) {
+    throw new Error(`Factory/router mismatch: configured factory references ${actual}, expected ${config.resolutionRouterAddress}`);
+  }
+  return actual;
+}
 const factoryInterface = new Interface(config.factoryAbi);
 const pick = (value: any, index: number) => value?.[index] ?? value;
 const AGREEMENT_READ_TIMEOUT_MS = 60000;

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { RelayerConfig } from "./config.js";
 import { TransferDatabase } from "./database.js";
 import { DEFAULT_GATEWAY_MAX_BLOCK_HEIGHT, DEFAULT_GATEWAY_MAX_FEE, buildBurnIntent, settlementSalt } from "./onchain.js";
-import type { BurnIntentAuthorization, BurnIntentRequest, ChainLog, EventSource, EventType, GatewayClient, Logger, LogProvider, SettlementExecutor, SettlementInput, SettlementRow } from "./types.js";
+import type { BurnIntentAuthorization, BurnIntentRequest, ChainLog, EventSource, EventType, GatewayClient, Logger, LogProvider, SettlementCoordinator, SettlementExecutor, SettlementInput, SettlementRow } from "./types.js";
 
 const retryDelaySeconds = [30, 120, 600, 1800] as const;
 const claimDurationSeconds = 300;
@@ -11,10 +11,12 @@ const USDC = "0x3600000000000000000000000000000000000000";
 export class Relayer {
   private readonly inFlight = new Set<string>();
   private readonly escrows = new Map<string, number>();
-  private readonly owner = randomUUID();
+  private readonly factoryBlockHashes = new Map<string, string>();
+  private readonly owner: string;
   private retryTimer: NodeJS.Timeout | undefined;
   private active = false;
   private prepared = false;
+  private lastReorgSweep = 0;
 
   public constructor(
     public readonly config: RelayerConfig,
@@ -24,8 +26,9 @@ export class Relayer {
     private readonly gateway: GatewayClient,
     private readonly executor: SettlementExecutor,
     private readonly logger: Logger,
-    private readonly now = () => Math.floor(Date.now() / 1000)
-  ) {}
+    private readonly now = () => Math.floor(Date.now() / 1000),
+    private readonly coordinator?: SettlementCoordinator
+  ) { this.owner = config.instanceId || randomUUID(); }
 
   public get listening() { return this.active; }
 
@@ -62,6 +65,13 @@ export class Relayer {
       try {
         const code = await this.provider.getCode(this.config.factoryAddress);
         if (code === "0x") throw new Error(`No deployed factory code at ${this.config.factoryAddress}`);
+        const routerCode = await this.provider.getCode(this.config.resolutionRouterAddress);
+        if (routerCode === "0x") throw new Error(`No deployed Resolution Router code at ${this.config.resolutionRouterAddress}`);
+        if (!this.provider.getFactoryArbitrator) throw new Error("Relayer provider cannot verify the factory's immutable arbitrator");
+        const factoryRouter = await this.provider.getFactoryArbitrator(this.config.factoryAddress);
+        if (factoryRouter.toLowerCase() !== this.config.resolutionRouterAddress.toLowerCase()) {
+          throw new Error(`Factory/router mismatch: factory ${this.config.factoryAddress} references ${factoryRouter}, expected ${this.config.resolutionRouterAddress}`);
+        }
         this.logger.info("Startup validation succeeded", { attempt });
         return;
       } catch (error) {
@@ -80,7 +90,8 @@ export class Relayer {
   }
 
   public async historicalSweep() {
-    const to = await this.rpcRetry("historical block number", () => this.provider.getBlockNumber());
+    const latest = await this.rpcRetry("historical block number", () => this.provider.getBlockNumber());
+    const to = Math.max(0, latest - this.config.confirmationDepth);
     const factoryTopics = [[this.config.factoryEventTopic]];
     const chunkSize = 500;
     for (let from = this.config.factoryDeploymentBlock; from <= to; from += chunkSize) {
@@ -106,6 +117,7 @@ export class Relayer {
       const address = String(decoded[1]).toLowerCase();
       if (!this.escrows.has(address)) {
         this.escrows.set(address, log.blockNumber);
+        if (log.blockHash) this.factoryBlockHashes.set(address, log.blockHash);
         this.eventSource.addAddress(address);
         this.logger.info("Escrow discovered", { agreementId: String(decoded[0]), escrowAddress: address });
       }
@@ -161,23 +173,59 @@ export class Relayer {
   }
 
   public async processDueRetries() {
+    await this.reconcileReorgedSettlements();
     for (const row of this.database.due(this.now())) await this.initiateSettlement(row.settlementKey);
+  }
+
+  private async reconcileReorgedSettlements() {
+    if (!this.provider.getBlockHash) return;
+    const now = this.now();
+    if (now - this.lastReorgSweep < 30) return;
+    this.lastReorgSweep = now;
+    const latest = await this.provider.getBlockNumber();
+    const confirmed = latest - this.config.confirmationDepth;
+    for (const row of this.database.rowsWithBlockHashes()) {
+      if (row.blockNumber > confirmed || !row.blockHash) continue;
+      const currentHash = await this.provider.getBlockHash(row.blockNumber);
+      if (currentHash && currentHash.toLowerCase() !== row.blockHash.toLowerCase()) {
+        this.database.update(row.settlementKey, { status: "RECONCILIATION_REQUIRED", nextRetryAt: null, gatewayResponse: JSON.stringify({ reason: "source block reorg", recordedBlockHash: row.blockHash, currentBlockHash: currentHash }) }, now);
+        this.logger.error("Settlement source block changed after indexing; manual reconciliation required", { settlementKey: row.settlementKey, blockNumber: row.blockNumber, recordedBlockHash: row.blockHash, currentBlockHash: currentHash });
+      }
+    }
+    for (const [escrowAddress, createdBlock] of this.escrows) {
+      const recordedHash = this.factoryBlockHashes.get(escrowAddress);
+      if (createdBlock > confirmed || !recordedHash) continue;
+      const currentHash = await this.provider.getBlockHash(createdBlock);
+      if (currentHash && currentHash.toLowerCase() !== recordedHash.toLowerCase()) {
+        this.escrows.delete(escrowAddress);
+        this.factoryBlockHashes.delete(escrowAddress);
+        this.eventSource.removeAddress?.(escrowAddress);
+        for (const row of this.database.rowsForEscrow(escrowAddress)) {
+          this.database.update(row.settlementKey, { status: "RECONCILIATION_REQUIRED", nextRetryAt: null, gatewayResponse: JSON.stringify({ reason: "factory deployment block reorg", recordedBlockHash: recordedHash, currentBlockHash: currentHash }) }, now);
+        }
+        this.logger.error("Factory deployment block changed after escrow discovery; removed escrow from monitoring", { escrowAddress, blockNumber: createdBlock, recordedBlockHash: recordedHash, currentBlockHash: currentHash });
+      }
+    }
   }
 
   public async initiateSettlement(key: string) {
     if (this.inFlight.has(key)) return;
     const now = this.now();
-    if (!this.database.claim(key, this.owner, now, claimDurationSeconds)) return;
     const row = this.database.get(key);
-    if (!row) {
-      this.database.releaseClaim(key, this.owner, now);
-      return;
-    }
+    if (!row) return;
+    const claimed = this.coordinator
+      ? await this.coordinator.claim(row.logicalSettlementKey, this.owner)
+      : this.database.claim(key, this.owner, now, claimDurationSeconds);
+    if (!claimed) return;
     this.inFlight.add(key);
     try { await this.submit(row); }
     finally {
       this.inFlight.delete(key);
-      this.database.releaseClaim(key, this.owner, this.now());
+      if (this.coordinator) {
+        if (this.database.get(key)?.status === "MINTED") await this.coordinator.complete(row.logicalSettlementKey, this.owner);
+      } else {
+        this.database.releaseClaim(key, this.owner, this.now());
+      }
     }
   }
 
@@ -332,7 +380,7 @@ export class Relayer {
       const amount = formatUsdc(BigInt(decoded[offset + 1]));
       const settlementKey = `${log.address}:${log.transactionHash}:${log.logIndex ?? 0}:${eventType}:${index ?? "reclaim"}`;
       const logicalSettlementKey = `${log.address.toLowerCase()}:${index === null ? "reclaim" : index}`;
-      return { settlementKey, logicalSettlementKey, escrowAddress: log.address, eventType, milestoneIndex: index, recipient, amount, txHash: log.transactionHash, blockNumber: log.blockNumber, logIndex: log.logIndex ?? null };
+      return { settlementKey, logicalSettlementKey, escrowAddress: log.address, eventType, milestoneIndex: index, recipient, amount, txHash: log.transactionHash, blockNumber: log.blockNumber, logIndex: log.logIndex ?? null, blockHash: log.blockHash ?? null };
     } catch (error) {
       this.logger.error("Unable to decode fund-movement event", { error: String(error) });
       return;

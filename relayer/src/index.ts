@@ -6,6 +6,7 @@ import { loadConfig } from "./config.js";
 import { TransferDatabase } from "./database.js";
 import { EthersLogProvider, EthersPollingEventSource } from "./event-source.js";
 import { CircleGatewayClient } from "./gateway.js";
+import { HttpSettlementCoordinator } from "./coordination.js";
 import { consoleLogger } from "./logger.js";
 import { Relayer } from "./relayer.js";
 import { EthersSettlementExecutor } from "./onchain.js";
@@ -34,6 +35,9 @@ async function main(): Promise<void> {
     rpcRequest.timeout = 30_000;
     const httpProvider = new JsonRpcProvider(rpcRequest, { name: "arc-testnet", chainId: 5_042_002 }, { staticNetwork: true });
     database = new TransferDatabase(config.sqlitePath);
+    const coordinator = config.coordinationMode === "distributed"
+      ? new HttpSettlementCoordinator(config.commercialRegistryUrl!, config.commercialRegistryToken!)
+      : undefined;
     relayer = new Relayer(
       config,
       database,
@@ -41,7 +45,9 @@ async function main(): Promise<void> {
       new EthersPollingEventSource(new EthersLogProvider(httpProvider), config),
       new CircleGatewayClient(config.gatewayApiBaseUrl),
       new EthersSettlementExecutor(config.arcRpcUrl, config.relayerPrivateKey, config),
-      consoleLogger
+      consoleLogger,
+      undefined,
+      coordinator
     );
     server = new StatusServer(relayer, config.relayerPort);
     database.migrate();

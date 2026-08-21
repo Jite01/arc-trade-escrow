@@ -23,6 +23,7 @@ export class TransferDatabase {
       gatewayResponse TEXT, authorizationTxHash TEXT, gatewayTransferId TEXT, attestation TEXT,
       operatorSignature TEXT, mintTxHash TEXT, burnIntentHash TEXT, burnIntentJson TEXT,
       leaseOwner TEXT, leaseUntil INTEGER,
+      blockHash TEXT,
       createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL);
       CREATE INDEX IF NOT EXISTS idx_settlements_retry ON settlements(status,nextRetryAt);`);
     this.db.exec(`CREATE TABLE IF NOT EXISTS companies (
@@ -45,6 +46,7 @@ export class TransferDatabase {
     if (!columns.some((column) => column.name === "logicalSettlementKey")) this.db.exec("ALTER TABLE settlements ADD COLUMN logicalSettlementKey TEXT");
     if (!columns.some((column) => column.name === "leaseOwner")) this.db.exec("ALTER TABLE settlements ADD COLUMN leaseOwner TEXT");
     if (!columns.some((column) => column.name === "leaseUntil")) this.db.exec("ALTER TABLE settlements ADD COLUMN leaseUntil INTEGER");
+    if (!columns.some((column) => column.name === "blockHash")) this.db.exec("ALTER TABLE settlements ADD COLUMN blockHash TEXT");
     this.db.exec("UPDATE settlements SET logicalSettlementKey = lower(escrowAddress) || ':' || coalesce(cast(milestoneIndex as text), 'reclaim') WHERE logicalSettlementKey IS NULL OR logicalSettlementKey = ''");
     this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_settlements_logical_key ON settlements(logicalSettlementKey)");
     const proposalColumns = this.db.prepare("PRAGMA table_info(proposals)").all() as Array<{name:string}>;
@@ -54,7 +56,9 @@ export class TransferDatabase {
   public insert(input: SettlementInput, now: number): boolean {
     try { this.db.prepare(`INSERT INTO settlements
       (settlementKey,logicalSettlementKey,escrowAddress,eventType,milestoneIndex,recipient,amount,txHash,blockNumber,logIndex,status,createdAt,updatedAt)
-      VALUES (@settlementKey,@logicalSettlementKey,@escrowAddress,@eventType,@milestoneIndex,@recipient,@amount,@txHash,@blockNumber,@logIndex,'PENDING',@now,@now)`).run({...input, now}); return true; }
+      VALUES (@settlementKey,@logicalSettlementKey,@escrowAddress,@eventType,@milestoneIndex,@recipient,@amount,@txHash,@blockNumber,@logIndex,'PENDING',@now,@now)`).run({...input, now});
+      this.db.prepare("UPDATE settlements SET blockHash=@blockHash WHERE settlementKey=@settlementKey").run(input);
+      return true; }
     catch (e) { if (e instanceof Error && /UNIQUE constraint failed: settlements\.(settlementKey|logicalSettlementKey)/.test(e.message)) return false; throw e; }
   }
   public get(key: string): SettlementRow | undefined { return this.db.prepare("SELECT * FROM settlements WHERE settlementKey=?").get(key) as SettlementRow | undefined; }
@@ -67,6 +71,8 @@ export class TransferDatabase {
   public markSubmittingForReconciliation(now:number):number { const result=this.db.prepare("UPDATE settlements SET status='RECONCILIATION_REQUIRED',nextRetryAt=NULL,updatedAt=? WHERE status='SUBMITTING' AND (leaseUntil IS NULL OR leaseUntil<=?)").run(now,now); return result.changes; }
   public update(k:string, fields: Record<string, unknown>, now:number):void { const entries=Object.entries(fields); this.db.prepare(`UPDATE settlements SET ${entries.map(([x])=>`${x}=@${x}`).join(",")},updatedAt=@now WHERE settlementKey=@key`).run({...fields,now,key:k}); }
   public counts(): Record<string,number> { const out:Record<string,number>={total:0}; for(const r of this.db.prepare("SELECT status,COUNT(*) count FROM settlements GROUP BY status").all() as Array<{status:string,count:number}>){out.total+=r.count; out[r.status.toLowerCase()]=r.count;} return out; }
+  public rowsWithBlockHashes(): SettlementRow[] { return this.db.prepare("SELECT * FROM settlements WHERE blockHash IS NOT NULL ORDER BY blockNumber,id").all() as SettlementRow[]; }
+  public rowsForEscrow(escrowAddress: string): SettlementRow[] { return this.db.prepare("SELECT * FROM settlements WHERE lower(escrowAddress)=lower(?) ORDER BY id").all(escrowAddress) as SettlementRow[]; }
   public isTerminal(s:SettlementStatus):boolean{return TERMINAL.includes(s);}
   public getCompany(slug: string): CompanyRecord | undefined { return this.db.prepare("SELECT * FROM companies WHERE slug=?").get(companySlug(slug)) as CompanyRecord | undefined; }
   public getCompanyByWallet(walletAddress: string): CompanyRecord | undefined { return this.db.prepare("SELECT * FROM companies WHERE lower(walletAddress)=lower(?)").get(walletAddress) as CompanyRecord | undefined; }
