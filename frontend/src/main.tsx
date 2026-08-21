@@ -11,7 +11,7 @@ import "./styles.css";
 
 const wallet = createCircleEmbeddedWalletAdapter();
 const states = ["Upcoming", "Awaiting submission", "Under review", "Dispute window open", "Payment released", "In dispute", "Resolved"];
-const labels = { PENDING: "Payment processing", RETRYING: "Payment processing", AUTHORIZED: "Payment processing", MINTING: "Payment processing", MINTED: "Payment confirmed", FAILED: "Payment failed — contact support", PERMANENT_FAILURE: "Payment failed — contact support" };
+const labels = { PENDING: "Payment processing", RETRYING: "Payment processing", AUTHORIZED: "Payment processing", SUBMITTING: "Payment submission pending", GATEWAY_PENDING: "Gateway settlement pending", MINTING: "Payment finalising", MINTED: "Payment confirmed", FAILED: "Payment failed — contact support", PERMANENT_FAILURE: "Payment failed — contact support", RECONCILIATION_REQUIRED: "Settlement needs reconciliation" };
 const money = (n: bigint) => formatUnits(n, 6);
 const proposalAmount = (proposal: Proposal) => proposal.totalUSDC;
 const ref = (s?: string | null) => s ? `Ref: ${s.slice(2, 6).toUpperCase()}...${s.slice(-4).toUpperCase()}` : "—";

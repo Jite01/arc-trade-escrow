@@ -6,10 +6,10 @@ import {DocumentaryTradeEscrowFactory} from "../src/DocumentaryTradeEscrowFactor
 
 contract DeployDocumentaryTradeEscrowFactory is Script {
     function run() external returns (DocumentaryTradeEscrowFactory factory) {
-        address arbitrator = vm.envAddress("ARBITRATION_ADDRESS");
+        address router = vm.envAddress("RESOLUTION_ROUTER_ADDRESS");
         address operator = vm.envAddress("OPERATOR_ADDRESS");
         vm.startBroadcast();
-        factory = new DocumentaryTradeEscrowFactory(arbitrator, operator);
+        factory = new DocumentaryTradeEscrowFactory(router, operator);
         vm.stopBroadcast();
     }
 }

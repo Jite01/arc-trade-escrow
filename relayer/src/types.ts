@@ -2,10 +2,13 @@ export type SettlementStatus =
   | "PENDING"
   | "RETRYING"
   | "AUTHORIZED"
+  | "SUBMITTING"
+  | "GATEWAY_PENDING"
   | "MINTING"
   | "MINTED"
   | "FAILED"
-  | "PERMANENT_FAILURE";
+  | "PERMANENT_FAILURE"
+  | "RECONCILIATION_REQUIRED";
 
 export type EventType = "MilestoneReleased" | "MilestoneArbitrated" | "ArbitrationForced" | "FundsReclaimed";
 
@@ -36,6 +39,8 @@ export interface SettlementRow extends SettlementInput {
   mintTxHash: string | null;
   burnIntentHash: string | null;
   burnIntentJson: string | null;
+  leaseOwner: string | null;
+  leaseUntil: number | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -100,7 +105,7 @@ export interface GatewayResult {
 
 export interface GatewayClient {
   submit(request: GatewayTransferRequest): Promise<GatewayResult>;
-  getTransfer?(transferId: string): Promise<GatewayResult>;
+  getTransfer(transferId: string): Promise<GatewayResult>;
 }
 
 export interface BurnIntentAuthorization {

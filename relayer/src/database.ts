@@ -22,6 +22,7 @@ export class TransferDatabase {
       attemptCount INTEGER NOT NULL DEFAULT 0, nextRetryAt INTEGER, lastAttemptAt INTEGER,
       gatewayResponse TEXT, authorizationTxHash TEXT, gatewayTransferId TEXT, attestation TEXT,
       operatorSignature TEXT, mintTxHash TEXT, burnIntentHash TEXT, burnIntentJson TEXT,
+      leaseOwner TEXT, leaseUntil INTEGER,
       createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL);
       CREATE INDEX IF NOT EXISTS idx_settlements_retry ON settlements(status,nextRetryAt);`);
     this.db.exec(`CREATE TABLE IF NOT EXISTS companies (
@@ -42,6 +43,8 @@ export class TransferDatabase {
     const columns = this.db.prepare("PRAGMA table_info(settlements)").all() as Array<{name:string}>;
     if (!columns.some((column) => column.name === "escrowAddress")) this.db.exec("ALTER TABLE settlements ADD COLUMN escrowAddress TEXT NOT NULL DEFAULT ''");
     if (!columns.some((column) => column.name === "logicalSettlementKey")) this.db.exec("ALTER TABLE settlements ADD COLUMN logicalSettlementKey TEXT");
+    if (!columns.some((column) => column.name === "leaseOwner")) this.db.exec("ALTER TABLE settlements ADD COLUMN leaseOwner TEXT");
+    if (!columns.some((column) => column.name === "leaseUntil")) this.db.exec("ALTER TABLE settlements ADD COLUMN leaseUntil INTEGER");
     this.db.exec("UPDATE settlements SET logicalSettlementKey = lower(escrowAddress) || ':' || coalesce(cast(milestoneIndex as text), 'reclaim') WHERE logicalSettlementKey IS NULL OR logicalSettlementKey = ''");
     this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_settlements_logical_key ON settlements(logicalSettlementKey)");
     const proposalColumns = this.db.prepare("PRAGMA table_info(proposals)").all() as Array<{name:string}>;
@@ -56,9 +59,12 @@ export class TransferDatabase {
   }
   public get(key: string): SettlementRow | undefined { return this.db.prepare("SELECT * FROM settlements WHERE settlementKey=?").get(key) as SettlementRow | undefined; }
   public all(): SettlementRow[] { return this.db.prepare("SELECT * FROM settlements ORDER BY createdAt DESC,id DESC").all() as SettlementRow[]; }
-  public nonTerminal(): SettlementRow[] { return this.db.prepare("SELECT * FROM settlements WHERE status NOT IN ('MINTED','FAILED','PERMANENT_FAILURE') ORDER BY id").all() as SettlementRow[]; }
+  public nonTerminal(): SettlementRow[] { return this.db.prepare("SELECT * FROM settlements WHERE status NOT IN ('MINTED','FAILED','PERMANENT_FAILURE','SUBMITTING','RECONCILIATION_REQUIRED') ORDER BY id").all() as SettlementRow[]; }
   public due(now: number): SettlementRow[] { return this.db.prepare("SELECT * FROM settlements WHERE status IN ('PENDING','RETRYING') AND (nextRetryAt IS NULL OR nextRetryAt<=?) ORDER BY id").all(now) as SettlementRow[]; }
   public markAttempt(k:string,n:number,now:number):void { this.db.prepare("UPDATE settlements SET attemptCount=?,lastAttemptAt=?,updatedAt=? WHERE settlementKey=?").run(n,now,now,k); }
+  public claim(k:string,owner:string,now:number,durationSeconds:number):boolean { const result=this.db.prepare("UPDATE settlements SET leaseOwner=?,leaseUntil=?,updatedAt=? WHERE settlementKey=? AND status NOT IN ('MINTED','FAILED','PERMANENT_FAILURE','SUBMITTING','RECONCILIATION_REQUIRED') AND (leaseUntil IS NULL OR leaseUntil<=? OR leaseOwner=? )").run(owner,now+durationSeconds,now,k,now,owner); return result.changes===1; }
+  public releaseClaim(k:string,owner:string,now:number):void { this.db.prepare("UPDATE settlements SET leaseOwner=NULL,leaseUntil=NULL,updatedAt=? WHERE settlementKey=? AND leaseOwner=?").run(now,k,owner); }
+  public markSubmittingForReconciliation(now:number):number { const result=this.db.prepare("UPDATE settlements SET status='RECONCILIATION_REQUIRED',nextRetryAt=NULL,updatedAt=? WHERE status='SUBMITTING' AND (leaseUntil IS NULL OR leaseUntil<=?)").run(now,now); return result.changes; }
   public update(k:string, fields: Record<string, unknown>, now:number):void { const entries=Object.entries(fields); this.db.prepare(`UPDATE settlements SET ${entries.map(([x])=>`${x}=@${x}`).join(",")},updatedAt=@now WHERE settlementKey=@key`).run({...fields,now,key:k}); }
   public counts(): Record<string,number> { const out:Record<string,number>={total:0}; for(const r of this.db.prepare("SELECT status,COUNT(*) count FROM settlements GROUP BY status").all() as Array<{status:string,count:number}>){out.total+=r.count; out[r.status.toLowerCase()]=r.count;} return out; }
   public isTerminal(s:SettlementStatus):boolean{return TERMINAL.includes(s);}

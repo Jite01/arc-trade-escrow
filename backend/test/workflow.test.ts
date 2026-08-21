@@ -5,7 +5,7 @@ import { validateAgreementInput, validateProposalMilestones } from "../src/valid
 
 const address = (last: string) => `0x${last.repeat(40)}`;
 const baseAgreement = () => ({
-  buyerAddress: address("1"), sellerAddress: address("2"), arbitrationAddress: address("3"), operatorAddress: address("4"), createdBy: address("1"),
+  buyerAddress: address("1"), sellerAddress: address("2"), arbitrationAddress: address("3"), operatorAddress: address("4"), createdBy: address("1"), resolutionPolicy: "ARCTRADE_DEFAULT",
   totalUSDC: "12500.00", negotiationExpiry: "2030-01-02T00:00:00.000Z", deliveryDeadline: "2030-02-02T00:00:00.000Z", commitmentWindowSec: 86400, arbitrationTimeoutSec: 172800,
   goodsDescription: "Grade A cocoa beans", transportMode: "sea", originCountry: "GH", originPortCity: "Tema", destinationCountry: "NL", destinationPortCity: "Rotterdam", freightArranger: "seller", insuranceArranger: "seller"
 });
@@ -14,6 +14,14 @@ test("trade value is required and must be greater than zero", () => {
   assert.equal(validateAgreementInput({ ...baseAgreement(), totalUSDC: "0" }, new Date("2029-01-01")).ok, false);
   assert.equal(validateAgreementInput({ ...baseAgreement(), totalUSDC: "" }, new Date("2029-01-01")).ok, false);
   assert.equal(validateAgreementInput({ ...baseAgreement(), totalUSDC: "1.25" }, new Date("2029-01-01")).ok, true);
+});
+
+test("resolution policy separates the router from an optional nominated resolver", () => {
+  assert.equal(validateAgreementInput({ ...baseAgreement() }, new Date("2029-01-01")).ok, true);
+  assert.equal(validateAgreementInput({ ...baseAgreement(), resolutionPolicy: "MUTUAL_RESOLVER", assignedResolverAddress: address("5") }, new Date("2029-01-01")).ok, true);
+  assert.equal(validateAgreementInput({ ...baseAgreement(), resolutionPolicy: "MUTUAL_RESOLVER" }, new Date("2029-01-01")).ok, true);
+  assert.equal(validateAgreementInput({ ...baseAgreement(), assignedResolverAddress: address("5") }, new Date("2029-01-01")).ok, false);
+  assert.equal(validateAgreementInput({ ...baseAgreement(), resolutionPolicy: "MUTUAL_RESOLVER", assignedResolverAddress: address("1") }, new Date("2029-01-01")).ok, false);
 });
 
 test("sea-only delivery terms are absent for non-sea modes", () => {

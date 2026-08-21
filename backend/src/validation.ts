@@ -15,10 +15,17 @@ export function validatePositiveUSDC(value: unknown): ValidationResult {
 export function validateAgreementInput(input: Record<string, unknown>, now = new Date()): ValidationResult {
   const total = validatePositiveUSDC(input.totalUSDC);
   if (!total.ok) return total;
-  for (const field of ["buyerAddress", "sellerAddress", "arbitrationAddress", "operatorAddress", "createdBy"]) {
+  for (const field of ["buyerAddress", "sellerAddress", "operatorAddress", "createdBy"]) {
     if (!isAddress(input[field])) return { ok: false, field, message: `${field} must be a valid wallet address` };
   }
+  if (input.arbitrationAddress !== undefined && !isAddress(input.arbitrationAddress)) return { ok: false, field: "arbitrationAddress", message: "arbitrationAddress must be a valid wallet address when supplied" };
   if (String(input.buyerAddress).toLowerCase() === String(input.sellerAddress).toLowerCase()) return { ok: false, field: "sellerAddress", message: "Buyer and seller must be different wallet addresses" };
+  const resolutionPolicy = String(input.resolutionPolicy || "ARCTRADE_DEFAULT");
+  if (!["ARCTRADE_DEFAULT", "MUTUAL_RESOLVER"].includes(resolutionPolicy)) return { ok: false, field: "resolutionPolicy", message: "Unknown resolution policy" };
+  if (input.assignedResolverAddress !== undefined && input.assignedResolverAddress !== null && input.assignedResolverAddress !== "" && !isAddress(input.assignedResolverAddress)) return { ok: false, field: "assignedResolverAddress", message: "assignedResolverAddress must be a valid wallet address when supplied" };
+  const resolver = String(input.assignedResolverAddress || "").toLowerCase();
+  if (resolutionPolicy === "ARCTRADE_DEFAULT" && resolver) return { ok: false, field: "assignedResolverAddress", message: "The ArcTrade default policy does not use a nominated resolver" };
+  if (resolver && (resolver === String(input.buyerAddress).toLowerCase() || resolver === String(input.sellerAddress).toLowerCase())) return { ok: false, field: "assignedResolverAddress", message: "The nominated resolver must be independent of the buyer and seller" };
   if (!input.goodsDescription || !String(input.goodsDescription).trim()) return { ok: false, field: "goodsDescription", message: "goodsDescription is required" };
   const modes: TransportMode[] = ["sea", "air", "road", "rail", "inland_waterway", "multimodal"];
   if (!modes.includes(input.transportMode as TransportMode)) return { ok: false, field: "transportMode", message: "transportMode is required" };

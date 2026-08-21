@@ -1,5 +1,6 @@
 export type AgreementStatus = "drafting" | "negotiating" | "agreed" | "deploying" | "deployed" | "cancelled";
 export type ProposalStatus = "draft" | "pending" | "superseded" | "accepted" | "rejected" | "expired";
+export type ResolutionPolicy = "ARCTRADE_DEFAULT" | "MUTUAL_RESOLVER";
 
 export type MilestoneInput = {
   description: string;
@@ -14,6 +15,8 @@ export type AgreementInput = {
   buyerAddress: string;
   sellerAddress: string;
   arbitrationAddress: string;
+  resolutionPolicy: ResolutionPolicy;
+  assignedResolverAddress?: string | null;
   operatorAddress: string;
   totalUSDC: string;
   negotiationExpiry: string;

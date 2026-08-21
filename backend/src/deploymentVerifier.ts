@@ -13,7 +13,8 @@ const ESCROW_ABI = [
 export function createDeploymentVerifier() {
   const rpcUrl = process.env.ARC_RPC_URL || process.env.VITE_ARC_RPC_URL;
   const factoryAddress = process.env.FACTORY_ADDRESS || process.env.VITE_FACTORY_ADDRESS;
-  if (!rpcUrl || !factoryAddress || !isAddress(factoryAddress)) return null;
+  const resolutionRouter = process.env.RESOLUTION_ROUTER_ADDRESS || process.env.ROUTER_ADDRESS;
+  if (!rpcUrl || !factoryAddress || !isAddress(factoryAddress) || !resolutionRouter || !isAddress(resolutionRouter)) return null;
   const provider = new JsonRpcProvider(rpcUrl);
   const factory = new Interface(FACTORY_ABI);
   return async (agreement: Record<string, any>, txHash: string) => {
@@ -37,11 +38,12 @@ export function createDeploymentVerifier() {
     for (const log of receipt.logs) { try { const event = factory.parseLog(log as any); if (event?.name === "AgreementCreated") escrow = String(event.args[1]); } catch {} }
     if (!isAddress(escrow) || /^0x0{40}$/i.test(escrow)) throw new Error("Deployment receipt did not contain an escrow address");
     if (await provider.getCode(escrow) === "0x") throw new Error("Verified escrow address has no bytecode");
+    if (await provider.getCode(resolutionRouter) === "0x") throw new Error("Configured Resolution Router has no bytecode");
     const contract = new Contract(escrow, ESCROW_ABI, provider);
     const checks: Array<[string, string, string]> = [
       ["buyerAddress", String(agreement.buyer_address), String(await contract.buyerAddress())],
       ["sellerAddress", String(agreement.seller_address), String(await contract.sellerAddress())],
-      ["arbitrationAddress", String(agreement.arbitration_address), String(await contract.arbitrationAddress())],
+      ["arbitrationAddress", resolutionRouter, String(await contract.arbitrationAddress())],
       ["operatorAddress", (process.env.PLATFORM_OPERATOR_ADDRESS || process.env.OPERATOR_ADDRESS || "0x0bF9683D68c79976281A6a16CFb9A49608a1a37c").toLowerCase(), String(await contract.operatorAddress())]
     ];
     for (const [field, expected, actual] of checks) if (expected.toLowerCase() !== actual.toLowerCase()) throw new Error(`${field} mismatch: expected ${expected}, got ${actual}`);

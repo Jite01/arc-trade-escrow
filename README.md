@@ -31,7 +31,7 @@ The active demo targets Arc Testnet, chain ID `5042002`.
 | Local frontend | <http://localhost:5173> |
 | Local relayer and proposal registry | <http://localhost:3001> |
 | Arc RPC | <https://rpc.testnet.arc.network> |
-| Factory | `0x83720927588845e7e5c6d12d73eccb39ace7c9bb` |
+| Legacy demo factory | `0x83720927588845e7e5c6d12d73eccb39ace7c9bb` |
 | Factory deployment block | `56261623` |
 | Reference escrow deployment | `0xc36a8ca590405fa7c9df44c46ff784a33530a4b0` |
 | Reference escrow deployment block | `56256269` |
@@ -63,8 +63,10 @@ password is stored by the frontend.
 
 The commercial workflow is the pre-contract negotiation layer:
 
-1. The initiating party records the goods, route, delivery terms, parties, and
-   settlement parameters.
+1. The initiating party records the goods, route, delivery terms, parties,
+   resolution policy, and settlement parameters. The escrow arbitration address
+   is always the configured Resolution Router; a resolver wallet is optional
+   policy metadata and can remain unset until the dispute workflow.
 2. The parties exchange milestone proposals through the PostgreSQL registry.
 3. The UI shows proposal versions and field-level differences for counteroffers.
 4. Both parties accept the same milestone plan.
@@ -76,6 +78,24 @@ The commercial workflow is the pre-contract negotiation layer:
 The commercial registry does not hold settlement funds and does not deploy the
 contract. It stores the negotiation record and verifies the resulting Arc
 deployment.
+
+### Frozen resolution architecture
+
+Future production escrows must be created by a factory whose immutable
+`arbitrator` constructor value is the deployed `ResolutionRouter`. The factory
+and escrow ABI remain unchanged; the legacy demo factory above is not a
+router-backed deployment. The router is the on-chain arbitration authority,
+while the case resolver is selected in the commercial/resolution layer and
+authorized with the Router's buyer, seller, and resolver signatures.
+
+```text
+Agreement → Resolution Policy → Router-backed Escrow → Resolution Router
+          → Escrow arbitration → Relayer → Gateway → Settlement
+```
+
+The nominated resolver is metadata until the Router verifies the exact
+escrow/milestone case and signed decision. The Router does not hold funds,
+discover resolvers, or submit Gateway transfers.
 
 ### On-chain settlement workflow
 
@@ -272,6 +292,7 @@ npm run dev
 2. `002_wallet_auth.sql` — one-time wallet challenges.
 3. `003_commercial_corrections.sql` — current status transitions and
    commercial corrections.
+4. `004_resolution_policy.sql` — Router-backed resolution policy metadata.
 
 The API exposes `/healthz`, wallet challenge/verification endpoints, and the
 authenticated `/agreements` resources. The frontend obtains a short-lived
@@ -286,6 +307,8 @@ address supplied by the browser.
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `ARC_RPC_URL` | Yes | Arc Testnet JSON-RPC endpoint |
+| `RESOLUTION_ROUTER_ADDRESS` | Yes for commercial deployment | Fixed on-chain arbitration authority |
+| `FACTORY_ADDRESS` | Yes for commercial deployment | Router-backed factory verified by the registry |
 | `ARC_WSS_URL` | No | Optional; HTTP log polling remains the resilient event path |
 | `GATEWAY_API_BASE_URL` | No | Defaults to Circle Testnet Gateway API |
 | `RELAYER_PRIVATE_KEY` | Yes | Server-only key for burn-intent authorization and minting |
@@ -302,6 +325,7 @@ address supplied by the browser.
 | `VITE_ARC_RPC_URL` | Yes | Browser contract reads |
 | `VITE_FACTORY_ADDRESS` | No | Overrides generated factory address |
 | `VITE_FACTORY_DEPLOYMENT_BLOCK` | No | Overrides generated factory scan start block |
+| `VITE_RESOLUTION_ROUTER_ADDRESS` | Commercial flow | Displays the fixed arbitration authority |
 | `VITE_RELAYER_BASE_URL` | No | Relayer and proposal registry URL |
 | `VITE_AGREEMENT_API_URL` | Commercial flow | PostgreSQL commercial API URL |
 | `VITE_OPERATOR_ADDRESS` | Commercial flow | Operator enforced by the backend and deployment form |

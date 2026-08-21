@@ -9,6 +9,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: Number(
 const repository = createRepository(pool);
 const verifyDeployment = createDeploymentVerifier();
 const platformOperator = (process.env.PLATFORM_OPERATOR_ADDRESS || process.env.OPERATOR_ADDRESS || "0x0bF9683D68c79976281A6a16CFb9A49608a1a37c").toLowerCase();
+const resolutionRouter = (process.env.RESOLUTION_ROUTER_ADDRESS || process.env.ROUTER_ADDRESS || "").toLowerCase();
 const walletAuth = createWalletAuth(pool);
 const app = express();
 app.use(express.json({ limit: "128kb" }));
@@ -48,12 +49,14 @@ app.post("/agreements", async (request: Request, response, next) => {
     const input = request.body as Record<string, unknown>;
     const result = validateAgreementInput(input, new Date());
     if (!result.ok) return response.status(422).json(result);
+    if (!isAddress(resolutionRouter)) return response.status(503).json({ error: "Resolution Router is not configured" });
+    if (input.arbitrationAddress !== undefined && String(input.arbitrationAddress).toLowerCase() !== resolutionRouter) return response.status(422).json({ error: "arbitrationAddress must be the configured Resolution Router" });
     if (String(input.operatorAddress).toLowerCase() !== platformOperator) return response.status(422).json({ error: "operatorAddress must match the platform settlement operator" });
     if (String(input.createdBy || walletRequest.walletAddress).toLowerCase() !== walletRequest.walletAddress) return response.status(403).json({ error: "createdBy must match the authenticated wallet" });
     const buyer = String(input.buyerAddress || "").toLowerCase();
     const seller = String(input.sellerAddress || "").toLowerCase();
     if (walletRequest.walletAddress !== buyer && walletRequest.walletAddress !== seller) return response.status(403).json({ error: "The authenticated wallet must be the buyer or seller" });
-    const agreement = await repository.createAgreement(input as never, walletRequest.walletAddress);
+    const agreement = await repository.createAgreement({ ...input, arbitrationAddress: resolutionRouter, resolutionPolicy: String(input.resolutionPolicy || "ARCTRADE_DEFAULT") } as never, walletRequest.walletAddress);
     return response.status(201).json({ agreementId: agreement.id, referenceCode: agreement.referenceCode, agreement });
   } catch (error) { return next(error); }
 });

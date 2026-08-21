@@ -1,6 +1,9 @@
 import { AbiCoder, Contract, FetchRequest, JsonRpcProvider, Wallet, TypedDataEncoder, getAddress, keccak256, zeroPadValue } from "ethers";
 import type { BurnIntentAuthorization, BurnIntentRequest, BurnIntentSpec, BurnIntentAuthorizationResult, SettlementExecutor } from "./types.js";
 
+export const DEFAULT_GATEWAY_MAX_FEE = 3500n;
+export const DEFAULT_GATEWAY_MAX_BLOCK_HEIGHT = 2n ** 256n - 1n;
+
 const types: Record<string, Array<{name:string;type:string}>> = {
   BurnIntent: [{name:"maxBlockHeight",type:"uint256"},{name:"maxFee",type:"uint256"},{name:"spec",type:"TransferSpec"}],
   TransferSpec: ["version","sourceDomain","destinationDomain","sourceContract","destinationContract","sourceToken","destinationToken","sourceDepositor","destinationRecipient","sourceSigner","destinationCaller","value","salt","hookData"].map((name,i)=>({name,type:["uint32","uint32","uint32","bytes32","bytes32","bytes32","bytes32","bytes32","bytes32","bytes32","bytes32","uint256","bytes32","bytes"][i]}))
