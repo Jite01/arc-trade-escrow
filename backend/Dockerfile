@@ -1,12 +1,12 @@
 FROM node:20-bookworm-slim
 
 WORKDIR /app
-COPY backend/package*.json ./
+COPY package*.json ./
 RUN npm ci
 
-COPY backend/tsconfig.json ./
-COPY backend/src ./src
-COPY backend/migrations ./migrations
+COPY tsconfig.json ./
+COPY src ./src
+COPY migrations ./migrations
 RUN npm run build
 RUN npm prune --omit=dev
 
