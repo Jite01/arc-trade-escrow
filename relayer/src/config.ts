@@ -25,6 +25,7 @@ export interface RelayerConfig {
   sqlitePath: string;
   confirmationDepth: number;
   reorgLookbackBlocks: number;
+  rpcLogChunkSize: number;
   coordinationMode: "shared-sqlite" | "distributed";
   instanceId: string;
 }
@@ -138,6 +139,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
   const arcRpcUrl = value(env, "ARC_RPC_URL");
   const confirmationDepth = positiveInteger(env.CONFIRMATION_DEPTH?.trim() || "12", "CONFIRMATION_DEPTH");
   const reorgLookbackBlocks = positiveInteger(env.REORG_LOOKBACK_BLOCKS?.trim() || String(Math.max(24, confirmationDepth * 4)), "REORG_LOOKBACK_BLOCKS");
+  const rpcLogChunkSize = positiveInteger(env.RPC_LOG_CHUNK_SIZE?.trim() || "100", "RPC_LOG_CHUNK_SIZE");
+  if (rpcLogChunkSize === 0) throw new Error("RPC_LOG_CHUNK_SIZE must be greater than zero");
   const coordinationMode = env.RELAYER_COORDINATION_MODE?.trim() === "distributed" ? "distributed" : "shared-sqlite";
   const instanceId = env.RELAYER_INSTANCE_ID?.trim() || "";
   if (coordinationMode === "distributed" && (!env.COMMERCIAL_REGISTRY_URL?.trim() || !env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN?.trim() || !instanceId)) {
@@ -180,6 +183,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
     sqlitePath: env.SQLITE_PATH?.trim() || (env.RAILWAY_VOLUME_MOUNT_PATH?.trim() ? join(env.RAILWAY_VOLUME_MOUNT_PATH.trim(), "relayer.db") : "./relayer.db"),
     confirmationDepth,
     reorgLookbackBlocks,
+    rpcLogChunkSize,
     coordinationMode,
     instanceId,
     commercialRegistryUrl: env.COMMERCIAL_REGISTRY_URL?.trim().replace(/\/$/, "") || undefined,

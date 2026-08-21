@@ -14,6 +14,8 @@ export class Relayer {
   private readonly factoryBlockHashes = new Map<string, string>();
   private readonly owner: string;
   private retryTimer: NodeJS.Timeout | undefined;
+  private historicalSweepTimer: NodeJS.Timeout | undefined;
+  private historicalSweepRunning = false;
   private active = false;
   private prepared = false;
   private lastReorgSweep = 0;
@@ -34,7 +36,9 @@ export class Relayer {
 
   public async initialize() {
     await this.prepare();
-    const historicalTo = process.env.SKIP_HISTORICAL_SWEEP === "true" ? await this.provider.getBlockNumber() : await this.historicalSweep();
+    const skipHistoricalSweep = process.env.SKIP_HISTORICAL_SWEEP === "true";
+    const latest = await this.provider.getBlockNumber();
+    const historicalTo = Math.max(0, latest - this.config.confirmationDepth);
     this.eventSource.subscribe(this.config.factoryEventTopic, (log) => this.handleFactoryLog(log));
     for (const topic of Object.values(this.config.eventTopics)) this.eventSource.subscribe(topic, (log) => void this.handleLog(log));
     for (const [name, topic] of Object.entries(this.config.onchainEventTopics)) this.eventSource.subscribe(topic, (log) => void this.handleOnchainEvent(name as keyof RelayerConfig["onchainEventTopics"], log));
@@ -42,7 +46,8 @@ export class Relayer {
     this.active = true;
     this.retryTimer = setInterval(() => void this.processDueRetries(), 10_000);
     this.retryTimer.unref();
-    this.logger.info("Relayer initialized", { factoryAddress: this.config.factoryAddress, escrowCount: this.escrows.size, historicalSweep: process.env.SKIP_HISTORICAL_SWEEP === "true" ? "skipped" : "completed" });
+    if (!skipHistoricalSweep) this.scheduleHistoricalSweep(0);
+    this.logger.info("Relayer initialized", { factoryAddress: this.config.factoryAddress, escrowCount: this.escrows.size, historicalSweep: skipHistoricalSweep ? "skipped" : "background" });
   }
 
   public async prepare() {
@@ -86,14 +91,16 @@ export class Relayer {
     this.active = false;
     this.eventSource.unsubscribe();
     if (this.retryTimer) clearInterval(this.retryTimer);
+    if (this.historicalSweepTimer) clearTimeout(this.historicalSweepTimer);
     this.retryTimer = undefined;
+    this.historicalSweepTimer = undefined;
   }
 
   public async historicalSweep() {
     const latest = await this.rpcRetry("historical block number", () => this.provider.getBlockNumber());
     const to = Math.max(0, latest - this.config.confirmationDepth);
     const factoryTopics = [[this.config.factoryEventTopic]];
-    const chunkSize = 500;
+    const chunkSize = this.config.rpcLogChunkSize;
     for (let from = this.config.factoryDeploymentBlock; from <= to; from += chunkSize) {
       const end = Math.min(from + chunkSize - 1, to);
       const logs = await this.rpcRetry(`factory logs ${from}-${end}`, () => this.provider.getLogs({ address: this.config.factoryAddress, fromBlock: from, toBlock: end, topics: factoryTopics }));
@@ -108,6 +115,23 @@ export class Relayer {
       }
     }
     return to;
+  }
+
+  private scheduleHistoricalSweep(delayMs: number): void {
+    if (!this.active || this.historicalSweepTimer) return;
+    this.historicalSweepTimer = setTimeout(() => {
+      this.historicalSweepTimer = undefined;
+      if (this.historicalSweepRunning || !this.active) return;
+      this.historicalSweepRunning = true;
+      void this.historicalSweep()
+        .then((to) => this.logger.info("Historical sweep completed", { toBlock: to }))
+        .catch((error) => {
+          this.logger.warn("Historical sweep failed; retrying in 60 seconds", { error: error instanceof Error ? error.message : String(error) });
+          this.scheduleHistoricalSweep(60_000);
+        })
+        .finally(() => { this.historicalSweepRunning = false; });
+    }, delayMs);
+    this.historicalSweepTimer.unref();
   }
 
   private handleFactoryLog(log: ChainLog): void {
