@@ -32,13 +32,26 @@ export function createRepository(pool: Pool) {
     },
 
     async getAgreement(id: string) {
-      const agreement = await pool.query("SELECT * FROM trade_agreements WHERE id = $1", [id]);
+      const agreement = await pool.query("SELECT * FROM trade_agreements WHERE id::text = $1 OR lower(reference_code) = lower($1) LIMIT 1", [id]);
       if (!agreement.rowCount) return null;
       const mapped = mapAgreement(agreement.rows[0]);
-      const latest = await latestProposal(pool, id);
+      const agreementId = agreement.rows[0].id as string;
+      const latest = await latestProposal(pool, agreementId);
       const proposals = latest ? await milestonesForProposal(pool, latest.id) : [];
-      const finalization = await pool.query("SELECT finalized_payload_hash FROM agreement_finalizations WHERE agreement_id = $1 ORDER BY negotiation_round DESC LIMIT 1", [id]);
+      const finalization = await pool.query("SELECT finalized_payload_hash FROM agreement_finalizations WHERE agreement_id = $1 ORDER BY negotiation_round DESC LIMIT 1", [agreementId]);
       return { ...mapped, finalized_hash: finalization.rowCount ? finalization.rows[0].finalized_payload_hash : null, latestProposal: latest ? { ...latest, milestones: proposals } : null, agreedMilestones: latest?.status === "accepted" ? proposals.map(contractMilestone) : null };
+    },
+
+    async listAgreements(actor: string) {
+      const result = await pool.query(`
+        SELECT * FROM trade_agreements
+        WHERE lower(buyer_address) = lower($1) OR lower(seller_address) = lower($1)
+        ORDER BY updated_at DESC, created_at DESC`, [actor]);
+      return Promise.all(result.rows.map(async row => {
+        const latest = await latestProposal(pool, row.id);
+        const milestones = latest ? await milestonesForProposal(pool, latest.id) : [];
+        return { ...mapAgreement(row), latestProposal: latest ? { ...latest, milestones } : null, agreedMilestones: latest?.status === "accepted" ? milestones.map(contractMilestone) : null };
+      }));
     },
 
     async getProfile(walletAddress: string) {
@@ -209,6 +222,7 @@ export function createRepository(pool: Pool) {
         if (already.rowCount) throw new Error("This party has already accepted this proposal");
         const timestampColumn = lower(actor) === lower(String(agreement.rows[0].buyer_address)) ? "accepted_by_buyer_at" : "accepted_by_seller_at";
         await client.query(`UPDATE proposals SET ${timestampColumn} = now() WHERE id = $1`, [p.id]);
+        const updatedProposal = await client.query("SELECT * FROM proposals WHERE id = $1", [p.id]);
         await client.query("INSERT INTO negotiation_events (agreement_id,event_type,actor_address,proposal_id) VALUES ($1,'accepted',$2,$3)", [id, lower(actor), p.id]);
         const accepted = await client.query("SELECT accepted_by_buyer_at IS NOT NULL AND accepted_by_seller_at IS NOT NULL AS both FROM proposals WHERE id = $1", [p.id]);
         const isAgreed = Boolean(accepted.rows[0].both);
@@ -221,7 +235,7 @@ export function createRepository(pool: Pool) {
         }
         await client.query("COMMIT");
         const milestones = await milestonesForProposal(pool, p.id);
-        return { proposal: { ...mapProposal({ ...p, status: isAgreed ? "accepted" : p.status }), milestones }, agreed: isAgreed, agreedMilestones: isAgreed ? milestones.map(contractMilestone) : null };
+        return { proposal: { ...mapProposal({ ...updatedProposal.rows[0], status: isAgreed ? "accepted" : updatedProposal.rows[0].status }), milestones }, agreed: isAgreed, agreedMilestones: isAgreed ? milestones.map(contractMilestone) : null };
       } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
     },
 

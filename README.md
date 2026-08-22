@@ -57,9 +57,13 @@ deployment artifacts, not hand-maintained application configuration.
 - `/signin/...` handles private proposal invitations and preserves the invited
   company context.
 - `/` after authentication is the trade desk: company profile, proposal board,
-  incoming invitations, live agreements, and test-funds controls.
+  incoming invitations, wallet-scoped live agreements, and test-funds controls.
 - `/agreements/new` is the commercial agreement workflow for capturing goods,
   transport, delivery terms, financial terms, participants, and milestones.
+
+The commercial agreement inbox refreshes wallet-scoped agreements across devices.
+An invited counterparty appears after accepting the invitation and attaching its
+wallet to the agreement.
 
 The login page is intentionally separate from the marketing landing page. A
 company name identifies the profile; the device passkey is the credential. No
@@ -307,6 +311,8 @@ cd frontend
 npm run dev
 ```
 
+Build the frontend from the `frontend/` directory with `npm run build`.
+
 Vite reads environment variables at startup, so restart it after changing
 `.env.local`.
 
@@ -345,11 +351,10 @@ npm run dev
 6. `006_counterparty_onboarding.sql` — commercial profiles and secure
    counterparty invitations; draft agreements may defer one party address.
 
-The API exposes `/healthz`, wallet challenge/verification endpoints, and the
-authenticated `/agreements` resources. The frontend obtains a short-lived
-token by signing a challenge with the Circle smart account. The backend
-verifies that signature through EIP-1271; it does not trust an unsigned wallet
-address supplied by the browser.
+The API exposes `/healthz`, wallet authentication endpoints, and authenticated
+`/agreements` resources. Circle counterfactual smart accounts authenticate with
+validated factory proof; the backend does not trust an unsigned wallet address
+supplied by the browser.
 
 ## Environment reference
 
@@ -411,6 +416,7 @@ The relayer serves JSON over HTTP with permissive CORS for the demo frontend.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/healthz` | Process health, including bootstrap health during configuration failures |
+| `GET` | `/agreements` | List agreements for the authenticated wallet |
 | `GET` | `/status` | Relayer readiness, factory address, uptime, and settlement counts |
 | `GET` | `/transfers` | All settlement lifecycle rows |
 | `GET` | `/transfers/:key` | One settlement row |

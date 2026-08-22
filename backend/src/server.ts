@@ -87,6 +87,7 @@ app.get("/profiles/:walletAddress", async (request, response, next) => {
 app.post("/agreements", async (request: Request, response, next) => {
   try {
     const walletRequest = request as WalletRequest;
+    if (!await repository.getProfile(walletRequest.walletAddress)) return response.status(409).json({ error: "Complete your company profile before creating an agreement" });
     const input = request.body as Record<string, unknown>;
     const result = validateAgreementInput(input, new Date());
     if (!result.ok) return response.status(422).json(result);
@@ -102,6 +103,9 @@ app.post("/agreements", async (request: Request, response, next) => {
   } catch (error) { return next(error); }
 });
 
+app.get("/agreements", async (request: Request, response, next) => {
+  try { return response.json(await repository.listAgreements((request as WalletRequest).walletAddress)); } catch (error) { return next(error); }
+});
 app.get("/agreements/:id", agreementGuard, async (request: Request, response, next) => {
   try { const agreement = await repository.getAgreement(String(request.params.id)); return agreement ? response.json(agreement) : response.status(404).json({ error: "Agreement not found" }); } catch (error) { return next(error); }
 });
@@ -211,7 +215,9 @@ async function agreementGuard(request: Request, response: Response, next: NextFu
     const agreement = await repository.getAgreement(String(request.params.id));
     if (!agreement) { response.status(404).json({ error: "Agreement not found" }); return; }
     const actor = (request as WalletRequest).walletAddress;
+    if (!await repository.getProfile(actor)) { response.status(409).json({ error: "Complete your company profile before accessing agreements" }); return; }
     if (actor !== String(agreement.buyerAddress || "").toLowerCase() && actor !== String(agreement.sellerAddress || "").toLowerCase()) { response.status(403).json({ error: "Only a known party can access this agreement" }); return; }
+    request.params.id = agreement.id;
     next();
   } catch (error) { next(error); }
 }

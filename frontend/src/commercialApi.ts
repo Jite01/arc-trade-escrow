@@ -6,7 +6,7 @@ export type PublicInvitation = { token: string; agreementId: string; referenceCo
 export type CommercialAgreement = {
   id: string; referenceCode: string; contractAddress: string | null; deploymentBlock: number | null; onchainState: string | null; finalized_hash: string | null; buyerAddress: string | null; sellerAddress: string | null; arbitrationAddress: string; resolutionPolicy: "ARCTRADE_DEFAULT" | "MUTUAL_RESOLVER"; assignedResolverAddress: string | null; operatorAddress: string; totalUSDC: string; negotiationExpiry: string; commitmentWindowSec: number; arbitrationTimeoutSec: number; status: string; goodsDescription: string; goodsCategory: string | null; quantity: string | null; quantityUnit: string | null; qualityStandard: string | null; transportMode: string; originCountry: string; originPortCity: string; destinationCountry: string; destinationPortCity: string; incoterm: string | null; deliveryNamedPlace: string | null; deliveryNamedPlaceType: string | null; freightArranger: string; insuranceArranger: string; deliveryDeadline: string; latestProposal: CommercialProposal | null; agreedMilestones: CommercialMilestone[] | null;
 };
-export type CommercialProposal = { id: string; agreementId: string; proposedBy: string; parentProposalId: string | null; proposalHash: string | null; arrayVersion: number; status: string; note: string | null; createdAt: string; milestones: CommercialMilestone[] };
+export type CommercialProposal = { id: string; agreementId: string; proposedBy: string; parentProposalId: string | null; proposalHash: string | null; arrayVersion: number; status: string; note: string | null; createdAt: string; acceptedByBuyerAt?: string | null; acceptedBySellerAt?: string | null; milestones: CommercialMilestone[] };
 export type CommercialDiff = { proposalId: string; previousProposalId: string | null; changedMilestones: Array<{ index: number; description: string; changes: Array<{ field: string; was: unknown; now: unknown }>; warnings: string[] }>; warnings: string[]; note: string | null };
 
 const configuredBaseUrl = (import.meta.env.VITE_AGREEMENT_API_URL || "").trim();
@@ -35,6 +35,7 @@ async function request<T>(path: string, session: EmbeddedWalletSession, init?: R
 }
 
 export const createCommercialAgreement = (session: EmbeddedWalletSession, body: Record<string, unknown>) => request<{ agreementId: string; referenceCode: string; agreement: CommercialAgreement }>("/agreements", { ...session }, { method: "POST", body: JSON.stringify({ ...body, createdBy: session.address }) });
+export const listCommercialAgreements = (session: EmbeddedWalletSession) => request<CommercialAgreement[]>("/agreements", session);
 export const getCommercialAgreement = (session: EmbeddedWalletSession, id: string) => request<CommercialAgreement>(`/agreements/${encodeURIComponent(id)}`, session);
 export const getMyProfile = async (session: EmbeddedWalletSession) => { try { return await request<CommercialProfile>("/profiles/me", session); } catch (error) { if (error instanceof Error && /profile not found/i.test(error.message)) return null; throw error; } };
 export const saveMyProfile = (session: EmbeddedWalletSession, input: { companyName: string; country: string; tradeCategory?: string | null }) => request<CommercialProfile>("/profiles/me", session, { method: "POST", body: JSON.stringify(input) });

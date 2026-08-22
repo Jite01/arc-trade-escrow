@@ -119,6 +119,14 @@ textarea { min-height: 98px; resize: vertical; }
 .workspace-metrics div { display: grid; gap: 4px; min-height: 70px; padding: 3px 0 0 17px; border-right: 1px solid #d6d2c8; }
 .workspace-metrics strong { color: #142231; font-family: "Playfair Display", Georgia, serif; font-size: 31px; line-height: 1; }
 .workspace-metrics span { color: #6d7780; font-size: 11px; line-height: 1.2; }
+.workflow-states { display: grid; grid-template-columns: repeat(3, minmax(135px, 1fr)); border-left: 1px solid #d6d2c8; }
+.workflow-states a { display: grid; gap: 5px; min-height: 92px; padding: 5px 15px 4px; color: inherit; text-decoration: none; border-right: 1px solid #d6d2c8; transition: background .18s ease, color .18s ease, transform .18s ease; }
+.workflow-states a:hover, .workflow-states a:focus-visible { color: #a54a34; background: #fff7ed; transform: translateY(-3px); }
+.workflow-states a.has-work { border-top: 3px solid #b45737; }
+.workflow-states strong { color: #142231; font-family: "Playfair Display", Georgia, serif; font-size: 31px; line-height: 1; }
+.workflow-states span { color: #33414b; font-size: 11px; line-height: 1.2; }
+.workflow-states small { color: #8c9396; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+@media (prefers-reduced-motion: reduce) { .workflow-states a { transition: none; } }
 
 .funding { display: flex; align-items: center; justify-content: space-between; gap: 25px; padding: 24px 27px; border-color: #142231; background: #142231; color: #f4f0e8; }
 .funding .eyebrow { color: #b7dc71; }
@@ -301,6 +309,19 @@ textarea { min-height: 98px; resize: vertical; }
 .outline-button { color: #17251f; background: transparent; border-color: #17251f; box-shadow: none; }
 .outline-button:hover:not(:disabled) { color: #f2ede2; background: #17251f; box-shadow: none; }
 .role-screen { min-height: calc(100vh - 160px); margin-top: 130px; }
+.agreement-inbox { display: grid; gap: 10px; margin: 28px 0; }
+.agreement-inbox-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 20px; width: 100%; padding: 17px 18px; border: 1px solid #cfc9bc; color: #17251f; background: #fffaf1; text-align: left; cursor: pointer; transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+.agreement-inbox-row:hover, .agreement-inbox-row:focus-visible { border-color: #b45737; transform: translateY(-2px); box-shadow: 5px 5px 0 #d9cdbd; }
+.agreement-inbox-row.priority { border-left: 4px solid #b45737; background: #fff5ee; }
+.agreement-inbox-row span { display: grid; gap: 5px; min-width: 0; }
+.agreement-inbox-row strong { font-size: 14px; }
+.agreement-inbox-row small { overflow: hidden; color: #718078; text-overflow: ellipsis; white-space: nowrap; }
+.agreement-inbox-row b { color: #a34d32; font-size: 11px; white-space: nowrap; }
+.inbox-empty { display: grid; gap: 6px; margin: 28px 0; padding: 19px; border: 1px dashed #cfc9bc; color: #718078; }
+.inbox-empty strong { color: #17251f; }
+.commercial-action-status { margin: 22px 0 -12px; padding: 12px 14px; border-left: 3px solid #6d9272; color: #355b3d; background: #e8f0e5; font-size: 13px; }
+.commercial-actions .waiting-copy { margin-right: auto; max-width: 430px; }
+@media (prefers-reduced-motion: reduce) { .agreement-inbox-row { transition: none; } }
 .role-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 45px; }
 .role-options button { display: grid; gap: 13px; min-height: 170px; padding: 25px; color: #17251f; text-align: left; background: #fbf8f1; border: 1px solid #cfc3af; box-shadow: 6px 6px 0 #d8cbb7; }
 .role-options button:hover { color: #f2ede2; background: #17251f; border-color: #17251f; box-shadow: 8px 8px 0 #b45737; transform: translateY(-2px); }
@@ -352,6 +373,7 @@ legend { padding: 0 8px; color: #3f5048; font-size: 12px; font-weight: 700; }
 .summary-row { display: grid; grid-template-columns: 180px 1fr; gap: 20px; padding: 15px 0; border-bottom: 1px solid #cfc3af; }
 .summary-row span { color: #718078; font: 11px "DM Mono", monospace; text-transform: uppercase; }
 .summary-row strong { color: #17251f; font-size: 13px; font-weight: 600; }
+.summary-row strong { overflow-wrap: anywhere; }
 .next-steps { margin-top: 38px; padding: 22px; background: #e2ebe2; border: 1px solid #b9c9b0; }
 .next-steps h2 { margin: 0 0 12px; font-size: 19px; }
 .next-steps ol { display: grid; gap: 10px; margin: 0; padding-left: 20px; color: #3f5048; font-size: 13px; line-height: 1.5; }
@@ -410,6 +432,7 @@ legend { padding: 0 8px; color: #3f5048; font-size: 12px; font-weight: 700; }
 .immutable-warning p { margin: 7px 0 0; color: #795b2c; font-size: 12px; line-height: 1.5; }
 .countdown-copy, .waiting-copy { color: #718078; font-size: 13px; }
 .deployed-state { margin-top: 26px; padding: 16px; background: #e2ebe2; color: #3f5048; font-size: 12px; line-height: 1.5; word-break: break-all; }
+.deployed-state strong { overflow-wrap: anywhere; }
 .deployed-state p { margin-bottom: 0; }
 .commercial-nav-link { margin-left: 15px; color: #b45737; font: 10px "DM Mono", monospace; text-decoration: none; text-transform: uppercase; }
 .commercial-context { display: inline-flex; align-items: center; gap: 10px; color: #718078; font: 10px "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
@@ -418,6 +441,9 @@ legend { padding: 0 8px; color: #3f5048; font-size: 12px; font-weight: 700; }
 
 @media (max-width: 700px) {
   .commercial-shell { padding: 16px; }
+  .commercial-header { gap: 12px; }
+  .commercial-brand, .commercial-signout { flex: 0 0 auto; }
+  .commercial-signout { white-space: nowrap; }
   .commercial-frame, .role-screen { margin-top: 55px; }
   .role-screen { min-height: calc(100vh - 100px); }
   .role-options, .two-fields { grid-template-columns: 1fr; }
@@ -442,6 +468,8 @@ legend { padding: 0 8px; color: #3f5048; font-size: 12px; font-weight: 700; }
   .profile-recovery { grid-template-columns: 1fr; }
   .workspace-hero { padding-top: 42px; }
   .workspace-metrics { width: 100%; grid-template-columns: repeat(3, 1fr); }
+  .workflow-states { width: 100%; grid-template-columns: repeat(3, 1fr); }
+  .workflow-states a { padding-left: 10px; padding-right: 10px; }
   .join-panel { position: static; }
   .window-grid { grid-template-columns: repeat(2, 1fr); }
   .terms { grid-template-columns: 1fr; }
@@ -466,6 +494,9 @@ legend { padding: 0 8px; color: #3f5048; font-size: 12px; font-weight: 700; }
   .workspace-metrics div { padding-left: 10px; }
   .workspace-metrics a { padding-left: 10px; }
   .workspace-metrics strong { font-size: 27px; }
+  .workflow-states { grid-template-columns: 1fr; border-left: 0; gap: 8px; }
+  .workflow-states a { min-height: 70px; padding: 12px 14px; border: 1px solid var(--line); }
+  .workflow-states strong { font-size: 26px; }
   .proposal-main { align-items: flex-start; flex-direction: column; gap: 12px; }
   .proposal-main button { width: 100%; }
   .proposal-letter { inset: 16px 50% auto; max-height: calc(100vh - 32px); }
@@ -474,6 +505,21 @@ legend { padding: 0 8px; color: #3f5048; font-size: 12px; font-weight: 700; }
   .letter-actions button { width: 100%; }
   .share-row { align-items: stretch; flex-direction: column; }
   .recovery-row { flex-direction: column; }
+  .commercial-header { align-items: flex-start; flex-wrap: wrap; padding-bottom: 10px; }
+  .commercial-context { order: 3; width: 100%; max-width: none; margin: 0; padding-top: 8px; border-top: 1px solid #cfc3af; }
+  .commercial-context strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .commercial-frame, .role-screen { width: 100%; margin-bottom: 55px; }
+  .role-screen { margin-top: 45px; }
+  .agreement-inbox-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px 12px; padding: 14px; }
+  .agreement-inbox-row b { grid-column: 1; grid-row: 2; justify-self: start; }
+  .agreement-inbox-row > span:last-child { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+  .load-row, .invite-link-row { display: flex; flex-direction: column; align-items: stretch; max-width: none; }
+  .load-row button, .invite-link-row button { width: 100%; }
+  .inline-money { grid-template-columns: 1fr; gap: 4px; }
+  .inline-money p { margin-top: 0; }
+  .mode-grid { gap: 6px; }
+  .mode-grid button { padding: 9px 5px; }
+  .commercial-actions .waiting-copy { width: 100%; margin: 0; }
   .agreement-row { grid-template-columns: 1fr 20px; gap: 8px; }
   .agreement-row .agreement-index, .agreement-row code { display: none; }
 }
