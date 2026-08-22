@@ -322,6 +322,7 @@ ARC_RPC_URL=https://rpc.testnet.arc.network
 RESOLUTION_ROUTER_ADDRESS=<deployed-resolution-router-address>
 FACTORY_ADDRESS=<router-backed-factory-address>
 FRONTEND_ORIGIN=http://localhost:5173
+PUBLIC_APP_URL=http://localhost:5173
 CIRCLE_WALLET_AUTH_SECRET=<openssl rand -hex 32>
 ```
 
@@ -333,13 +334,16 @@ npm run migrate
 npm run dev
 ```
 
-`npm run migrate` applies the four migrations in order:
+`npm run migrate` applies the six migrations in order:
 
 1. `001_trade_agreements.sql` — agreement and proposal tables.
 2. `002_wallet_auth.sql` — one-time wallet challenges.
 3. `003_commercial_corrections.sql` — current status transitions and
    commercial corrections.
 4. `004_resolution_policy.sql` — Router-backed resolution policy metadata.
+5. `005_relayer_coordination.sql` — distributed relayer settlement claims.
+6. `006_counterparty_onboarding.sql` — commercial profiles and secure
+   counterparty invitations; draft agreements may defer one party address.
 
 The API exposes `/healthz`, wallet challenge/verification endpoints, and the
 authenticated `/agreements` resources. The frontend obtains a short-lived
@@ -376,6 +380,7 @@ address supplied by the browser.
 | `FACTORY_ADDRESS` | Yes | Router-backed factory checked during deployment verification |
 | `ARC_RPC_URL` | Yes | Arc Testnet RPC used for deployment verification |
 | `ARC_CHAIN_ID` | No | Expected chain ID; defaults to Arc Testnet `5042002` |
+| `PUBLIC_APP_URL` | Yes for invitations | Canonical HTTPS frontend origin used to build invite links |
 | `PLATFORM_OPERATOR_ADDRESS` / `OPERATOR_ADDRESS` | Yes | Existing escrow settlement operator |
 | `CIRCLE_WALLET_AUTH_SECRET` | Yes | Server-only wallet challenge secret |
 
@@ -440,10 +445,39 @@ The backend exposes:
 - `GET /agreements/:id/diff/:proposalId`
 - `POST /agreements/:id/deploy-intent`
 - `POST /agreements/:id/deployment-confirmation`
+- `GET /profiles/me`
+- `POST /profiles/me`
+- `GET /profiles/search?q=...`
+- `GET /profiles/:walletAddress`
+- `POST /agreements/:id/invite`
+- `GET /invite/:token` — public, read-only invitation summary
+- `POST /invite/:token/accept`
 
 Agreement resources require a bearer token issued by the wallet challenge
 flow. The internal `/internal/...` callbacks are reserved for the relayer and
 require `COMMERCIAL_REGISTRY_INTERNAL_TOKEN`.
+
+### Counterparty onboarding
+
+Commercial agreement drafts support three ways to attach a known counterparty:
+
+1. Search a commercial profile by company name.
+2. Create a seven-day invitation link and let the counterparty onboard with a
+   passkey.
+3. Paste a wallet address directly; an existing profile is shown when one is
+   available, but a profile is not required for the address path.
+
+All three paths resolve to a wallet address before milestone proposals can be
+sent or an escrow can be deployed. An invitation is created only after the
+draft agreement exists, because it must bind to that agreement. Acceptance is
+an authenticated, atomic first-claim operation; a second wallet cannot attach
+itself to the same missing party. Replacing an invitation explicitly revokes
+the previous token.
+
+The commercial profile records company name, country, optional trade category,
+and a platform-maintained verified-trade count. Profile search is an identity
+convenience only. The wallet address and the agreement's buyer/seller state
+remain the authorization boundary.
 
 ## Deployment
 

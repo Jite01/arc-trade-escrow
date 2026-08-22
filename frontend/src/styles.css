@@ -340,6 +340,14 @@ legend { padding: 0 8px; color: #3f5048; font-size: 12px; font-weight: 700; }
 .money-field input { color: #843d2a; font-size: 26px; font-weight: 700; }
 .identity-note { margin-top: 30px; padding: 14px 16px; color: #718078; background: #e2ebe2; border-left: 3px solid #788d63; font-size: 12px; line-height: 1.7; }
 .identity-note code { color: #3f5048; font-size: 11px; word-break: break-all; }
+.counterparty-picker { position: relative; }
+.search-results { display: grid; gap: 6px; margin-top: 8px; }
+.search-results button { display: grid; gap: 5px; padding: 13px 15px; color: #17251f; text-align: left; background: #fbf8f1; border: 1px solid #cfc3af; box-shadow: none; }
+.search-results button:hover { color: #f2ede2; background: #17251f; border-color: #17251f; box-shadow: 4px 4px 0 #b45737; }
+.search-results button span { color: #718078; font: 11px "DM Mono", monospace; }
+.search-results button:hover span { color: #cfcfc0; }
+.invite-link-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+.invite-link-row input { color: #3f5048; font: 11px "DM Mono", monospace; }
 .review-grid { border-top: 1px solid #cfc3af; }
 .summary-row { display: grid; grid-template-columns: 180px 1fr; gap: 20px; padding: 15px 0; border-bottom: 1px solid #cfc3af; }
 .summary-row span { color: #718078; font: 11px "DM Mono", monospace; text-transform: uppercase; }

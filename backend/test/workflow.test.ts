@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DELIVERY_TERMS, suggestionsForTerm, termsForMode } from "../../shared/terms.js";
-import { validateAgreementInput, validateProposalMilestones } from "../src/validation.js";
+import { validateAgreementInput, validateProfileInput, validateProposalMilestones } from "../src/validation.js";
 
 const address = (last: string) => `0x${last.repeat(40)}`;
 const baseAgreement = () => ({
@@ -14,6 +14,18 @@ test("trade value is required and must be greater than zero", () => {
   assert.equal(validateAgreementInput({ ...baseAgreement(), totalUSDC: "0" }, new Date("2029-01-01")).ok, false);
   assert.equal(validateAgreementInput({ ...baseAgreement(), totalUSDC: "" }, new Date("2029-01-01")).ok, false);
   assert.equal(validateAgreementInput({ ...baseAgreement(), totalUSDC: "1.25" }, new Date("2029-01-01")).ok, true);
+});
+
+test("a draft may defer exactly one counterparty address", () => {
+  assert.equal(validateAgreementInput({ ...baseAgreement(), sellerAddress: null }, new Date("2029-01-01")).ok, true);
+  assert.equal(validateAgreementInput({ ...baseAgreement(), buyerAddress: null }, new Date("2029-01-01")).ok, true);
+  assert.equal(validateAgreementInput({ ...baseAgreement(), buyerAddress: null, sellerAddress: null }, new Date("2029-01-01")).ok, false);
+});
+
+test("commercial profiles require a company name and country", () => {
+  assert.equal(validateProfileInput({ companyName: "Northstar", country: "GH" }).ok, true);
+  assert.equal(validateProfileInput({ companyName: "Northstar" }).ok, false);
+  assert.equal(validateProfileInput({ companyName: "", country: "GH" }).ok, false);
 });
 
 test("resolution policy separates the router from an optional nominated resolver", () => {

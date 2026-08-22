@@ -5,6 +5,15 @@ export const isAddress = (value: unknown): value is string => typeof value === "
 
 export type ValidationResult = { ok: true } | { ok: false; message: string; field?: string };
 
+export function validateProfileInput(input: Record<string, unknown>): ValidationResult {
+  if (!input.companyName || !String(input.companyName).trim()) return { ok: false, field: "companyName", message: "Company name is required" };
+  if (String(input.companyName).trim().length > 255) return { ok: false, field: "companyName", message: "Company name is too long" };
+  if (!input.country || !String(input.country).trim()) return { ok: false, field: "country", message: "Country is required" };
+  if (String(input.country).trim().length > 128) return { ok: false, field: "country", message: "Country is too long" };
+  if (input.tradeCategory !== undefined && input.tradeCategory !== null && String(input.tradeCategory).length > 128) return { ok: false, field: "tradeCategory", message: "Trade category is too long" };
+  return { ok: true };
+}
+
 export function validatePositiveUSDC(value: unknown): ValidationResult {
   if (typeof value !== "string" && typeof value !== "number") return { ok: false, field: "totalUSDC", message: "totalUSDC is required and must be greater than zero" };
   const text = String(value).trim();
@@ -15,17 +24,20 @@ export function validatePositiveUSDC(value: unknown): ValidationResult {
 export function validateAgreementInput(input: Record<string, unknown>, now = new Date()): ValidationResult {
   const total = validatePositiveUSDC(input.totalUSDC);
   if (!total.ok) return total;
-  for (const field of ["buyerAddress", "sellerAddress", "operatorAddress", "createdBy"]) {
-    if (!isAddress(input[field])) return { ok: false, field, message: `${field} must be a valid wallet address` };
-  }
+  for (const field of ["operatorAddress", "createdBy"]) if (!isAddress(input[field])) return { ok: false, field, message: `${field} must be a valid wallet address` };
+  const buyerKnown = input.buyerAddress === null || input.buyerAddress === undefined ? false : isAddress(input.buyerAddress);
+  const sellerKnown = input.sellerAddress === null || input.sellerAddress === undefined ? false : isAddress(input.sellerAddress);
+  if (input.buyerAddress !== null && input.buyerAddress !== undefined && !buyerKnown) return { ok: false, field: "buyerAddress", message: "buyerAddress must be a valid wallet address when supplied" };
+  if (input.sellerAddress !== null && input.sellerAddress !== undefined && !sellerKnown) return { ok: false, field: "sellerAddress", message: "sellerAddress must be a valid wallet address when supplied" };
+  if (!buyerKnown && !sellerKnown) return { ok: false, field: "sellerAddress", message: "At least one party address is required while drafting" };
   if (input.arbitrationAddress !== undefined && !isAddress(input.arbitrationAddress)) return { ok: false, field: "arbitrationAddress", message: "arbitrationAddress must be a valid wallet address when supplied" };
-  if (String(input.buyerAddress).toLowerCase() === String(input.sellerAddress).toLowerCase()) return { ok: false, field: "sellerAddress", message: "Buyer and seller must be different wallet addresses" };
+  if (buyerKnown && sellerKnown && String(input.buyerAddress).toLowerCase() === String(input.sellerAddress).toLowerCase()) return { ok: false, field: "sellerAddress", message: "Buyer and seller must be different wallet addresses" };
   const resolutionPolicy = String(input.resolutionPolicy || "ARCTRADE_DEFAULT");
   if (!["ARCTRADE_DEFAULT", "MUTUAL_RESOLVER"].includes(resolutionPolicy)) return { ok: false, field: "resolutionPolicy", message: "Unknown resolution policy" };
   if (input.assignedResolverAddress !== undefined && input.assignedResolverAddress !== null && input.assignedResolverAddress !== "" && !isAddress(input.assignedResolverAddress)) return { ok: false, field: "assignedResolverAddress", message: "assignedResolverAddress must be a valid wallet address when supplied" };
   const resolver = String(input.assignedResolverAddress || "").toLowerCase();
   if (resolutionPolicy === "ARCTRADE_DEFAULT" && resolver) return { ok: false, field: "assignedResolverAddress", message: "The ArcTrade default policy does not use a nominated resolver" };
-  if (resolver && (resolver === String(input.buyerAddress).toLowerCase() || resolver === String(input.sellerAddress).toLowerCase())) return { ok: false, field: "assignedResolverAddress", message: "The nominated resolver must be independent of the buyer and seller" };
+  if (resolver && (resolver === String(input.buyerAddress || "").toLowerCase() || resolver === String(input.sellerAddress || "").toLowerCase())) return { ok: false, field: "assignedResolverAddress", message: "The nominated resolver must be independent of the buyer and seller" };
   if (!input.goodsDescription || !String(input.goodsDescription).trim()) return { ok: false, field: "goodsDescription", message: "goodsDescription is required" };
   const modes: TransportMode[] = ["sea", "air", "road", "rail", "inland_waterway", "multimodal"];
   if (!modes.includes(input.transportMode as TransportMode)) return { ok: false, field: "transportMode", message: "transportMode is required" };

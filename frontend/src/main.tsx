@@ -5,7 +5,7 @@ import { config } from "./config";
 import { agreementsFor, call, contractFor, createAgreement, errorMessage, getAgreement, readAgreement, readProvider, roleFor, type AgreementRecord, type Role } from "./contract";
 import { getSettlements, type Settlement } from "./api";
 import { createCircleEmbeddedWalletAdapter, type CircleLoginMode, type EmbeddedWalletSession } from "./wallet";
-import { CommercialWorkflow } from "./commercial";
+import { CommercialWorkflow, InviteLanding } from "./commercial";
 import { acceptProposal, bindProposal, companyByWallet, companyProposals, createProposal as submitProposal, deleteExpiredProposal, getProposal, lookupCompany, publicProposals, registerCompany, type Company, type Proposal, type ProposalVisibility } from "./registry";
 import "./styles.css";
 
@@ -345,7 +345,7 @@ function App() {
       wallet.rememberCredential(record.name, next.credentialId);
       localStorage.setItem(`arc-trade-company:${next.address.toLowerCase()}`, record.name);
       localStorage.setItem(LAST_COMPANY_KEY, record.name);
-      setCompanyName(record.name); setCompany(record); setSession(next); setAuthMode(null); if (pathname === "/login") navigate("/"); await Promise.all([refreshAgreements(next.address), refreshRegistry(next.address)]);
+      setCompanyName(record.name); setCompany(record); setSession(next); setAuthMode(null); const pendingInvite = localStorage.getItem("arc-trade-pending-invite"); if (pathname === "/login") navigate(pendingInvite ? `/invite/${pendingInvite}` : "/"); await Promise.all([refreshAgreements(next.address), refreshRegistry(next.address)]);
     }
     catch (error) { console.error("Sign-in failed", error); setMessage(errorMessage(error, "signIn")); }
     finally { setBusy(""); }
@@ -462,11 +462,14 @@ function App() {
   if (!session && !sessionChecked) return <main className="shell landing-shell app-loading"><div className="loading-card"><span className="mark">AT</span><p className="eyebrow">Arc Trade</p><h1>Opening your trade desk.</h1><p>Checking your secure session…</p></div></main>;
 
   const invitation = parseSigninRoute(pathname);
+  const publicInviteToken = pathname.match(/^\/invite\/([0-9a-f]{64})$/i)?.[1] || "";
   const activeAuthMode = pathname === "/login"
     ? new URLSearchParams(search).get("mode") === "register" ? "register" : authMode || "login"
     : authMode || "login";
 
   if (session && pathname === "/login") return <main className="shell landing-shell app-loading"><div className="loading-card"><span className="mark">AT</span><p className="eyebrow">Arc Trade</p><h1>Opening your trade desk.</h1><p>Redirecting to your secure workspace…</p></div></main>;
+
+  if (publicInviteToken) return <InviteLanding token={publicInviteToken} session={session} onSignIn={() => { localStorage.setItem("arc-trade-pending-invite", publicInviteToken); openLogin("register"); }} onAccepted={agreementId => navigate(`/agreements/new?load=${encodeURIComponent(agreementId)}`)} onHome={goHome} />;
 
   if (!session && (pathname === "/login" || invitation.proposalId)) return <main className="shell landing-shell auth-shell">
     <header className="site-header"><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a><a className="auth-back" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}>Back to Arc Trade</a></header>
@@ -514,7 +517,7 @@ function App() {
     <footer className="site-footer" id="support" data-reveal><div><a className="brand" href="/#how-it-works" onClick={event => { event.preventDefault(); goHome(); }}><span className="mark">AT</span><span>Arc<span>Trade</span></span></a></div><nav><a href="#how-it-works">Platform</a><a href="#settlement-infrastructure">Settlement</a><a href="/login?mode=register" onClick={event => { event.preventDefault(); openLogin("register"); }}>Get started</a></nav><small>Arc Testnet · Mainnet migration in progress.</small></footer>
   </main>;
 
-  if (pathname.startsWith("/agreements")) return <CommercialWorkflow session={session} onSignOut={signOut} onHome={goHome} />;
+  if (pathname.startsWith("/agreements")) return <CommercialWorkflow session={session} profileName={company?.name || companyName} initialAgreementId={new URLSearchParams(search).get("load") || ""} onSignOut={signOut} onHome={goHome} />;
 
   if (!selected || !data) return <Dashboard session={session} company={company} profileHint={companyName} openProposals={openProposals} myProposals={myProposals} agreements={agreements} busy={busy} message={message} proposalLink={proposalLink} recipientCompany={recipientCompany} agreementLabel={agreementLabel} proposalDescription={proposalDescription} proposalVisibility={proposalVisibility} sellerCommitmentHours={sellerCommitmentHours} buyerResponseMinutes={buyerResponseMinutes} disputeWindowMinutes={disputeWindowMinutes} proposalLifetimeHours={proposalLifetimeHours} joinId={joinId} setRecipientCompany={setRecipientCompany} setAgreementLabel={setAgreementLabel} setProposalDescription={setProposalDescription} setProposalVisibility={setProposalVisibility} setSellerCommitmentHours={setSellerCommitmentHours} setBuyerResponseMinutes={setBuyerResponseMinutes} setDisputeWindowMinutes={setDisputeWindowMinutes} setProposalLifetimeHours={setProposalLifetimeHours} setJoinId={setJoinId} create={create} join={join} openAgreement={openCommercial} goHome={goHome} removeExpired={removeExpired} restoreProfile={restoreProfile} select={record => void selectAgreement(record, session)} signOut={signOut} />;
 

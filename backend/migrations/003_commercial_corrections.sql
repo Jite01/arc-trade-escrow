@@ -9,8 +9,12 @@ BEGIN
     ALTER TYPE agreement_status RENAME TO agreement_status_legacy;
     CREATE TYPE agreement_status AS ENUM ('drafting', 'negotiating', 'agreed', 'deploying', 'deployed', 'cancelled');
     ALTER TABLE trade_agreements
+      ALTER COLUMN status DROP DEFAULT;
+    ALTER TABLE trade_agreements
       ALTER COLUMN status TYPE agreement_status
       USING (CASE WHEN status::text IN ('active', 'completed') THEN 'deployed' ELSE status::text END)::agreement_status;
+    ALTER TABLE trade_agreements
+      ALTER COLUMN status SET DEFAULT 'drafting'::agreement_status;
     DROP TYPE agreement_status_legacy;
   END IF;
 END $$;

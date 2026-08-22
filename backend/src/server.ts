@@ -2,7 +2,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { Pool } from "pg";
 import { createWalletAuth, type WalletRequest } from "./auth.js";
 import { createRepository } from "./repository.js";
-import { validateAgreementInput, validateProposalMilestones, isAddress } from "./validation.js";
+import { validateAgreementInput, validateProfileInput, validateProposalMilestones, isAddress } from "./validation.js";
 import { createDeploymentVerifier, validateDeploymentConfiguration } from "./deploymentVerifier.js";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: Number(process.env.DATABASE_POOL_MAX || 10), ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined });
@@ -41,7 +41,45 @@ app.post("/auth/verify", async (request, response, next) => {
     return response.json(await walletAuth.verify(String(request.body?.challengeId || ""), String(request.body?.address || ""), String(request.body?.signature || "")));
   } catch (error) { return next(error); }
 });
+app.get("/invite/:token", async (request, response, next) => {
+  try {
+    const token = String(request.params.token || "");
+    if (!/^[0-9a-f]{64}$/i.test(token)) return response.status(404).json({ error: "Invitation not found" });
+    const invitation = await repository.getInvitation(token);
+    if (!invitation) return response.status(404).json({ error: "Invitation not found" });
+    if (invitation.revokedAt) return response.status(410).json({ error: "This invitation has been replaced" });
+    if (invitation.acceptedAt) return response.status(410).json({ error: "This invitation has already been accepted" });
+    if (new Date(invitation.expiresAt).getTime() <= Date.now()) return response.status(410).json({ error: "This invitation has expired" });
+    return response.json(invitation);
+  } catch (error) { return next(error); }
+});
 app.use((request, response, next) => request.path.startsWith("/internal/") ? next() : walletAuth.middleware(request, response, next));
+
+app.get("/profiles/me", async (request, response, next) => {
+  try { const profile = await repository.getProfile((request as WalletRequest).walletAddress); return profile ? response.json(profile) : response.status(404).json({ error: "Profile not found" }); } catch (error) { return next(error); }
+});
+app.post("/profiles/me", async (request, response, next) => {
+  try {
+    const result = validateProfileInput(request.body || {});
+    if (!result.ok) return response.status(422).json(result);
+    return response.status(201).json(await repository.saveProfile((request as WalletRequest).walletAddress, request.body));
+  } catch (error) { return next(error); }
+});
+app.get("/profiles/search", async (request, response, next) => {
+  try {
+    const query = String(request.query.q || "").trim();
+    if (query.length < 2) return response.status(422).json({ error: "Search requires at least two characters" });
+    return response.json(await repository.searchProfiles(query, (request as WalletRequest).walletAddress));
+  } catch (error) { return next(error); }
+});
+app.get("/profiles/:walletAddress", async (request, response, next) => {
+  try {
+    const walletAddress = String(request.params.walletAddress || "");
+    if (!isAddress(walletAddress)) return response.status(422).json({ error: "A valid wallet address is required" });
+    const profile = await repository.getProfile(walletAddress);
+    return profile ? response.json(profile) : response.status(404).json({ error: "Profile not found" });
+  } catch (error) { return next(error); }
+});
 
 app.post("/agreements", async (request: Request, response, next) => {
   try {
@@ -55,7 +93,7 @@ app.post("/agreements", async (request: Request, response, next) => {
     if (String(input.createdBy || walletRequest.walletAddress).toLowerCase() !== walletRequest.walletAddress) return response.status(403).json({ error: "createdBy must match the authenticated wallet" });
     const buyer = String(input.buyerAddress || "").toLowerCase();
     const seller = String(input.sellerAddress || "").toLowerCase();
-    if (walletRequest.walletAddress !== buyer && walletRequest.walletAddress !== seller) return response.status(403).json({ error: "The authenticated wallet must be the buyer or seller" });
+    if (walletRequest.walletAddress !== buyer && walletRequest.walletAddress !== seller) return response.status(403).json({ error: "The authenticated wallet must be one of the known parties" });
     const agreement = await repository.createAgreement({ ...input, arbitrationAddress: resolutionRouter, resolutionPolicy: String(input.resolutionPolicy || "ARCTRADE_DEFAULT") } as never, walletRequest.walletAddress);
     return response.status(201).json({ agreementId: agreement.id, referenceCode: agreement.referenceCode, agreement });
   } catch (error) { return next(error); }
@@ -66,6 +104,26 @@ app.get("/agreements/:id", agreementGuard, async (request: Request, response, ne
 });
 app.get("/agreements/:id/proposals", agreementGuard, async (request, response, next) => {
   try { return response.json(await repository.listProposals(String(request.params.id))); } catch (error) { return next(error); }
+});
+app.post("/agreements/:id/invite", agreementGuard, async (request: Request, response, next) => {
+  try {
+    const walletRequest = request as WalletRequest;
+    const configuredOrigin = (process.env.PUBLIC_APP_URL || process.env.FRONTEND_ORIGIN || "").split(",")[0].trim().replace(/\/$/, "");
+    if (!configuredOrigin) return response.status(503).json({ error: "Public application URL is not configured" });
+    const invitation = await repository.createInvitation(String(request.params.id), walletRequest.walletAddress);
+    return response.status(201).json({ ...invitation, inviteUrl: `${configuredOrigin}/invite/${invitation.token}` });
+  } catch (error) { return next(error); }
+});
+app.post("/invite/:token/accept", async (request: Request, response, next) => {
+  try {
+    const token = String(request.params.token || "");
+    if (!/^[0-9a-f]{64}$/i.test(token)) return response.status(404).json({ error: "Invitation not found" });
+    const hasProfileInput = request.body && Object.keys(request.body).length > 0;
+    const profileResult = hasProfileInput ? validateProfileInput(request.body) : { ok: true as const };
+    if (!profileResult.ok) return response.status(422).json(profileResult);
+    const agreement = await repository.acceptInvitation(token, (request as WalletRequest).walletAddress, hasProfileInput ? request.body : null);
+    return response.json({ agreementId: agreement.id, agreement });
+  } catch (error) { return next(error); }
 });
 app.post("/agreements/:id/proposals", agreementGuard, async (request: Request, response, next) => {
   try { const walletRequest = request as WalletRequest; const result = validateProposalMilestones(request.body?.milestones); if (!result.ok) return response.status(422).json(result); return response.status(201).json(await repository.createProposal(String(request.params.id), walletRequest.walletAddress, request.body)); } catch (error) { return next(error); }
@@ -103,7 +161,7 @@ app.post("/internal/onchain-state", async (request, response, next) => {
     if (!process.env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN || request.header("x-registry-token") !== process.env.COMMERCIAL_REGISTRY_INTERNAL_TOKEN) return response.sendStatus(401);
     const { contractAddress, state, blockNumber } = request.body || {};
     if (!isAddress(contractAddress) || !["NEGOTIATION", "COMMITTED", "ACTIVE", "FINALIZED"].includes(state) || !Number.isInteger(Number(blockNumber))) return response.status(422).json({ error: "Invalid on-chain state update" });
-    await pool.query("UPDATE trade_agreements SET onchain_state = $1, last_indexed_block = $2, last_indexed_at = now() WHERE lower(contract_address) = lower($3)", [state, Number(blockNumber), contractAddress]);
+    await repository.updateOnchainState(contractAddress, state, Number(blockNumber));
     return response.json({ ok: true });
   } catch (error) { return next(error); }
 });
@@ -150,7 +208,7 @@ async function agreementGuard(request: Request, response: Response, next: NextFu
     const agreement = await repository.getAgreement(String(request.params.id));
     if (!agreement) { response.status(404).json({ error: "Agreement not found" }); return; }
     const actor = (request as WalletRequest).walletAddress;
-    if (actor !== agreement.buyerAddress.toLowerCase() && actor !== agreement.sellerAddress.toLowerCase()) { response.status(403).json({ error: "Only the buyer or seller can access this agreement" }); return; }
+    if (actor !== String(agreement.buyerAddress || "").toLowerCase() && actor !== String(agreement.sellerAddress || "").toLowerCase()) { response.status(403).json({ error: "Only a known party can access this agreement" }); return; }
     next();
   } catch (error) { next(error); }
 }

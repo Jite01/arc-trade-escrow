@@ -12,8 +12,8 @@ export type MilestoneInput = {
 };
 
 export type AgreementInput = {
-  buyerAddress: string;
-  sellerAddress: string;
+  buyerAddress?: string | null;
+  sellerAddress?: string | null;
   arbitrationAddress: string;
   resolutionPolicy: ResolutionPolicy;
   assignedResolverAddress?: string | null;
@@ -38,5 +38,7 @@ export type AgreementInput = {
   insuranceArranger: string;
   deliveryDeadline: string;
 };
+
+export type ProfileInput = { companyName: string; country: string; tradeCategory?: string | null };
 
 export type ProposalInput = { milestones: MilestoneInput[]; note?: string | null };

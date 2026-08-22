@@ -1,11 +1,12 @@
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { randomBytes } from "node:crypto";
-import type { AgreementInput, MilestoneInput, ProposalInput } from "./types.js";
+import type { AgreementInput, MilestoneInput, ProfileInput, ProposalInput } from "./types.js";
 import { sha256 } from "./canonical.js";
 
 const referenceCode = () => `AT-${Date.now().toString(36).toUpperCase()}-${randomBytes(5).toString("hex").toUpperCase()}`;
 const iso = (value: unknown) => new Date(String(value)).toISOString();
 const lower = (value: string) => value.toLowerCase();
+const optionalLower = (value?: string | null) => value ? lower(value) : null;
 
 export function createRepository(pool: Pool) {
   return {
@@ -20,7 +21,7 @@ export function createRepository(pool: Pool) {
           delivery_named_place, delivery_named_place_type, delivery_deadline, created_by, status
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,'drafting')
         RETURNING *`, [
-        referenceCode(), lower(input.buyerAddress), lower(input.sellerAddress), lower(input.arbitrationAddress), input.resolutionPolicy, input.assignedResolverAddress ? lower(input.assignedResolverAddress) : null, lower(input.operatorAddress),
+        referenceCode(), optionalLower(input.buyerAddress), optionalLower(input.sellerAddress), lower(input.arbitrationAddress), input.resolutionPolicy, input.assignedResolverAddress ? lower(input.assignedResolverAddress) : null, lower(input.operatorAddress),
         input.totalUSDC, iso(input.negotiationExpiry), input.commitmentWindowSec, input.arbitrationTimeoutSec,
         input.goodsDescription.trim(), input.goodsCategory || null, input.quantity || null, input.quantityUnit || null, input.qualityStandard || null,
         input.transportMode, input.originCountry.trim(), input.originPortCity.trim(), input.destinationCountry.trim(), input.destinationPortCity.trim(),
@@ -38,6 +39,113 @@ export function createRepository(pool: Pool) {
       const proposals = latest ? await milestonesForProposal(pool, latest.id) : [];
       const finalization = await pool.query("SELECT finalized_payload_hash FROM agreement_finalizations WHERE agreement_id = $1 ORDER BY negotiation_round DESC LIMIT 1", [id]);
       return { ...mapped, finalized_hash: finalization.rowCount ? finalization.rows[0].finalized_payload_hash : null, latestProposal: latest ? { ...latest, milestones: proposals } : null, agreedMilestones: latest?.status === "accepted" ? proposals.map(contractMilestone) : null };
+    },
+
+    async getProfile(walletAddress: string) {
+      const result = await pool.query("SELECT * FROM profiles WHERE lower(wallet_address) = lower($1)", [walletAddress]);
+      return result.rowCount ? mapProfile(result.rows[0]) : null;
+    },
+
+    async saveProfile(walletAddress: string, input: ProfileInput) {
+      const result = await pool.query(`
+        INSERT INTO profiles (wallet_address, company_name, country, trade_category)
+        VALUES ($1,$2,$3,$4)
+        ON CONFLICT (wallet_address) DO UPDATE SET company_name = EXCLUDED.company_name, country = EXCLUDED.country, trade_category = EXCLUDED.trade_category
+        RETURNING *`, [lower(walletAddress), input.companyName.trim(), input.country.trim(), input.tradeCategory?.trim() || null]);
+      const count = await pool.query("SELECT count(*)::integer AS verified_trade_count FROM trade_agreements WHERE onchain_state = 'FINALIZED' AND (lower(buyer_address) = lower($1) OR lower(seller_address) = lower($1))", [walletAddress]);
+      const refreshed = await pool.query("UPDATE profiles SET verified_trade_count = $1 WHERE lower(wallet_address) = lower($2) RETURNING *", [count.rows[0].verified_trade_count, walletAddress]);
+      return mapProfile(refreshed.rows[0] || result.rows[0]);
+    },
+
+    async updateOnchainState(contractAddress: string, state: string, blockNumber: number) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const agreement = await client.query("UPDATE trade_agreements SET onchain_state = $1, last_indexed_block = $2, last_indexed_at = now() WHERE lower(contract_address) = lower($3) RETURNING buyer_address, seller_address", [state, blockNumber, contractAddress]);
+        if (agreement.rowCount) {
+          const [buyer, seller] = [agreement.rows[0].buyer_address, agreement.rows[0].seller_address];
+          await client.query(`UPDATE profiles p SET verified_trade_count = (
+            SELECT count(*)::integer FROM trade_agreements a
+            WHERE a.onchain_state = 'FINALIZED'
+              AND (lower(a.buyer_address) = lower(p.wallet_address) OR lower(a.seller_address) = lower(p.wallet_address))
+          ) WHERE lower(p.wallet_address) = lower($1) OR lower(p.wallet_address) = lower($2)`, [buyer, seller]);
+        }
+        await client.query("COMMIT");
+      } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+    },
+
+    async searchProfiles(query: string, excludeWallet?: string) {
+      const result = await pool.query(`
+        SELECT * FROM profiles
+        WHERE lower(company_name) LIKE lower($1)
+          AND ($2::varchar IS NULL OR lower(wallet_address) <> lower($2))
+        ORDER BY verified_trade_count DESC, company_name ASC
+        LIMIT 20`, [`%${query}%`, excludeWallet || null]);
+      return result.rows.map(mapProfile);
+    },
+
+    async createInvitation(id: string, actor: string) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const agreement = await client.query("SELECT * FROM trade_agreements WHERE id = $1 FOR UPDATE", [id]);
+        if (!agreement.rowCount) throw new Error("Agreement not found");
+        const row = agreement.rows[0];
+        if (row.status !== "drafting") throw new Error("Invitations can only be created for a draft agreement");
+        const actorAddress = lower(actor);
+        const role = actorAddress === lower(String(row.buyer_address || "")) && !row.seller_address ? "seller" : actorAddress === lower(String(row.seller_address || "")) && !row.buyer_address ? "buyer" : null;
+        if (!role) throw new Error("Only the known party can invite the missing counterparty");
+        await client.query("UPDATE invitations SET expires_at = now(), revoked_at = now() WHERE agreement_id = $1 AND accepted_at IS NULL AND revoked_at IS NULL", [id]);
+        const token = randomBytes(32).toString("hex");
+        const result = await client.query("INSERT INTO invitations (token, agreement_id, role, created_by, expires_at) VALUES ($1,$2,$3,$4,now() + interval '7 days') RETURNING token, expires_at", [token, id, role, actorAddress]);
+        await client.query("COMMIT");
+        return { token: result.rows[0].token as string, expiresAt: new Date(result.rows[0].expires_at).toISOString(), role };
+      } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+    },
+
+    async getInvitation(token: string) {
+      const result = await pool.query(`
+        SELECT i.*, a.reference_code, a.goods_description, a.origin_country,
+          a.destination_country, a.total_usdc, a.buyer_address, p.company_name AS buyer_company_name
+        FROM invitations i
+        JOIN trade_agreements a ON a.id = i.agreement_id
+        LEFT JOIN profiles p ON lower(p.wallet_address) = lower(a.buyer_address)
+        WHERE i.token = $1`, [token]);
+      if (!result.rowCount) return null;
+      const row = result.rows[0];
+      return { token: row.token, agreementId: row.agreement_id, referenceCode: row.reference_code, goodsDescription: row.goods_description, originCountry: row.origin_country, destinationCountry: row.destination_country, totalUSDC: String(row.total_usdc), buyerCompanyName: row.buyer_company_name || "Arc Trade participant", role: row.role, expiresAt: new Date(row.expires_at).toISOString(), acceptedAt: row.accepted_at ? new Date(row.accepted_at).toISOString() : null, revokedAt: row.revoked_at ? new Date(row.revoked_at).toISOString() : null };
+    },
+
+    async acceptInvitation(token: string, actor: string, profile: ProfileInput | null) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const invitation = await client.query(`
+          SELECT i.id AS invitation_id, i.token, i.agreement_id, i.role, i.expires_at,
+            i.accepted_at, i.revoked_at, a.buyer_address, a.seller_address, a.status
+          FROM invitations i
+          JOIN trade_agreements a ON a.id = i.agreement_id
+          WHERE i.token = $1
+          FOR UPDATE`, [token]);
+        if (!invitation.rowCount) throw new Error("Invitation not found");
+        const row = invitation.rows[0];
+        if (row.accepted_at) throw new Error("This invitation has already been accepted");
+        if (row.revoked_at) throw new Error("This invitation has been replaced");
+        if (new Date(row.expires_at).getTime() <= Date.now()) throw new Error("This invitation has expired");
+        if (row.status !== "drafting") throw new Error("This invitation is no longer available");
+        const actorAddress = lower(actor);
+        if (actorAddress === lower(String(row.buyer_address || "")) || actorAddress === lower(String(row.seller_address || ""))) throw new Error("The inviting party cannot accept its own invitation");
+        const existingProfile = await client.query("SELECT * FROM profiles WHERE lower(wallet_address) = lower($1) FOR UPDATE", [actorAddress]);
+        if (!existingProfile.rowCount && !profile) throw new Error("Complete your company profile before accepting this invitation");
+        if (!existingProfile.rowCount && profile) await client.query("INSERT INTO profiles (wallet_address, company_name, country, trade_category) VALUES ($1,$2,$3,$4)", [actorAddress, profile.companyName.trim(), profile.country.trim(), profile.tradeCategory?.trim() || null]);
+        else if (profile) await client.query("UPDATE profiles SET company_name = $1, country = $2, trade_category = $3 WHERE lower(wallet_address) = lower($4)", [profile.companyName.trim(), profile.country.trim(), profile.tradeCategory?.trim() || null, actorAddress]);
+        const column = row.role === "seller" ? "seller_address" : "buyer_address";
+        const updated = await client.query(`UPDATE trade_agreements SET ${column} = $1 WHERE id = $2 AND ${column} IS NULL AND status = 'drafting' RETURNING *`, [actorAddress, row.agreement_id]);
+        if (!updated.rowCount) throw new Error("This counterparty has already been attached to the agreement");
+        await client.query("UPDATE invitations SET accepted_at = now(), accepted_by = $1 WHERE id = $2 AND accepted_at IS NULL", [actorAddress, row.invitation_id]);
+        await client.query("COMMIT");
+        return mapAgreement(updated.rows[0]);
+      } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
     },
 
     async updateAgreement(id: string, actor: string, input: Record<string, unknown>) {
@@ -66,6 +174,7 @@ export function createRepository(pool: Pool) {
         const agreement = await client.query("SELECT * FROM trade_agreements WHERE id = $1 FOR UPDATE", [id]);
         if (!agreement.rowCount) throw new Error("Agreement not found");
         assertParticipant(agreement.rows[0], actor);
+        if (!agreement.rows[0].buyer_address || !agreement.rows[0].seller_address) throw new Error("Both parties must be attached before proposing milestones");
         if (["agreed", "deploying", "deployed", "cancelled"].includes(agreement.rows[0].status)) throw new Error("This agreement is no longer negotiable");
         const previous = await client.query("SELECT * FROM proposals WHERE agreement_id = $1 AND status = 'pending' ORDER BY created_at DESC LIMIT 1 FOR UPDATE", [id]);
         await client.query("UPDATE proposals SET status = 'superseded' WHERE agreement_id = $1 AND status = 'pending'", [id]);
@@ -89,6 +198,7 @@ export function createRepository(pool: Pool) {
         const agreement = await client.query("SELECT * FROM trade_agreements WHERE id = $1 FOR UPDATE", [id]);
         if (!agreement.rowCount) throw new Error("Agreement not found");
         assertParticipant(agreement.rows[0], actor);
+        if (!agreement.rows[0].buyer_address || !agreement.rows[0].seller_address) throw new Error("Both parties must be attached before accepting milestones");
         const proposal = await client.query("SELECT * FROM proposals WHERE id = $1 AND agreement_id = $2 FOR UPDATE", [proposalId, id]);
         if (!proposal.rowCount) throw new Error("Proposal not found");
         const p = proposal.rows[0];
@@ -119,6 +229,7 @@ export function createRepository(pool: Pool) {
       const agreement = await pool.query("SELECT * FROM trade_agreements WHERE id = $1", [id]);
       if (!agreement.rowCount) throw new Error("Agreement not found");
       assertParticipant(agreement.rows[0], actor);
+      if (!agreement.rows[0].buyer_address || !agreement.rows[0].seller_address) throw new Error("Both parties must be attached before deployment");
       if (agreement.rows[0].status !== "agreed") throw new Error("Both parties must agree before deployment");
       const finalization = await pool.query("SELECT 1 FROM agreement_finalizations WHERE agreement_id = $1 AND negotiation_round = $2", [id, agreement.rows[0].negotiation_round || 1]);
       if (!finalization.rowCount) throw new Error("The agreed terms have not been finalised");
@@ -154,7 +265,8 @@ export function createRepository(pool: Pool) {
 async function latestProposal(pool: Pool, id: string) { const result = await pool.query("SELECT * FROM proposals WHERE agreement_id = $1 ORDER BY created_at DESC LIMIT 1", [id]); return result.rowCount ? mapProposal(result.rows[0]) : null; }
 async function milestonesForProposal(pool: Pool | PoolClient, proposalId: string) { const result = await pool.query("SELECT * FROM proposal_milestones WHERE proposal_id = $1 ORDER BY index ASC", [proposalId]); return result.rows.map(mapMilestone); }
 async function insertMilestones(client: PoolClient, proposalId: string, milestones: MilestoneInput[]) { for (const [index, milestone] of milestones.entries()) await client.query("INSERT INTO proposal_milestones (proposal_id,index,description,basis_points,seller_deadline_sec,buyer_response_window_sec,dispute_window_sec,proof_description) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)", [proposalId, index, milestone.description.trim(), milestone.basisPoints, milestone.sellerDeadlineSec, milestone.buyerResponseWindowSec, milestone.disputeWindowSec, milestone.proofDescription.trim()]); }
-function assertParticipant(row: QueryResultRow, actor: string) { const value = lower(actor); if (value !== lower(String(row.buyer_address)) && value !== lower(String(row.seller_address))) throw new Error("Only the buyer or seller can access this agreement"); }
+function assertParticipant(row: QueryResultRow, actor: string) { const value = lower(actor); if (value !== lower(String(row.buyer_address || "")) && value !== lower(String(row.seller_address || ""))) throw new Error("Only the buyer or seller can access this agreement"); }
+const mapProfile = (row: QueryResultRow) => ({ id: row.id, walletAddress: row.wallet_address, companyName: row.company_name, country: row.country, tradeCategory: row.trade_category, verifiedTradeCount: row.verified_trade_count, createdAt: new Date(row.created_at).toISOString() });
 const mapAgreement = (row: QueryResultRow) => ({ id: row.id, referenceCode: row.reference_code, contractAddress: row.contract_address, deploymentBlock: row.deployment_block, onchainState: row.onchain_state ?? null, lastIndexedBlock: row.last_indexed_block ?? null, lastIndexedAt: row.last_indexed_at ? new Date(row.last_indexed_at).toISOString() : null, buyerAddress: row.buyer_address, sellerAddress: row.seller_address, arbitrationAddress: row.arbitration_address, resolutionPolicy: row.resolution_policy ?? "ARCTRADE_DEFAULT", assignedResolverAddress: row.assigned_resolver_address ?? null, operatorAddress: row.operator_address, totalUSDC: String(row.total_usdc), negotiationExpiry: new Date(row.negotiation_expiry).toISOString(), commitmentWindowSec: row.commitment_window_sec, arbitrationTimeoutSec: row.arbitration_timeout_sec, status: row.status, negotiationRound: row.negotiation_round ?? 1, commitmentExpiredAt: row.commitment_expired_at ? new Date(row.commitment_expired_at).toISOString() : null, goodsDescription: row.goods_description, goodsCategory: row.goods_category, quantity: row.quantity === null ? null : String(row.quantity), quantityUnit: row.quantity_unit, qualityStandard: row.quality_standard, transportMode: row.transport_mode, originCountry: row.origin_country, originPortCity: row.origin_port_city, destinationCountry: row.destination_country, destinationPortCity: row.destination_port_city, incoterm: row.incoterm, deliveryNamedPlace: row.delivery_named_place, deliveryNamedPlaceType: row.delivery_named_place_type, freightArranger: row.freight_arranger, insuranceArranger: row.insurance_arranger, deliveryDeadline: new Date(row.delivery_deadline).toISOString(), createdAt: new Date(row.created_at).toISOString(), updatedAt: new Date(row.updated_at).toISOString(), createdBy: row.created_by });
 const mapProposal = (row: QueryResultRow) => ({ id: row.id, agreementId: row.agreement_id, proposedBy: row.proposed_by, parentProposalId: row.parent_proposal_id ?? null, proposalHash: row.proposal_hash ?? null, acceptedByBuyerAt: row.accepted_by_buyer_at ? new Date(row.accepted_by_buyer_at).toISOString() : null, acceptedBySellerAt: row.accepted_by_seller_at ? new Date(row.accepted_by_seller_at).toISOString() : null, arrayVersion: row.array_version, status: row.status, note: row.note, createdAt: new Date(row.created_at).toISOString() });
 const mapMilestone = (row: QueryResultRow) => ({ id: row.id, index: row.index, description: row.description, basisPoints: row.basis_points, sellerDeadlineSec: row.seller_deadline_sec, buyerResponseWindowSec: row.buyer_response_window_sec, disputeWindowSec: row.dispute_window_sec, proofDescription: row.proof_description });
