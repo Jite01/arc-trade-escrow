@@ -7,6 +7,7 @@ import { isAddress } from "./validation.js";
 export type WalletRequest = Request & { walletAddress: string };
 type AuthPayload = { sub: string; exp: number; jti: string };
 const MAGIC_VALUE = "0x1626ba7e";
+const CIRCLE_ACCOUNT_FACTORY = "0x0000000DF7E6c9Dc387cAFc5eCBfa6c3a6179AdD";
 const challengeLifetimeSec = 5 * 60;
 const sessionLifetimeSec = 60 * 60;
 const signatureAbi = ["function isValidSignature(bytes32 hash, bytes signature) view returns (bytes4)"];
@@ -45,6 +46,20 @@ export function createWalletAuth(pool: Pool) {
       if (!consumed.rowCount) throw new Error("Wallet sign-in challenge has already been used");
       const now = Math.floor(Date.now() / 1000);
       const payload: AuthPayload = { sub: row.wallet_address.toLowerCase(), exp: now + sessionLifetimeSec, jti: randomUUID() };
+      return { accessToken: signToken(payload, secret), expiresAt: new Date((now + sessionLifetimeSec) * 1000).toISOString(), walletAddress: payload.sub };
+    },
+
+    async verifyCounterfactual(address: string, accountFactory: string, accountFactoryData: string) {
+      requireConfigured(secret, provider);
+      if (!provider) throw new Error("ARC_RPC_URL is required for wallet signature verification");
+      if (!isAddress(address) || accountFactory.toLowerCase() !== (process.env.CIRCLE_ACCOUNT_FACTORY_ADDRESS || CIRCLE_ACCOUNT_FACTORY).toLowerCase() || !/^0x[0-9a-fA-F]+$/.test(accountFactoryData)) throw new Error("Invalid Circle account proof");
+      const factory = new Contract(accountFactory, ["function getAddress(bytes32 sender, bytes32 salt, bytes initializingData) view returns (address addr, bytes32 mixedSalt)", "function createAccount(bytes32 sender, bytes32 salt, bytes initializingData)"], provider);
+      const decoded = factory.interface.decodeFunctionData("createAccount", accountFactoryData);
+      const result = await provider.call({ to: accountFactory, data: factory.interface.encodeFunctionData("getAddress", [decoded[0], decoded[1], decoded[2]]) });
+      const derived = String(factory.interface.decodeFunctionResult("getAddress", result)[0]);
+      if (derived.toLowerCase() !== address.toLowerCase()) throw new Error("Circle account proof does not match wallet address");
+      const now = Math.floor(Date.now() / 1000);
+      const payload: AuthPayload = { sub: address.toLowerCase(), exp: now + sessionLifetimeSec, jti: randomUUID() };
       return { accessToken: signToken(payload, secret), expiresAt: new Date((now + sessionLifetimeSec) * 1000).toISOString(), walletAddress: payload.sub };
     },
 

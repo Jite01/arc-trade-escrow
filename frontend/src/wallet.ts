@@ -10,7 +10,7 @@ import { createPublicClient } from "viem";
 import { createBundlerClient, toWebAuthnAccount } from "viem/account-abstraction";
 import { AbstractSigner, type Provider, type TransactionRequest, type TransactionResponse, type TypedDataDomain, type TypedDataField } from "ethers";
 
-export interface EmbeddedWalletSession { address: string; signer: CircleSigner; credentialId: string; }
+export interface EmbeddedWalletSession { address: string; signer: CircleSigner; credentialId: string; accountFactory: string; accountFactoryData: string; }
 export type CircleLoginMode = "register" | "login";
 export interface EmbeddedWalletAdapter { getSession(): Promise<EmbeddedWalletSession | null>; login(companyName: string, mode: CircleLoginMode): Promise<EmbeddedWalletSession>; rememberCredential(companyName: string, credentialId: string): void; logout(): Promise<void>; onAccountChange(listener: (address?: string) => void): () => void; }
 export type CircleSignInErrorCode = "CONFIGURATION" | "UNSUPPORTED" | "CANCELLED" | "FAILED";
@@ -92,7 +92,8 @@ export function createCircleEmbeddedWalletAdapter(): EmbeddedWalletAdapter {
         const client = createPublicClient({ chain: arcTestnet, transport: modularTransport });
         const smartAccount = await toCircleSmartAccount({ client, owner: toWebAuthnAccount({ credential }) });
         const bundler = createBundlerClient({ account: smartAccount, chain: arcTestnet, transport: modularTransport });
-        active = { address: smartAccount.address, signer: new CircleSigner(smartAccount.address, bundler, smartAccount), credentialId: credential.id };
+        const factoryArgs = await smartAccount.getFactoryArgs();
+        active = { address: smartAccount.address, signer: new CircleSigner(smartAccount.address, bundler, smartAccount), credentialId: credential.id, accountFactory: factoryArgs.factory, accountFactoryData: factoryArgs.factoryData };
         if (mode === "register") localStorage.setItem(credentialStorageKey(companyName), credential.id);
         console.info("Circle participant account:", smartAccount.address, "sign-in name:", username);
         return active;

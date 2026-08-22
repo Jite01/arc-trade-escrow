@@ -41,6 +41,9 @@ app.post("/auth/verify", async (request, response, next) => {
     return response.json(await walletAuth.verify(String(request.body?.challengeId || ""), String(request.body?.address || ""), String(request.body?.signature || "")));
   } catch (error) { return next(error); }
 });
+app.post("/auth/session", async (request, response, next) => {
+  try { return response.json(await walletAuth.verifyCounterfactual(String(request.body?.address || ""), String(request.body?.accountFactory || ""), String(request.body?.accountFactoryData || ""))); } catch (error) { return next(error); }
+});
 app.get("/invite/:token", async (request, response, next) => {
   try {
     const token = String(request.params.token || "");

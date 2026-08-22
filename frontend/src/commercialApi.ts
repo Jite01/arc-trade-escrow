@@ -18,11 +18,7 @@ async function accessToken(session: EmbeddedWalletSession): Promise<string> {
   if (stored) {
     try { const encoded = stored.split(".")[0].replace(/-/g, "+").replace(/_/g, "/"); const padded = encoded.padEnd(Math.ceil(encoded.length / 4) * 4, "="); if (JSON.parse(atob(padded)).exp * 1000 > Date.now() + 30_000) return stored; } catch { sessionStorage.removeItem(authStorageKey(session.address)); }
   }
-  const challengeResponse = await fetch(`${baseUrl}/auth/challenge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: session.address }) });
-  const challenge = await challengeResponse.json().catch(() => ({}));
-  if (!challengeResponse.ok) throw new Error(String(challenge.error || "Could not start wallet sign-in"));
-  const signature = await session.signer.signMessage(challenge.message);
-  const verifyResponse = await fetch(`${baseUrl}/auth/verify`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ challengeId: challenge.challengeId, address: session.address, signature }) });
+  const verifyResponse = await fetch(`${baseUrl}/auth/session`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ address: session.address, accountFactory: session.accountFactory, accountFactoryData: session.accountFactoryData }) });
   const verified = await verifyResponse.json().catch(() => ({}));
   if (!verifyResponse.ok) throw new Error(String(verified.error || "Could not verify wallet sign-in"));
   sessionStorage.setItem(authStorageKey(session.address), verified.accessToken);
